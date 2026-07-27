@@ -53,8 +53,8 @@ android {
         versionName flutterVersionName
     }
 
-    signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+    if (keystorePropertiesFile.exists()) {
+        signingConfigs {
             release {
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
@@ -62,10 +62,16 @@ android {
                 storePassword keystoreProperties['storePassword']
             }
         }
-    }
-    buildTypes {
-        release {
-            signingConfig signingConfigs.exists('release') ? signingConfigs.release : signingConfigs.debug
+        buildTypes {
+            release {
+                signingConfig signingConfigs.release
+            }
+        }
+    } else {
+        buildTypes {
+            release {
+                signingConfig signingConfigs.debug
+            }
         }
     }
 }
