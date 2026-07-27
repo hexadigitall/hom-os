@@ -1,4 +1,4 @@
-# hom.com.ng — Corinthian Monorepo
+# hom.com.ng — HOM Monorepo
 
 Built by Hexadigitall — https://hexadigitall.com / https://github.com/hexadigitall
 
@@ -7,7 +7,7 @@ Built by Hexadigitall — https://hexadigitall.com / https://github.com/hexadigi
 /hom.com.ng/
 ├── web/     -> Vercel Next.js 14 (hom.com.ng)
 ├── mobile/  -> Flutter Android (AAB + APK)
-├── brand/   -> Corinthian logo pack
+├── brand/   -> Logo pack & brand assets
 ├── vercel.json
 ```
 
@@ -18,7 +18,7 @@ npm install
 NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_754731e7a9876ece4826c96a4f7734c189e7f7c6 npm run dev
 
 ### Deploy to Vercel
-1. Push to github.com/hexadigitall/hom.com.ng
+1. Push to github.com/hexadigitall/hom-os
 2. Vercel -> New Project -> Import
 3. Root Directory = `web`
 4. Env: NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_754731e7a9876ece4826c96a4f7734c189e7f7c6

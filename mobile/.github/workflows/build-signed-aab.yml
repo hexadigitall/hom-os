@@ -1,4 +1,4 @@
-name: Build Signed AAB + APK (Corinthian)
+name: Build Signed AAB + APK
 on:
   push:
     branches: [main]
@@ -21,7 +21,7 @@ jobs:
       - run: cd mobile && flutter pub get && flutter build apk --release && flutter build appbundle --release
       - uses: actions/upload-artifact@v4
         with:
-          name: hom-corinthian-apk-aab
+          name: hom-apk-aab
           path: |
             mobile/build/app/outputs/flutter-apk/app-release.apk
             mobile/build/app/outputs/bundle/release/app-release.aab

@@ -1,13 +1,14 @@
-name: hom_mobile_corinthian
-description: hom.com.ng Mobile - Corinthian Edition
+name: hom_mobile
+description: HOM — Hospitality Operations Manager
 publish_to: 'none'
-version: 1.0.0+1
+version: 2.0.0+1
 environment:
   sdk: '>=3.0.0 <4.0.0'
 dependencies:
   flutter:
     sdk: flutter
   http: ^1.1.0
+  url_launcher: ^6.2.0
 flutter:
   uses-material-design: true
   assets:

@@ -17,7 +17,7 @@ export default function Home(){
       </header>
       <section className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
         <div>
-          <div className="inline-flex items-center gap-2 bg-white border border-[#0E9F6E]/20 px-3 py-1 rounded-full text-xs font-bold text-[#0E9F6E]">CORINTHIAN SQUIRCLE EDITION</div>
+          <div className="inline-flex items-center gap-2 bg-white border border-[#0E9F6E]/20 px-3 py-1 rounded-full text-xs font-bold text-[#0E9F6E]">THE HOTEL OS</div>
           <h1 className="mt-6 text-5xl md:text-7xl font-black tracking-tighter leading-[0.85]">HOM.<br/>The Hotel OS.</h1>
           <p className="mt-6 text-lg text-zinc-600 max-w-xl">HOM — Hospitality Operations Manager. One OS for bookings, diesel theft detection, inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud API and Booking.com sync.</p>
           <div className="mt-8 flex gap-3">
