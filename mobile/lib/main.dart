@@ -87,7 +87,7 @@ class _HomeShellState extends State<HomeShell> {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: List.generate(7, (i) => NavigationDestination(
           icon: Icon(_icons[i], size: 22),
-          label: Text(_labels[i], style: const TextStyle(fontSize: 10)),
+          label: _labels[i],
         )),
       ),
     );
@@ -224,21 +224,20 @@ class OverviewScreen extends StatelessWidget {
   const OverviewScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final d = HOMData;
-    final avail = d.rooms.where((r) => r.status == 'available').length;
-    final active = d.bookings.where((b) => b.status == 'checked-in').length;
-    final low = d.inventory.where((i) => i.qty <= i.low).length;
-    final theft = d.diesel.where((dg) => dg.genHours > 0 && dg.liters / dg.genHours < 8).length;
+    final avail = HOMData.rooms.where((r) => r.status == 'available').length;
+    final active = HOMData.bookings.where((b) => b.status == 'checked-in').length;
+    final low = HOMData.inventory.where((i) => i.qty <= i.low).length;
+    final theft = HOMData.diesel.where((dg) => dg.genHours > 0 && dg.liters / dg.genHours < 8).length;
 
     return ListView(padding: const EdgeInsets.all(16), children: [
       GridView.count(
         crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
         crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.6,
         children: [
-          _stat('Rooms', '${d.rooms.length}', '$avail available', Icons.bed_rounded, Colors.blue),
-          _stat('Bookings', '$active', '${d.bookings.length} total', Icons.calendar_month_rounded, primaryGreen),
-          _stat('Diesel', '${d.diesel.fold(0, (a, b) => a + b.liters)}L', '${d.diesel.length} logs', Icons.local_gas_station_rounded, Colors.amber),
-          _stat('Low Stock', '$low', '${d.inventory.length} items', Icons.warning_rounded, Colors.red),
+          _stat('Rooms', '${HOMData.rooms.length}', '$avail available', Icons.bed_rounded, Colors.blue),
+          _stat('Bookings', '$active', '${HOMData.bookings.length} total', Icons.calendar_month_rounded, primaryGreen),
+          _stat('Diesel', '${HOMData.diesel.fold(0, (a, b) => a + b.liters)}L', '${HOMData.diesel.length} logs', Icons.local_gas_station_rounded, Colors.amber),
+          _stat('Low Stock', '$low', '${HOMData.inventory.length} items', Icons.warning_rounded, Colors.red),
         ],
       ),
       const SizedBox(height: 16),
@@ -264,7 +263,7 @@ class OverviewScreen extends StatelessWidget {
         ),
       const SizedBox(height: 16),
       _sectionTitle('Recent Bookings'),
-      ...d.bookings.take(3).map((b) => Card(
+      ...HOMData.bookings.take(3).map((b) => Card(
         child: ListTile(
           title: Text('${b.guest} — Room ${b.room}', style: const TextStyle(fontWeight: FontWeight.w700)),
           subtitle: Text('${b.checkin} → ${b.checkout}'),
