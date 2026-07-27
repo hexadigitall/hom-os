@@ -1,39 +1,44 @@
-import Image from "next/image";
-export default function Home() {
+export default function Home(){
   return (
-    <main className="min-h-screen">
-      <header className="border-b sticky top-0 bg-white/80 backdrop-blur z-50">
-        <div className="max-w-6xl mx-auto flex items-center justify-between p-4">
+    <main className="min-h-screen bg-[#F6F7F5]">
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
+        <div className="max-w-7xl mx-auto p-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="hom.com.ng" className="h-10 w-10 object-contain" />
-            <span className="font-bold text-xl text-[#0E9F6E]">hom.com.ng</span>
+            <div className="h-11 w-11 rounded-[14px] bg-white border-2 border-[#0E9F6E] p-1.5 shadow-sm flex items-center justify-center">
+              <img src="/logo.png" alt="HOM" className="h-full w-full object-contain" />
+            </div>
+            <div>
+              <div className="font-black tracking-tight text-xl leading-none">HOM</div>
+              <div className="text-[10px] font-bold text-[#0E9F6E] tracking-widest uppercase">Hospitality Operations Manager</div>
+            </div>
           </div>
-          <a href="/dashboard" className="bg-[#0E9F6E] text-white px-5 py-2 rounded-full">Dashboard</a>
+          <a href="/dashboard" className="bg-[#0E1A14] text-white px-6 py-2.5 rounded-full font-bold text-sm">Open OS</a>
         </div>
       </header>
-      <section className="max-w-6xl mx-auto px-6 py-24 text-center">
-        <img src="/logo.png" alt="Corinthian" className="mx-auto h-32 w-32 mb-6" />
-        <h1 className="text-5xl font-black">The Hotel OS Powering Nigeria</h1>
-        <p className="mt-4 text-xl text-zinc-600">Corinthian Edition — Stability + Growth — Built by Hexadigitall</p>
-        <div className="mt-8 flex justify-center gap-4">
-          <a href="/dashboard" className="bg-[#0E9F6E] text-white px-8 py-3 rounded-full">Launch Dashboard</a>
-          <a href="https://hexadigitall.com" className="border px-8 py-3 rounded-full">hexadigitall.com</a>
+      <section className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <div className="inline-flex items-center gap-2 bg-white border border-[#0E9F6E]/20 px-3 py-1 rounded-full text-xs font-bold text-[#0E9F6E]">CORINTHIAN SQUIRCLE EDITION</div>
+          <h1 className="mt-6 text-5xl md:text-7xl font-black tracking-tighter leading-[0.85]">HOM.<br/>The Hotel OS.</h1>
+          <p className="mt-6 text-lg text-zinc-600 max-w-xl">HOM — Hospitality Operations Manager. One OS for bookings, diesel theft detection, inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud API and Booking.com sync.</p>
+          <div className="mt-8 flex gap-3">
+            <a href="/dashboard" className="bg-[#0E9F6E] text-white px-8 py-3.5 rounded-full font-black">Launch Dashboard</a>
+            <a href="https://hexadigitall.com" className="border px-8 py-3.5 rounded-full font-bold">By Hexadigitall</a>
+          </div>
         </div>
-        <div className="mt-16 grid md:grid-cols-3 gap-6 text-left">
-          {[
-            ["Bookings + Front Desk", "VAT 7.5% auto, overbooking prevention"],
-            ["Diesel + Inventory", "L tracking, NEPA vs Gen, theft alerts"],
-            ["HR + Payroll + WhatsApp", "PAYE 7% + Pension 8%, payslip via WhatsApp"]
-          ].map(([t,d])=>(
-            <div key={t} className="border rounded-2xl p-6">
-              <h3 className="font-bold">{t}</h3><p className="text-zinc-600 mt-2">{d}</p>
+        <div className="bg-[#0E1A14] rounded-[2.5rem] p-3 shadow-2xl">
+          <div className="bg-white rounded-[2rem] p-6">
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-14 rounded-[16px] border-2 border-[#0E9F6E] p-2"><img src="/logo.png" className="h-full w-full" /></div>
+              <div><div className="font-black">HOM</div><div className="text-[11px] text-zinc-500">Hospitality Operations Manager</div></div>
             </div>
-          ))}
+            <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+              <div className="bg-[#F6F7F5] rounded-2xl p-4"><div className="text-2xl font-black">127</div>Bookings</div>
+              <div className="bg-[#0E9F6E] text-white rounded-2xl p-4"><div className="text-2xl font-black">840L</div>Diesel</div>
+            </div>
+          </div>
         </div>
       </section>
-      <footer className="border-t py-8 text-center text-sm text-zinc-500">
-        Built by Hexadigitall — <a href="https://hexadigitall.com" className="underline">hexadigitall.com</a> / <a href="https://github.com/hexadigitall" className="underline">github.com/hexadigitall</a> — Paystack Test: pk_test_7547...
-      </footer>
+      <footer className="border-t py-10 text-center text-xs text-zinc-500">HOM — Hospitality Operations Manager • hom.com.ng • Built by Hexadigitall</footer>
     </main>
   )
 }
