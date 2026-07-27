@@ -1,4 +1,4 @@
-# hom.com.ng — HOM Monorepo
+# HOM - Hospitality Operations Manager 
 
 Built by Hexadigitall — https://hexadigitall.com / https://github.com/hexadigitall
 
