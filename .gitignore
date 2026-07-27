@@ -1,0 +1,10 @@
+node_modules
+.next
+.env.local
+.flutter-plugins
+.dart_tool
+/build
+*.keystore
+*.jks
+*.apk
+*.aab

@@ -1,0 +1,1 @@
+Corinthian 2-Step LTR Final — #0E9F6E — Master logo is hom_logo_corinthian_master.png — Used in web/public/logo.png and mobile/assets/logo/logo.png and android mipmap icons
