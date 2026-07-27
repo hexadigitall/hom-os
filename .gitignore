@@ -8,3 +8,8 @@ node_modules
 *.jks
 *.apk
 *.aab
+
+# Android local config (paths differ per machine)
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/upload-keystore.jks

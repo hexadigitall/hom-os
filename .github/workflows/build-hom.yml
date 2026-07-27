@@ -1,68 +1,78 @@
-name: Build HOM APK + AAB (v5 FINAL)
+name: Build HOM APK + AAB
 on:
   push:
     branches: [main]
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/build-hom.yml'
   workflow_dispatch:
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with: { distribution: 'temurin', java-version: '17' }
-      - uses: subosito/flutter-action@v2
-        with: { flutter-version: '3.22.3', channel: 'stable' }
 
-      - name: Setup Android properties
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.3'
+          channel: 'stable'
+
+      - name: Flutter doctor
+        run: flutter doctor -v
+
+      - name: Setup local.properties
         working-directory: mobile/android
         run: |
-          echo "sdk.dir=${ANDROID_HOME}" > local.properties
-          echo "flutter.sdk=${FLUTTER_ROOT}" >> local.properties
-          echo "flutter.versionCode=2" >> local.properties
-          echo "flutter.versionName=2.0.0" >> local.properties
-          cat local.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          echo "flutter.sdk=$(which flutter | xargs dirname | xargs dirname)" >> local.properties
 
       - name: Create keystore
         working-directory: mobile/android/app
         run: |
-          if [ -z "${{ secrets.KEYSTORE_BASE64 }}" ]; then
-            keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -alias upload -dname "CN=HOM, OU=Hexadigitall, O=HOM, L=PH, S=Rivers, C=NG"
-          else
-            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > upload-keystore.jks
-          fi
+          keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -alias upload -dname "CN=HOM, OU=Hexadigitall, O=HOM, L=PH, S=Rivers, C=NG"
 
       - name: Create key.properties
         working-directory: mobile/android
         run: |
-          echo "storeFile=upload-keystore.jks" > key.properties
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD || 'android' }}" >> key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS || 'upload' }}" >> key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD || 'android' }}" >> key.properties
+          cat > key.properties <<EOF
+          storeFile=upload-keystore.jks
+          storePassword=android
+          keyAlias=upload
+          keyPassword=android
+          EOF
 
       - name: Flutter pub get
-        working-directory: mobile
         run: flutter pub get
 
-      - name: Build APK + AAB
-        working-directory: mobile
-        run: |
-          flutter build apk --release --split-per-abi
-          flutter build apk --release
-          flutter build appbundle --release
+      - name: Build APK
+        run: flutter build apk --release
 
-      - name: Upload APKs
+      - name: Build AAB
+        run: flutter build appbundle --release
+
+      - name: Build split APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HOM-APKs-v5
-          path: |
-            mobile/build/app/outputs/flutter-apk/app-release.apk
-            mobile/build/app/outputs/flutter-apk/app-*-release.apk
+          name: HOM-APK
+          path: mobile/build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload Split APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOM-Split-APKs
+          path: mobile/build/app/outputs/flutter-apk/app-*-release.apk
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: HOM-AAB-v5-PlayStore
+          name: HOM-AAB
           path: mobile/build/app/outputs/bundle/release/app-release.aab
