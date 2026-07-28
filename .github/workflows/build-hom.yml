@@ -151,7 +151,7 @@ jobs:
         shell: pwsh
 
       - name: Create MSIX Installer
-        run: dart run msix:create --certificate-path build/hom-sign.pfx --certificate-password "HOM-CI-2026" --install-certificate false
+        run: dart run msix:create --sign-msix false
         shell: bash
 
       - name: Upload Windows Build
