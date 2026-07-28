@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=HOM
+Comment=Hospitality Operations Manager
+Exec=hom
+Icon=com.hom.hospitality_ops
+Type=Application
+Categories=Business;Utility;
+Terminal=false
+StartupWMClass=hom

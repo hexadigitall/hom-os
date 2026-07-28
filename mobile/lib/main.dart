@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 const Color primaryGreen = Color(0xFF0E9F6E);
 const Color darkGreen = Color(0xFF0B7A55);
 const Color inkBlack = Color(0xFF0E1A14);
 
-void main() => runApp(const HOMApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  runApp(const HOMApp());
+}
 
 class HOMApp extends StatelessWidget {
   const HOMApp({super.key});
@@ -65,6 +75,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final isPortrait = MediaQuery.of(context).orientation == Orientation.portrait;
     return Scaffold(
       appBar: AppBar(
         title: Row(children: [
@@ -83,8 +94,10 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        height: 65,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        height: isPortrait ? 60 : 65,
+        labelBehavior: isPortrait
+            ? NavigationDestinationLabelBehavior.alwaysHide
+            : NavigationDestinationLabelBehavior.alwaysShow,
         destinations: List.generate(7, (i) => NavigationDestination(
           icon: Icon(_icons[i], size: 22),
           label: _labels[i],

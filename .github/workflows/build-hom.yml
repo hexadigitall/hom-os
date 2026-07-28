@@ -118,7 +118,7 @@ jobs:
           if-no-files-found: warn
 
   # ─────────────────────────────────────────────
-  # WINDOWS (Desktop)
+  # WINDOWS (Desktop - MSIX Installer)
   # ─────────────────────────────────────────────
   build-windows:
     runs-on: windows-latest
@@ -142,14 +142,24 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Upload Windows Build
+      - name: Create MSIX Installer
+        run: dart run msix:create --certificate-path "null" --certificate-password ""
+
+      - name: Upload Windows Portable
         uses: actions/upload-artifact@v4
         with:
-          name: HOM-Windows
+          name: HOM-Windows-Portable
           path: mobile/build/windows/x64/runner/Release/
 
+      - name: Upload Windows MSIX Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOM-Windows-Installer
+          path: mobile/build/windows/x64/runner/Release/*.msix
+          if-no-files-found: warn
+
   # ─────────────────────────────────────────────
-  # LINUX (Desktop)
+  # LINUX (Desktop - .deb Package)
   # ─────────────────────────────────────────────
   build-linux:
     runs-on: ubuntu-latest
@@ -181,11 +191,61 @@ jobs:
       - name: Build Linux
         run: flutter build linux --release
 
-      - name: Upload Linux Build
+      - name: Create .deb package
+        run: |
+          BUNDLE=build/linux/x64/bundle
+          DEB_DIR=build/deb/hom_2.0.0_amd64
+          mkdir -p "$DEB_DIR/DEBIAN"
+          mkdir -p "$DEB_DIR/usr/bin"
+          mkdir -p "$DEB_DIR/usr/lib/hom"
+          mkdir -p "$DEB_DIR/usr/share/applications"
+          mkdir -p "$DEB_DIR/usr/share/icons/hicolor/256x256/apps"
+
+          # Copy bundle contents
+          cp -r "$BUNDLE"/* "$DEB_DIR/usr/lib/hom/"
+
+          # Create wrapper script
+          cat > "$DEB_DIR/usr/bin/hom" << 'WRAPPER'
+          #!/bin/sh
+          exec /usr/lib/hom/hom "$@"
+          WRAPPER
+          chmod +x "$DEB_DIR/usr/bin/hom"
+
+          # Copy desktop file
+          cp linux/com.hom.hospitality_ops.desktop "$DEB_DIR/usr/share/applications/"
+
+          # Copy icon
+          if [ -f "$BUNDLE/data/flutter_assets/assets/logo/logo.png" ]; then
+            cp "$BUNDLE/data/flutter_assets/assets/logo/logo.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/com.hom.hospitality_ops.png"
+          fi
+
+          # Create control file
+          cat > "$DEB_DIR/DEBIAN/control" << EOF
+          Package: hom
+          Version: 2.0.0
+          Section: utils
+          Priority: optional
+          Architecture: amd64
+          Maintainer: Hexadigitall <info@hexadigitall.com>
+          Description: HOM - Hospitality Operations Manager
+           A comprehensive hospitality operations management application
+           for managing rooms, bookings, diesel, inventory, staff, and vendors.
+          Depends: libgtk-3-0
+          EOF
+
+          dpkg-deb --build "$DEB_DIR" "build/hom_2.0.0_amd64.deb"
+
+      - name: Upload Linux Bundle
         uses: actions/upload-artifact@v4
         with:
           name: HOM-Linux
           path: mobile/build/linux/x64/bundle/
+
+      - name: Upload Linux .deb Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOM-Linux-Deb
+          path: mobile/build/hom_2.0.0_amd64.deb
 
   # ─────────────────────────────────────────────
   # macOS (Desktop)
@@ -242,7 +302,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --release
+        run: flutter build web --release --base-href ./
 
       - name: Upload Web Build
         uses: actions/upload-artifact@v4
