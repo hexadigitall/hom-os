@@ -28,3 +28,4 @@ msix_config:
   capabilities: internetClient
   languages: en-us
   msix_version: 2.0.0.0
+  install_certificate: false

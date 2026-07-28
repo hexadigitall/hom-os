@@ -142,29 +142,23 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Create self-signed certificate
+      - name: Create self-signed certificate and install
         run: |
           $cert = New-SelfSignedCertificate -Subject "CN=Hexadigitall" -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(5) -Type CodeSigningCert
           $pwd = ConvertTo-SecureString -String "HOM-CI-2026" -Force -AsPlainText
           Export-PfxCertificate -Cert $cert -FilePath "build\hom-sign.pfx" -Password $pwd
+          Import-PfxCertificate -FilePath "build\hom-sign.pfx" -CertStoreLocation "Cert:\CurrentUser\My" -Password $pwd
         shell: pwsh
 
       - name: Create MSIX Installer
-        run: dart run msix:create --certificate-path build\hom-sign.pfx --certificate-password "HOM-CI-2026"
-        shell: pwsh
+        run: dart run msix:create --certificate-path build/hom-sign.pfx --certificate-password "HOM-CI-2026" --install-certificate false
+        shell: bash
 
-      - name: Upload Windows Portable
+      - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
-          name: HOM-Windows-Portable
+          name: HOM-Windows
           path: mobile/build/windows/x64/runner/Release/
-
-      - name: Upload Windows MSIX Installer
-        uses: actions/upload-artifact@v4
-        with:
-          name: HOM-Windows-Installer
-          path: mobile/build/windows/x64/runner/Release/*.msix
-          if-no-files-found: warn
 
   # ─────────────────────────────────────────────
   # LINUX (Desktop - .deb Package)
