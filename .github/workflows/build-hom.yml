@@ -216,7 +216,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HOM-macOS
-          path: mobile/build/macos/Build/Products/Release/Runner.app
+          path: mobile/build/macos/Build/Products/Release/
+          if-no-files-found: warn
 
   # ─────────────────────────────────────────────
   # WEB
