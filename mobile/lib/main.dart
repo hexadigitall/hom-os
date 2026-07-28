@@ -22,7 +22,7 @@ class HOMApp extends StatelessWidget {
           foregroundColor: Colors.black87,
           elevation: 0.5,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -74,7 +74,7 @@ class _HomeShellState extends State<HomeShell> {
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: primaryGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: primaryGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
             child: const Text('LIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: primaryGreen)),
           ),
         ]),
@@ -202,7 +202,7 @@ Widget _statusChip(String s) {
   }
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+    decoration: BoxDecoration(color: c.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
     child: Text(s, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: c)),
   );
 }
@@ -303,7 +303,7 @@ class _BookingsScreenState extends State<BookingsScreen> {
       TextField(controller: guest, decoration: const InputDecoration(labelText: 'Guest name')),
       TextField(controller: phone, decoration: const InputDecoration(labelText: 'Phone')),
       StatefulBuilder(builder: (ctx, setSB) => DropdownButtonFormField<String>(
-        value: room,
+        initialValue: room,
         items: HOMData.rooms.where((r) => r.status == 'available').map((r) => DropdownMenuItem(value: r.number, child: Text('${r.number} — ₦${r.price}'))).toList(),
         onChanged: (v) => setSB(() => room = v!),
         decoration: const InputDecoration(labelText: 'Room'),
@@ -392,7 +392,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     _showForm(context, 'Add Room', [
       TextField(controller: num, decoration: const InputDecoration(labelText: 'Room number')),
       StatefulBuilder(builder: (ctx, setSB) => DropdownButtonFormField<String>(
-        value: type,
+        initialValue: type,
         items: ['Standard', 'Deluxe', 'Executive', 'Suite'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
         onChanged: (v) => setSB(() => type = v!),
         decoration: const InputDecoration(labelText: 'Type'),
@@ -410,7 +410,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     String type = r.type;
     _showForm(context, 'Edit Room ${r.number}', [
       StatefulBuilder(builder: (ctx, setSB) => DropdownButtonFormField<String>(
-        value: type,
+        initialValue: type,
         items: ['Standard', 'Deluxe', 'Executive', 'Suite'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
         onChanged: (v) => setSB(() => type = v!),
       )),
@@ -738,7 +738,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
     String vendorId = HOMData.vendors.isNotEmpty ? HOMData.vendors.first.id : '';
     _showForm(context, 'New Purchase Order', [
       StatefulBuilder(builder: (ctx, setSB) => DropdownButtonFormField<String>(
-        value: vendorId,
+        initialValue: vendorId,
         items: HOMData.vendors.map((v) => DropdownMenuItem(value: v.id, child: Text(v.name))).toList(),
         onChanged: (v) => setSB(() => vendorId = v!),
         decoration: const InputDecoration(labelText: 'Vendor'),
