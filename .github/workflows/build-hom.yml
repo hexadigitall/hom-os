@@ -142,8 +142,16 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
+      - name: Create self-signed certificate
+        run: |
+          $cert = New-SelfSignedCertificate -Subject "CN=Hexadigitall" -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(5) -Type CodeSigningCert
+          $pwd = ConvertTo-SecureString -String "HOM-CI-2026" -Force -AsPlainText
+          Export-PfxCertificate -Cert $cert -FilePath "build\hom-sign.pfx" -Password $pwd
+        shell: pwsh
+
       - name: Create MSIX Installer
-        run: dart run msix:create --certificate-path "null" --certificate-password ""
+        run: dart run msix:create --certificate-path build\hom-sign.pfx --certificate-password "HOM-CI-2026"
+        shell: pwsh
 
       - name: Upload Windows Portable
         uses: actions/upload-artifact@v4
@@ -193,7 +201,7 @@ jobs:
 
       - name: Create .deb package
         run: |
-          BUNDLE=build/linux/x64/bundle
+          BUNDLE=build/linux/x64/release/bundle
           DEB_DIR=build/deb/hom_2.0.0_amd64
           mkdir -p "$DEB_DIR/DEBIAN"
           mkdir -p "$DEB_DIR/usr/bin"
@@ -205,10 +213,7 @@ jobs:
           cp -r "$BUNDLE"/* "$DEB_DIR/usr/lib/hom/"
 
           # Create wrapper script
-          cat > "$DEB_DIR/usr/bin/hom" << 'WRAPPER'
-          #!/bin/sh
-          exec /usr/lib/hom/hom "$@"
-          WRAPPER
+          printf '#!/bin/sh\nexec /usr/lib/hom/hom "$@"\n' > "$DEB_DIR/usr/bin/hom"
           chmod +x "$DEB_DIR/usr/bin/hom"
 
           # Copy desktop file
@@ -219,19 +224,8 @@ jobs:
             cp "$BUNDLE/data/flutter_assets/assets/logo/logo.png" "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/com.hom.hospitality_ops.png"
           fi
 
-          # Create control file
-          cat > "$DEB_DIR/DEBIAN/control" << EOF
-          Package: hom
-          Version: 2.0.0
-          Section: utils
-          Priority: optional
-          Architecture: amd64
-          Maintainer: Hexadigitall <info@hexadigitall.com>
-          Description: HOM - Hospitality Operations Manager
-           A comprehensive hospitality operations management application
-           for managing rooms, bookings, diesel, inventory, staff, and vendors.
-          Depends: libgtk-3-0
-          EOF
+          # Create control file (no leading spaces in field values)
+          printf 'Package: hom\nVersion: 2.0.0\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Hexadigitall <info@hexadigitall.com>\nDescription: HOM - Hospitality Operations Manager\n A hospitality operations management application\n for managing rooms, bookings, diesel, inventory, staff, and vendors.\nDepends: libgtk-3-0\n' > "$DEB_DIR/DEBIAN/control"
 
           dpkg-deb --build "$DEB_DIR" "build/hom_2.0.0_amd64.deb"
 
@@ -239,7 +233,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HOM-Linux
-          path: mobile/build/linux/x64/bundle/
+          path: mobile/build/linux/x64/release/bundle/
 
       - name: Upload Linux .deb Package
         uses: actions/upload-artifact@v4
@@ -302,7 +296,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --release --base-href ./
+        run: flutter build web --release
 
       - name: Upload Web Build
         uses: actions/upload-artifact@v4

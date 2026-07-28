@@ -22,16 +22,22 @@
       margin: 0;
       padding: 0;
       background-color: #F6F7F5;
+    }
+    #loading-indicator {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #F6F7F5;
+      z-index: 9999;
+      transition: opacity 0.3s;
     }
-    .loading {
-      text-align: center;
+    #loading-indicator.fade-out {
+      opacity: 0;
+      pointer-events: none;
     }
-    .loading .spinner {
+    .spinner {
       width: 48px;
       height: 48px;
       border: 4px solid #E0E0E0;
@@ -64,29 +70,37 @@
   </style>
 </head>
 <body>
-  <div class="loading" id="loading-indicator">
-    <div class="spinner"></div>
-    <h2>HOM</h2>
-    <p>Loading Hospitality Operations Manager...</p>
-    <div class="error" id="load-error">
-      Failed to load. Please refresh the page or try a different browser.
+  <div id="loading-indicator">
+    <div style="text-align:center;">
+      <div class="spinner"></div>
+      <h2>HOM</h2>
+      <p>Loading Hospitality Operations Manager...</p>
+      <div class="error" id="load-error">
+        Taking too long? Try refreshing the page.
+      </div>
     </div>
   </div>
 
   <script>
-    // Show error message if Flutter fails to load within 15 seconds
+    // Show error if Flutter hasn't rendered within 20 seconds
     var loadTimeout = setTimeout(function() {
       var err = document.getElementById('load-error');
       if (err) err.style.display = 'block';
-    }, 15000);
+    }, 20000);
 
-    // Hide loading indicator once Flutter renders
-    window.flutterConfiguration = window.flutterConfiguration || {};
-    window._flutterLoaded = function() {
-      clearTimeout(loadTimeout);
-      var el = document.getElementById('loading-indicator');
-      if (el) el.style.display = 'none';
-    };
+    // Watch for Flutter canvas and hide loader
+    var observer = new MutationObserver(function(mutations) {
+      if (document.querySelector('flt-glass-pane') || document.querySelector('canvas') || document.querySelector('flutter-view')) {
+        clearTimeout(loadTimeout);
+        var el = document.getElementById('loading-indicator');
+        if (el) {
+          el.classList.add('fade-out');
+          setTimeout(function() { el.remove(); }, 400);
+        }
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

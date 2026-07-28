@@ -27,8 +27,4 @@ msix_config:
   logo_path: windows/runner/resources/app_icon.png
   capabilities: internetClient
   languages: en-us
-  file_extension: .hom
   msix_version: 2.0.0.0
-  signing_certificate: false
-  certificate_path: null
-  certificate_password: null
