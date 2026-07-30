@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "925042136693",
+    "project_id": "hom-os",
+    "storage_bucket": "hom-os.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:925042136693:android:bfa4302cd8090aafe64a3c",
+        "android_client_info": {
+          "package_name": "com.hom.hospitality_ops"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "925042136693-so1ki1f497aldnhhgrkkjfi8tj9r6kd5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hom.hospitality_ops",
+            "certificate_hash": "5b082b8cb38d7330ff9a368c6c1130c38743766a"
+          }
+        },
+        {
+          "client_id": "925042136693-0eolp03vj1s7s4nl9s7fie43v2ngdpba.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC1br7GJbBwNqzNzTUdLbCvts2aZ6gdwmc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "925042136693-0eolp03vj1s7s4nl9s7fie43v2ngdpba.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
