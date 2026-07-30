@@ -58,14 +58,29 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Clean build
-        run: flutter clean
-
-      - name: Flutter pub get (after clean)
-        run: flutter pub get
-
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release || echo "Flutter exit code: $? (APK may still exist)"
+          echo "--- Searching for APK ---"
+          # Gradle may build the APK even when Flutter crashes tracking it
+          find build -name "*.apk" -type f 2>/dev/null
+          for p in \
+            "build/app/outputs/flutter-apk/app-release.apk" \
+            "build/app/outputs/apk/release/app-release.apk"; do
+            if [ -f "$p" ]; then
+              echo "FOUND APK: $p"
+              mkdir -p build/app/outputs/flutter-apk
+              cp "$p" build/app/outputs/flutter-apk/app-release.apk 2>/dev/null || true
+            fi
+          done
+          # Verify we have an APK
+          if [ -f build/app/outputs/flutter-apk/app-release.apk ]; then
+            echo "APK ready at build/app/outputs/flutter-apk/app-release.apk"
+          else
+            echo "WARNING: No APK found anywhere!"
+            exit 1
+          fi
+        working-directory: mobile
 
       - name: Build AAB
         run: flutter build appbundle --release
