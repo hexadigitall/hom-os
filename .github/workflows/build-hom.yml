@@ -65,7 +65,7 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --verbose 2>&1
 
       - name: Build AAB
         run: flutter build appbundle --release
