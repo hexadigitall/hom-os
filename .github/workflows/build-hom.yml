@@ -58,6 +58,12 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Clean build
+        run: flutter clean
+
+      - name: Flutter pub get (after clean)
+        run: flutter pub get
+
       - name: Build APK
         run: flutter build apk --release
 
