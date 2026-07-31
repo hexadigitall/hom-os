@@ -20,9 +20,11 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
 
   List<ExpenditureRecord> get _records {
     var list = ExpenditureStore.all;
-    final defaultDept = RoleStore.currentRole.department;
+    final scope = RoleStore.departments;
+    final defaultDept = scope.isEmpty ? null : scope.first;
     final effectiveDept = _deptFilter ?? defaultDept;
     if (effectiveDept != null) list = list.where((r) => r.department == effectiveDept).toList();
+    if (scope.isNotEmpty) list = list.where((r) => scope.contains(r.department)).toList();
     if (_catFilter != null) list = list.where((r) => r.category == _catFilter).toList();
     if (_search.isNotEmpty) {
       final q = _search.toLowerCase();
@@ -48,7 +50,8 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
     final refCtl = TextEditingController(text: existing?.receiptRef ?? '');
     final notesCtl = TextEditingController(text: existing?.notes ?? '');
     ExpenditureCategory cat = existing?.category ?? ExpenditureCategory.other;
-    Department? dept = existing?.department ?? RoleStore.currentRole.department;
+    final scope = RoleStore.departments;
+    Department? dept = existing?.department ?? (scope.isEmpty ? null : scope.first);
     DateTime date = existing?.date ?? DateTime.now();
 
     showModalBottomSheet(

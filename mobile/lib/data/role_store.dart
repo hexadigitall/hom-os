@@ -1,17 +1,136 @@
+import 'package:flutter/foundation.dart';
 import '../models/role.dart';
 
+/// Reactive, additive permission context for the signed-in user.
+///
+/// Zero-Trust rules:
+/// * A fresh install starts as [Session.empty] — NO default admin.
+/// * `has()` only ever returns true for an [AccountStatus.active] account,
+///   granting the union of all assigned roles plus any custom grants.
+/// * Unknown roles never fall back to an admin; they resolve to nothing.
 class Session {
   String userId;
   String userName;
-  AppRole role;
+  String email;
+
+  /// Additive role ids (e.g. ['front_desk', 'dept_head']).
+  List<String> roleIds;
+
+  /// Departments this user is scoped to. Empty = unrestricted (management).
+  List<Department> assignedDepartments;
+
+  /// Ad-hoc extra grants that sit on top of the role union.
+  Set<Permission> customPermissions;
+
+  /// Heads-of-department flags, e.g. {kitchen: true, laundry: true}.
+  Map<Department, bool> isHeadOfDepartment;
+
+  AccountStatus status;
   String? hotelId;
 
   Session({
     required this.userId,
     required this.userName,
-    required this.role,
+    this.email = '',
+    this.roleIds = const [],
+    this.assignedDepartments = const [],
+    this.customPermissions = const {},
+    this.isHeadOfDepartment = const {},
+    this.status = AccountStatus.pending,
     this.hotelId,
   });
+
+  /// Backward-compatible constructor for a single primary role.
+  Session.withRole({
+    required this.userId,
+    required this.userName,
+    required AppRole role,
+    this.email = '',
+    List<Department>? assignedDepartments,
+    this.customPermissions = const {},
+    this.isHeadOfDepartment = const {},
+    this.status = AccountStatus.active,
+    this.hotelId,
+  }) : roleIds = [role.id],
+       assignedDepartments = assignedDepartments ??
+           (role.department != null ? [role.department!] : const []);
+
+  /// Zero-trust sentinel — no identity, no roles, no permissions.
+  factory Session.empty() => Session(
+    userId: '',
+    userName: '',
+    status: AccountStatus.pending,
+  );
+
+  bool get hasIdentity => userId.isNotEmpty;
+  bool get isAccountActive => hasIdentity && status == AccountStatus.active;
+  bool get isSuspended => hasIdentity && status == AccountStatus.suspended;
+  bool get isPendingAssignment => hasIdentity && status == AccountStatus.pending;
+
+  /// The first resolvable role (used for display / legacy `department`).
+  AppRole? get primaryRole {
+    for (final id in roleIds) {
+      final role = RoleStore.findRoleById(id);
+      if (role != null) return role;
+    }
+    return null;
+  }
+
+  /// Every role this account holds, resolved from the additive `roleIds`.
+  List<AppRole> get resolvedRoles =>
+      roleIds.map(RoleStore.findRoleById).whereType<AppRole>().toList();
+
+  bool get isManagement =>
+      roleIds.contains('super_admin') || roleIds.contains('hotel_manager');
+
+  /// Union of every assigned role's permissions.
+  Set<Permission> get rolePermissions =>
+      resolvedRoles.expand((r) => r.permissions).toSet();
+
+  /// Effective permissions = union(roles) ∪ custom grants.
+  Set<Permission> get effectivePermissions =>
+      {...rolePermissions, ...customPermissions};
+
+  /// Zero-trust union check. Denies everything for pending/suspended
+  /// accounts and for permissions not granted by ANY assigned role.
+  bool has(Permission permission) {
+    if (!isAccountActive) return false;
+    if (customPermissions.contains(permission)) return true;
+    return resolvedRoles.any((r) => r.has(permission));
+  }
+
+  bool hasAny(Iterable<Permission> permissions) => permissions.any(has);
+
+  bool hasAll(Iterable<Permission> permissions) => permissions.every(has);
+
+  /// Department scoping. Management bypasses scope; everyone else is
+  /// restricted to the departments they are assigned to or head.
+  bool canAccessDepartment(Department dept) {
+    if (!isAccountActive) return false;
+    if (isManagement) return true;
+    return assignedDepartments.contains(dept) ||
+        (isHeadOfDepartment[dept] ?? false);
+  }
+
+  /// True when the account carries an explicit department scope.
+  bool get hasDepartmentScope =>
+      assignedDepartments.isNotEmpty || isHeadOfDepartment.isNotEmpty;
+
+  /// Combined department scope (assignments + heads + role defaults).
+  /// Empty list = unrestricted (management-level visibility).
+  List<Department> get departmentScope {
+    final scope = <Department>{
+      ...assignedDepartments,
+      ...isHeadOfDepartment.keys,
+    };
+    for (final role in resolvedRoles) {
+      if (role.department != null) scope.add(role.department!);
+    }
+    return scope.toList();
+  }
+
+  /// True when [dept] is a department this user heads.
+  bool isHeadOf(Department dept) => isHeadOfDepartment[dept] ?? false;
 }
 
 class RoleStore {
@@ -168,20 +287,39 @@ class RoleStore {
     housekeeping, kitchen, departmentHead,
   ];
 
-  static Session _currentSession = Session(
-    userId: 'admin_001',
-    userName: 'Demo Admin',
-    role: superAdmin,
-    hotelId: 'hotel_001',
-  );
-
-  static Session get current => _currentSession;
-  static AppRole get currentRole => _currentSession.role;
-
-  static void setSession(Session session) {
-    _currentSession = session;
+  static AppRole? findRoleById(String roleId) {
+    for (final r in prebuiltRoles) {
+      if (r.id == roleId) return r;
+    }
+    return null;
   }
 
-  static bool has(Permission permission) => currentRole.has(permission);
-  static bool hasAny(Iterable<Permission> perms) => currentRole.hasAny(perms);
+  // ─────────────────── REACTIVE SESSION ───────────────────
+  // Rebuilds the shell, tabs and gates the moment the session changes
+  // (promotion, department transfer, suspension, assignment).
+
+  static final ValueNotifier<Session> sessionNotifier =
+      ValueNotifier<Session>(Session.empty());
+
+  static Session get current => sessionNotifier.value;
+
+  static void setSession(Session session) => sessionNotifier.value = session;
+
+  /// True when a real identity is signed in (any status).
+  static bool get hasSession => current.hasIdentity;
+
+  /// Zero-trust: session is authenticated AND active.
+  static bool get isActive => current.isAccountActive;
+
+  static bool has(Permission permission) => current.has(permission);
+  static bool hasAny(Iterable<Permission> permissions) =>
+      current.hasAny(permissions);
+
+  /// Effective departments this user can operate within (empty = all).
+  static List<Department> get departments => current.departmentScope;
+  static bool canAccessDepartment(Department dept) =>
+      current.canAccessDepartment(dept);
+
+  /// The first role in the additive set, or null (legacy display helper).
+  static AppRole? get currentRole => current.primaryRole;
 }

@@ -18,6 +18,22 @@ enum Division {
   complianceSecurityAudit,
 }
 
+// Account lifecycle — zero-trust gate. A user is only ever granted
+// permissions while status == active.
+enum AccountStatus {
+  pending, // registered but not yet assigned roles/departments
+  active,
+  suspended, // revoked — has() always denies
+}
+
+extension AccountStatusLabel on AccountStatus {
+  String get label => switch (this) {
+    AccountStatus.pending => 'Awaiting Assignment',
+    AccountStatus.active => 'Active',
+    AccountStatus.suspended => 'Suspended',
+  };
+}
+
 enum Department {
   management,
   reception,

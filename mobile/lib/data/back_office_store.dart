@@ -1,5 +1,6 @@
 import 'persistence_service.dart';
 import '../models/back_office.dart';
+import '../models/role.dart';
 import 'role_store.dart';
 
 class BackOfficeStore {
@@ -35,9 +36,9 @@ class BackOfficeStore {
   static double get totalSpend => _procurements.where((p) => p.status == ProcurementStatus.delivered).fold(0.0, (s, p) => s + p.amount);
 
   static List<ProcurementOrder> get procurementForCurrentDept {
-    final dept = RoleStore.currentRole.department;
-    if (dept == null) return procurements;
-    return _procurements.where((p) => p.department == dept).toList();
+    final scope = RoleStore.departments;
+    if (scope.isEmpty) return procurements;
+    return _procurements.where((p) => p.department != null && scope.contains(p.department)).toList();
   }
 
   static Future<void> addProcurement(ProcurementOrder p) async { _procurements.insert(0, p); await _save(); }
@@ -54,9 +55,16 @@ class BackOfficeStore {
   static double get totalPaid => _payrolls.where((p) => p.status == PayrollStatus.paid).fold(0.0, (s, p) => s + p.netPay);
 
   static List<PayrollRecord> get payrollForCurrentDept {
-    final dept = RoleStore.currentRole.department;
-    if (dept == null) return payrolls;
-    return _payrolls.where((p) => p.department == dept.name).toList();
+    final scope = RoleStore.departments;
+    if (scope.isEmpty) return payrolls;
+    return _payrolls.where((p) =>
+        scope.any((d) => _deptLabelMatches(p.department, d))).toList();
+  }
+
+  static bool _deptLabelMatches(String label, Department d) {
+    final norm = label.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return norm == d.name.toLowerCase().replaceAll('_', '') ||
+        norm.contains(d.name.toLowerCase());
   }
 
   static Future<void> addPayroll(PayrollRecord r) async { _payrolls.insert(0, r); await _save(); }

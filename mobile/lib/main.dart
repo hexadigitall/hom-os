@@ -43,7 +43,9 @@ import 'data/payment_store.dart';
 import 'utils/theme.dart';
 import 'data/profile_store.dart';
 import 'data/role_store.dart';
+import 'data/firestore_role_service.dart';
 import 'models/role.dart';
+import 'models/hotel_user.dart';
 import 'models/expenditure.dart';
 import 'models/fuel.dart';
 import 'features/profile/profile_screen.dart';
@@ -187,21 +189,13 @@ void _initDeepLinks() {
 class HOMApp extends StatelessWidget {
   const HOMApp({super.key});
 
-  String get _initialRoute {
-    final hasSession = RoleStore.current.userId.isNotEmpty;
-    final hasOwner = UserStore.isOwnerRegistered;
-    if (hasSession) return '/home';
-    if (hasOwner) return '/login';
-    return '/register';
-  }
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'HOM',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      initialRoute: _initialRoute,
+      home: const AuthGate(),
       routes: {
         '/home': (context) => const HomeShell(),
         '/login': (context) => const LoginScreen(),
@@ -210,6 +204,109 @@ class HOMApp extends StatelessWidget {
         '/profile': (context) => const ProfileScreen(),
       },
       theme: AppTheme.light,
+    );
+  }
+}
+
+// ===================== ZERO-TRUST AUTH GATE =====================
+// Every unauthenticated entry point routes through here. A fresh install
+// shows owner registration (bootstrap) or login — never an admin shell.
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<Session>(
+      valueListenable: RoleStore.sessionNotifier,
+      builder: (context, session, _) {
+        if (!session.hasIdentity) {
+          // Zero-trust: no session → owner bootstrap or login only.
+          return UserStore.isOwnerRegistered
+              ? const LoginScreen()
+              : const OwnerRegistrationScreen();
+        }
+        switch (session.status) {
+          case AccountStatus.pending:
+            return const AwaitingAssignmentScreen();
+          case AccountStatus.suspended:
+            return const SuspendedScreen();
+          case AccountStatus.active:
+            return const HomeShell();
+        }
+      },
+    );
+  }
+}
+
+class AwaitingAssignmentScreen extends StatelessWidget {
+  const AwaitingAssignmentScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.hourglass_top_rounded, size: 56, color: AppColors.primary),
+              const SizedBox(height: 16),
+              const Text('Awaiting Admin Assignment', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 8),
+              Text(
+                'Your account is registered but has not been assigned roles or departments yet. '
+                'Please contact your hotel administrator.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: AppColors.grey600),
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () async { await AuthService.logout(); },
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Sign Out'),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SuspendedScreen extends StatelessWidget {
+  const SuspendedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Icon(Icons.lock_rounded, size: 56, color: AppColors.red),
+              const SizedBox(height: 16),
+              const Text('Account Suspended', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+              const SizedBox(height: 8),
+              Text(
+                'Your account has been deactivated. Access to HOM is revoked. '
+                'Please contact your hotel administrator.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: AppColors.grey600),
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () async { await AuthService.logout(); },
+                icon: const Icon(Icons.logout_rounded),
+                label: const Text('Sign Out'),
+              ),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -237,6 +334,25 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     _tab = _restoreTab();
+    // Real-time access sync: promotion, department transfer, suspension and
+    // assignment changes rebuild the tab set without an app restart.
+    RoleStore.sessionNotifier.addListener(_onSessionChanged);
+  }
+
+  @override
+  void dispose() {
+    RoleStore.sessionNotifier.removeListener(_onSessionChanged);
+    super.dispose();
+  }
+
+  void _onSessionChanged() {
+    if (!mounted) return;
+    setState(() {
+      final visible = _visibleTabs;
+      if (visible.isNotEmpty && !visible.any((t) => t.index == _tab)) {
+        _tab = visible.first.index;
+      }
+    });
   }
 
   int _restoreTab() {
@@ -352,6 +468,12 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Zero-trust guard: revoked/pending accounts never see the shell.
+    final session = RoleStore.current;
+    if (session.isSuspended) return const SuspendedScreen();
+    if (session.isPendingAssignment) return const AwaitingAssignmentScreen();
+    if (!session.hasIdentity) return const LoginScreen();
+
     final unread = NotificationStore.unreadCount;
     final navTabs = _navTabs;
     final navCount = navTabs.length;
@@ -1430,7 +1552,229 @@ class _StaffScreenState extends State<StaffScreen> {
           ]),
         ));
       }),
+      if (RoleStore.has(Permission.manageUsers)) ...[
+        const SizedBox(height: 20),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Flexible(child: Text('App Accounts (${UserStore.getUsers().length})', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16), overflow: TextOverflow.ellipsis)),
+          IconButton(
+            onPressed: () {
+              UserStore.getUsers().where((u) => u.userId == RoleStore.current.userId).forEach(_showAppAccountSheet);
+              if (mounted) setState(() {});
+            },
+            icon: const Icon(Icons.manage_accounts_rounded, size: 20),
+            tooltip: 'Manage my own access',
+          ),
+        ]),
+        const SizedBox(height: 8),
+        ...UserStore.getUsers()
+            .where((u) => u.userId != RoleStore.current.userId)
+            .map((u) => _accountTile(u)),
+      ],
     ]);
+  }
+
+  Widget _accountTile(HotelUser u) {
+    final roles = u.roleIds
+        .map((id) => RoleStore.findRoleById(id)?.name ?? id)
+        .join(', ');
+    final scope = u.assignedDepartments.isEmpty
+        ? 'All (Management)'
+        : u.assignedDepartments.map((d) => d.name).join(', ');
+    final heads = u.isHeadOfDepartment.entries
+        .where((e) => e.value)
+        .map((e) => e.key.name)
+        .toList();
+    final statusColor = switch (u.status) {
+      AccountStatus.suspended => AppColors.redAccent,
+      AccountStatus.pending => AppColors.grey500,
+      AccountStatus.active => primaryGreen,
+    };
+    return Card(margin: const EdgeInsets.only(bottom: 8), child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(u.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14), overflow: TextOverflow.ellipsis),
+          Text(u.email, style: TextStyle(fontSize: 11, color: AppColors.grey500), overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: AppColors.grey50, borderRadius: BorderRadius.circular(20)),
+              child: Text(roles, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: AppColors.grey50, borderRadius: BorderRadius.circular(20)),
+              child: Text(scope, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+            ),
+            if (heads.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('Heads ${heads.join(', ')}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primary)),
+              ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+              child: Text(u.status.label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor)),
+            ),
+          ]),
+        ])),
+        IconButton(
+          onPressed: () => _showAppAccountSheet(u),
+          icon: const Icon(Icons.edit_rounded, size: 18),
+          tooltip: 'Manage access',
+        ),
+      ]),
+    ));
+  }
+
+  Future<void> _showAppAccountSheet(HotelUser u) async {
+    final roleIds = List<String>.of(u.roleIds);
+    final depts = List<Department>.of(u.assignedDepartments);
+    var isHead = u.isHeadOfDepartment.entries.any((e) => e.value);
+    var status = u.status;
+    final roles = RoleStore.prebuiltRoles;
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSB) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Manage ${u.name}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              Text(u.email, style: TextStyle(fontSize: 12, color: AppColors.grey500)),
+              const SizedBox(height: 14),
+              const Text('Roles (additive)', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 4),
+              ...roles.map((r) => CheckboxListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(r.name, style: const TextStyle(fontSize: 13)),
+                value: roleIds.contains(r.id),
+                onChanged: r.id == 'super_admin' && u.roleId == 'super_admin'
+                    ? null
+                    : (v) => setSB(() {
+                        v == true ? roleIds.add(r.id) : roleIds.remove(r.id);
+                      }),
+              )),
+              const SizedBox(height: 8),
+              const Text('Department scope', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              const SizedBox(height: 6),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final d in Department.values)
+                  FilterChip(
+                    label: Text(d.name, style: const TextStyle(fontSize: 12)),
+                    selected: depts.contains(d),
+                    onSelected: (v) => setSB(() {
+                      v ? depts.add(d) : depts.remove(d);
+                      if (depts.isEmpty) isHead = false;
+                    }),
+                  ),
+              ]),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Department Head', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                value: isHead,
+                onChanged: depts.isEmpty
+                    ? null
+                    : (v) => setSB(() => isHead = v),
+              ),
+              DropdownButtonFormField<AccountStatus>(
+                initialValue: status,
+                decoration: const InputDecoration(labelText: 'Account status'),
+                items: [
+                  for (final s in AccountStatus.values)
+                    DropdownMenuItem(value: s, child: Text(s.label)),
+                ],
+                onChanged: (v) => setSB(() => status = v ?? status),
+              ),
+              const SizedBox(height: 16),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(foregroundColor: AppColors.redAccent),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final confirmed = await _confirm('Delete account', 'Remove ${u.name}? Their access ends immediately.');
+                      if (confirmed != true) return;
+                      await UserStore.deleteUser(u.userId);
+                      if (u.firebaseUid != null) await FirestoreRoleService.clearUserRole(u.firebaseUid!);
+                      if (mounted) setState(() {});
+                    },
+                    child: const Text('Delete'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final isOwner = u.roleId == 'super_admin';
+                      if (isOwner && status != AccountStatus.active) {
+                        final ok = await _confirm('Suspend owner', 'You are about to suspend the owner account. Proceed?');
+                        if (ok != true) return;
+                      }
+                      if (u.status != status && status == AccountStatus.suspended && !isOwner) {
+                        final ok = await _confirm('Suspend account', '${u.name} will be locked out immediately. Proceed?');
+                        if (ok != true) return;
+                      }
+                      u.roleIds..clear()..addAll(roleIds);
+                      if (u.roleId.isEmpty || !roleIds.contains(u.roleId)) {
+                        u.roleId = roleIds.isNotEmpty ? roleIds.first : u.roleId;
+                      }
+                      u.assignedDepartments..clear()..addAll(depts);
+                      u.isHeadOfDepartment..clear()..addAll({for (final d in depts) d: isHead});
+                      u.status = status;
+                      await UserStore.updateUser(u);
+                      if (u.firebaseUid != null) {
+                        await FirestoreRoleService.writeUserRole(
+                          uid: u.firebaseUid!,
+                          userId: u.userId,
+                          roleIds: u.roleIds,
+                          userName: u.name,
+                          hotelId: u.hotelId,
+                          email: u.email,
+                          assignedDepartments: u.assignedDepartments,
+                          customPermissions: u.customPermissions,
+                          isHeadOfDepartment: u.isHeadOfDepartment,
+                          status: u.status,
+                        );
+                      }
+                      if (ctx.mounted) Navigator.pop(ctx);
+                      if (!mounted) return;
+                      setState(() {});
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${u.name} access updated'), backgroundColor: primaryGreen),
+                      );
+                    },
+                    child: const Text('Save'),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool?> _confirm(String title, String message) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Proceed')),
+        ],
+      ),
+    );
   }
 }
 

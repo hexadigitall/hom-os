@@ -132,7 +132,8 @@ class _ProcurementTab extends StatelessWidget {
     final itemsCtl = TextEditingController();
     final amtCtl = TextEditingController();
     final notesCtl = TextEditingController();
-    Department? dept = RoleStore.currentRole.department;
+    final scope = RoleStore.departments;
+    Department? dept = scope.isEmpty ? null : scope.first;
 
     showModalBottomSheet(context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
@@ -191,7 +192,8 @@ class _ProcurementTab extends StatelessWidget {
     final itemsCtl = TextEditingController(text: po.items);
     final amtCtl = TextEditingController(text: po.amount.toStringAsFixed(0));
     final notesCtl = TextEditingController(text: po.notes ?? '');
-    Department? dept = po.department ?? RoleStore.currentRole.department;
+    final scope = RoleStore.departments;
+    Department? dept = po.department ?? (scope.isEmpty ? null : scope.first);
 
     showModalBottomSheet(context: context, isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),

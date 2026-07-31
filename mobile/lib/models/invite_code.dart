@@ -1,7 +1,16 @@
+import 'role.dart';
+
 class InviteCode {
   final String code;
   final String roleId;
   final String roleName;
+
+  /// Department scope baked into the invite (multi-department heads, etc.).
+  List<Department> departments;
+
+  /// Whether the invitee is intended to head their assigned department(s).
+  bool isHead;
+
   final String hotelId;
   final String hotelName;
   final DateTime createdAt;
@@ -12,6 +21,8 @@ class InviteCode {
     required this.code,
     required this.roleId,
     required this.roleName,
+    this.departments = const [],
+    this.isHead = false,
     required this.hotelId,
     required this.hotelName,
     required this.createdAt,
@@ -27,6 +38,8 @@ class InviteCode {
     'code': code,
     'roleId': roleId,
     'roleName': roleName,
+    'departments': departments.map((d) => d.name).toList(),
+    'isHead': isHead,
     'hotelId': hotelId,
     'hotelName': hotelName,
     'createdAt': createdAt.toIso8601String(),
@@ -38,6 +51,10 @@ class InviteCode {
     code: j['code'],
     roleId: j['roleId'],
     roleName: j['roleName'] ?? '',
+    departments: (j['departments'] as List<dynamic>? ?? [])
+        .map((e) => Department.values.asNameMap()[e.toString()] ?? Department.management)
+        .toList(),
+    isHead: j['isHead'] == true,
     hotelId: j['hotelId'],
     hotelName: j['hotelName'] ?? '',
     createdAt: DateTime.parse(j['createdAt']),

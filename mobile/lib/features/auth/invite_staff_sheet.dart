@@ -14,10 +14,23 @@ class InviteStaffSheet extends StatefulWidget {
 class _InviteStaffSheetState extends State<InviteStaffSheet> {
   String? _selectedRoleId;
   String? _generatedCode;
+  final List<Department> _selectedDepts = [];
+  bool _isHead = false;
 
   final _availableRoles = RoleStore.prebuiltRoles
       .where((r) => r.id != 'super_admin' && r.id != 'auditor')
       .toList();
+
+  void _toggleDept(Department d) {
+    setState(() {
+      if (_selectedDepts.contains(d)) {
+        _selectedDepts.remove(d);
+      } else {
+        _selectedDepts.add(d);
+      }
+      if (_selectedDepts.isEmpty) _isHead = false;
+    });
+  }
 
   void _generate() {
     if (_selectedRoleId == null) {
@@ -33,7 +46,14 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
     if (role == null) return;
     final hotelId = RoleStore.current.hotelId ?? 'hotel_001';
     final hotelName = UserStore.ownerHotelName ?? 'My Hotel';
-    final code = UserStore.generateInviteCode(role.id, role.name, hotelId, hotelName);
+    final code = UserStore.generateInviteCode(
+      role.id,
+      role.name,
+      hotelId,
+      hotelName,
+      departments: _selectedDepts,
+      isHead: _isHead,
+    );
     setState(() => _generatedCode = code);
   }
 
@@ -79,6 +99,39 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
             }),
           ),
           const SizedBox(height: 20),
+          const Text('Department scope', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+          const SizedBox(height: 4),
+          const Text('Pick one or more departments this member can operate in.',
+              style: TextStyle(fontSize: 12, color: AppColors.grey500)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final d in Department.values)
+                FilterChip(
+                  label: Text(d.name, style: const TextStyle(fontSize: 12)),
+                  selected: _selectedDepts.contains(d),
+                  onSelected: (_) => _toggleDept(d),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Department Head', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+            subtitle: Text(
+              _selectedDepts.isEmpty
+                  ? 'Select departments first'
+                  : 'Heads ${_selectedDepts.map((d) => d.name).join(', ')}',
+              style: const TextStyle(fontSize: 12),
+            ),
+            value: _isHead,
+            onChanged: _selectedDepts.isEmpty
+                ? null
+                : (v) => setState(() => _isHead = v),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -101,6 +154,14 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
                 const Text('Invite Code', style: TextStyle(fontSize: 12, color: AppColors.grey500)),
                 const SizedBox(height: 6),
                 SelectableText(_generatedCode!, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 2, color: AppColors.primary)),
+                const SizedBox(height: 8),
+                Text(
+                  'Role: ${_availableRoles.firstWhere((r) => r.id == _selectedRoleId, orElse: () => AppRole(id: '', name: '—', permissions: const {})).name}'
+                  '${_selectedDepts.isEmpty ? '' : '  •  Scope: ${_selectedDepts.map((d) => d.name).join(', ')}'}'
+                  '${_isHead ? '  •  Department Head' : ''}',
+                  style: const TextStyle(fontSize: 11, color: AppColors.grey600),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   TextButton.icon(onPressed: _copy, icon: const Icon(Icons.copy_rounded, size: 16), label: const Text('Copy')),

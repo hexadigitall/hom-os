@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:hive/hive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/role.dart';
+import '../models/hotel_user.dart';
 import 'role_store.dart';
 import 'user_store.dart';
 import 'firestore_role_service.dart';
@@ -11,6 +13,7 @@ class AuthService {
   static Box<String>? _box;
   static final _firebaseAuth = FirebaseAuth.instance;
   static final _googleSignIn = GoogleSignIn.instance;
+  static StreamSubscription? _sessionSubscription;
 
   static Future<void> init() async {
     _box = await Hive.openBox<String>('hom_auth');
@@ -31,50 +34,95 @@ class AuthService {
     }
   }
 
+  /// Zero-trust restore: NO admin fallback. A stored session that no longer
+  /// resolves to a known user or roles stays unauthenticated.
   static Future<bool> _restoreFromHive() async {
     final raw = _box?.get('session');
     if (raw == null) return false;
     try {
       final data = jsonDecode(raw) as Map<String, dynamic>;
-      final roleId = data['roleId'] as String;
       final userId = data['userId'] as String;
+      if (userId.isEmpty) return false;
       final user = UserStore.findById(userId);
-      if (user != null) {
-        final role = _findRole(roleId);
-        if (role != null) {
-          RoleStore.setSession(Session(
-            userId: userId,
-            userName: user.name,
-            role: role,
-            hotelId: user.hotelId,
+      if (user == null) return false;
+
+      final roleIds = (data['roleIds'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList();
+      final departments = (data['assignedDepartments'] as List<dynamic>? ?? [])
+          .map((e) => Department.values.asNameMap()[e.toString()])
+          .whereType<Department>()
+          .toList();
+      final custom = (data['customPermissions'] as List<dynamic>? ?? [])
+          .map((e) => Permission.values.asNameMap()[e.toString()])
+          .whereType<Permission>()
+          .toSet();
+      final heads = (data['isHeadOfDepartment'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(
+            Department.values.asNameMap()[k] ?? Department.management,
+            v == true,
           ));
-          return true;
-        }
-      }
-    } catch (_) {}
-    return false;
+      final status = AccountStatus.values.asNameMap()[data['status']] ??
+          (roleIds.isEmpty ? AccountStatus.pending : AccountStatus.active);
+
+      final session = Session(
+        userId: user.userId,
+        userName: user.name,
+        email: user.email,
+        roleIds: roleIds.isNotEmpty ? roleIds : user.roleIds,
+        assignedDepartments:
+            departments.isNotEmpty ? departments : user.assignedDepartments,
+        customPermissions: custom.isNotEmpty ? custom : user.customPermissions,
+        isHeadOfDepartment: heads.isNotEmpty ? heads : user.isHeadOfDepartment,
+        status: user.isSuspended ? AccountStatus.suspended : status,
+        hotelId: user.hotelId,
+      );
+      RoleStore.setSession(session);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<void> _restoreFromFirestore(String uid) async {
     final data = await FirestoreRoleService.readUserRole(uid);
     if (data == null) return;
-    final session = FirestoreRoleService.buildSession(
-      userId: data['userId'] ?? '',
-      userName: data['userName'] ?? '',
-      roleId: data['roleId'] ?? '',
-      hotelId: data['hotelId'] ?? '',
-    );
-    if (session.userId.isNotEmpty) {
-      RoleStore.setSession(session);
-      await _persist(session);
-    }
+    final session = FirestoreRoleService.buildSessionFromMap(data);
+    if (session.userId.isEmpty) return;
+    RoleStore.setSession(session);
+    await _persist(session);
+    _subscribeToFirestore(uid);
   }
 
-  static AppRole? _findRole(String roleId) {
-    for (final r in RoleStore.prebuiltRoles) {
-      if (r.id == roleId) return r;
-    }
-    return null;
+  /// Real-time access sync: promotion, department transfer and suspension
+  /// propagate to the device the moment the Firestore doc changes.
+  static void _subscribeToFirestore(String uid) {
+    _sessionSubscription?.cancel();
+    _sessionSubscription = FirestoreRoleService.listen(uid).listen((data) {
+      if (data == null) {
+        // Account removed in cloud — lock the app down to login.
+        clear();
+        return;
+      }
+      final session = FirestoreRoleService.buildSessionFromMap(data);
+      if (session.userId.isEmpty) return;
+      RoleStore.setSession(session);
+      _persist(session);
+    });
+  }
+
+  static Session _buildSessionForUser(HotelUser user) {
+    return Session(
+      userId: user.userId,
+      userName: user.name,
+      email: user.email,
+      roleIds: user.roleIds,
+      assignedDepartments: user.assignedDepartments,
+      customPermissions: user.customPermissions,
+      isHeadOfDepartment: user.isHeadOfDepartment,
+      status: user.status,
+      hotelId: user.hotelId,
+    );
   }
 
   // ===================== EMAIL/PASSWORD LOGIN =====================
@@ -83,15 +131,8 @@ class AuthService {
     final user = UserStore.findByEmail(email);
     if (user == null) return false;
     if (!UserStore.verifyPassword(password, user.passwordHash)) return false;
-    final role = _findRole(user.roleId);
-    if (role == null) return false;
 
-    final session = Session(
-      userId: user.userId,
-      userName: user.name,
-      role: role,
-      hotelId: user.hotelId,
-    );
+    final session = _buildSessionForUser(user);
     RoleStore.setSession(session);
     await _persist(session);
 
@@ -127,11 +168,17 @@ class AuthService {
         await FirestoreRoleService.writeUserRole(
           uid: cred.user!.uid,
           userId: userId,
-          roleId: session.role.id,
+          roleIds: session.roleIds,
           userName: session.userName,
           hotelId: session.hotelId ?? '',
           email: email,
+          assignedDepartments: session.assignedDepartments,
+          customPermissions: session.customPermissions,
+          isHeadOfDepartment: session.isHeadOfDepartment,
+          status: session.status,
         );
+        await _rememberFirebaseUid(userId, cred.user!.uid);
+        _subscribeToFirestore(cred.user!.uid);
       }
     } catch (_) {}
   }
@@ -157,24 +204,22 @@ class AuthService {
         final localUser = UserStore.findByEmail(firebaseUser.email ?? '');
         if (localUser != null) {
           // Known user: write role to Firestore and proceed
-          final role = _findRole(localUser.roleId);
-          if (role == null) return false;
-          final session = Session(
-            userId: localUser.userId,
-            userName: localUser.name,
-            role: role,
-            hotelId: localUser.hotelId,
-          );
+          final session = _buildSessionForUser(localUser);
           RoleStore.setSession(session);
           await _persist(session);
           await FirestoreRoleService.writeUserRole(
             uid: firebaseUser.uid,
             userId: localUser.userId,
-            roleId: localUser.roleId,
+            roleIds: localUser.roleIds,
             userName: localUser.name,
             hotelId: localUser.hotelId,
             email: firebaseUser.email ?? '',
+            assignedDepartments: localUser.assignedDepartments,
+            customPermissions: localUser.customPermissions,
+            isHeadOfDepartment: localUser.isHeadOfDepartment,
+            status: localUser.status,
           );
+          _subscribeToFirestore(firebaseUser.uid);
           return true;
         }
         // Unknown Google user — cannot proceed without an invite
@@ -183,15 +228,11 @@ class AuthService {
         return false;
       }
 
-      final session = FirestoreRoleService.buildSession(
-        userId: data['userId'] ?? '',
-        userName: data['userName'] ?? '',
-        roleId: data['roleId'] ?? '',
-        hotelId: data['hotelId'] ?? '',
-      );
+      final session = FirestoreRoleService.buildSessionFromMap(data);
       if (session.userId.isEmpty) return false;
       RoleStore.setSession(session);
       await _persist(session);
+      _subscribeToFirestore(firebaseUser.uid);
       return true;
     } catch (_) {
       return false;
@@ -214,13 +255,7 @@ class AuthService {
       password: password,
       hotelName: hotelName,
     );
-    final role = _findRole('super_admin')!;
-    final session = Session(
-      userId: user.userId,
-      userName: user.name,
-      role: role,
-      hotelId: user.hotelId,
-    );
+    final session = _buildSessionForUser(user);
     RoleStore.setSession(session);
     await _persist(session);
 
@@ -244,14 +279,7 @@ class AuthService {
       password: password,
     );
     if (user == null) return null;
-    final role = _findRole(user.roleId);
-    if (role == null) return null;
-    final session = Session(
-      userId: user.userId,
-      userName: user.name,
-      role: role,
-      hotelId: user.hotelId,
-    );
+    final session = _buildSessionForUser(user);
     RoleStore.setSession(session);
     await _persist(session);
 
@@ -274,13 +302,29 @@ class AuthService {
         await FirestoreRoleService.writeUserRole(
           uid: cred.user!.uid,
           userId: userId,
-          roleId: session.role.id,
+          roleIds: session.roleIds,
           userName: session.userName,
           hotelId: session.hotelId ?? '',
           email: email,
+          assignedDepartments: session.assignedDepartments,
+          customPermissions: session.customPermissions,
+          isHeadOfDepartment: session.isHeadOfDepartment,
+          status: session.status,
         );
+        await _rememberFirebaseUid(userId, cred.user!.uid);
+        _subscribeToFirestore(cred.user!.uid);
       }
     } catch (_) {}
+  }
+
+  /// Persist the Firebase Auth UID onto the local user so admin edits can
+  /// push updated assignments to the right Firestore role document.
+  static Future<void> _rememberFirebaseUid(String userId, String uid) async {
+    final local = UserStore.findById(userId);
+    if (local != null && local.firebaseUid != uid) {
+      local.firebaseUid = uid;
+      await UserStore.updateUser(local);
+    }
   }
 
   // ===================== PERSISTENCE =====================
@@ -289,7 +333,14 @@ class AuthService {
     final data = {
       'userId': session.userId,
       'userName': session.userName,
-      'roleId': session.role.id,
+      'roleIds': session.roleIds,
+      'assignedDepartments':
+          session.assignedDepartments.map((d) => d.name).toList(),
+      'customPermissions':
+          session.customPermissions.map((p) => p.name).toList(),
+      'isHeadOfDepartment':
+          session.isHeadOfDepartment.map((k, v) => MapEntry(k.name, v)),
+      'status': session.status.name,
       'hotelId': session.hotelId,
     };
     await _box?.put('session', jsonEncode(data));
@@ -297,11 +348,9 @@ class AuthService {
 
   static Future<void> clear() async {
     await _box?.delete('session');
-    RoleStore.setSession(Session(
-      userId: '',
-      userName: '',
-      role: RoleStore.prebuiltRoles.first,
-    ));
+    _sessionSubscription?.cancel();
+    _sessionSubscription = null;
+    RoleStore.setSession(Session.empty());
   }
 
   static Future<void> logout() async {

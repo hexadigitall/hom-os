@@ -31,9 +31,9 @@ class ExpenditureStore {
   }
 
   static List<ExpenditureRecord> get forCurrentDepartment {
-    final dept = RoleStore.currentRole.department;
-    if (dept == null) return all;
-    return _records.where((r) => r.department == dept).toList();
+    final scope = RoleStore.departments;
+    if (scope.isEmpty) return all;
+    return _records.where((r) => scope.contains(r.department)).toList();
   }
 
   static List<ExpenditureRecord> filterByDepartment(Department? dept) {

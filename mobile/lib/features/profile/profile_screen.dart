@@ -3,6 +3,7 @@ import '../../data/auth_service.dart';
 import '../../data/profile_store.dart';
 import '../../data/role_store.dart';
 import '../../data/user_store.dart';
+import '../../models/role.dart';
 import 'edit_profile_screen.dart';
 import '../../utils/theme.dart';
 
@@ -62,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           Center(
             child: Text(
-              session.role.name,
+              session.primaryRole?.name ?? 'Unassigned',
               style: TextStyle(fontSize: 13, color: AppColors.grey600),
             ),
           ),
@@ -88,9 +89,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Role & Permissions', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                 const SizedBox(height: 12),
-                _detailRow(Icons.badge_rounded, 'Role', session.role.name),
+                _detailRow(
+                  Icons.badge_rounded,
+                  'Roles',
+                  session.resolvedRoles.map((r) => r.name).join(', '),
+                ),
                 const Divider(height: 20),
-                _detailRow(Icons.fingerprint_rounded, 'Role ID', session.role.id),
+                _detailRow(
+                  Icons.account_balance_rounded,
+                  'Departments',
+                  session.departmentScope.isEmpty
+                      ? 'All (Management)'
+                      : session.departmentScope.map((d) => d.name).join(', '),
+                ),
+                const Divider(height: 20),
+                _detailRow(Icons.gpp_maybe_rounded, 'Status', session.status.label),
+                if (session.customPermissions.isNotEmpty) ...[
+                  const Divider(height: 20),
+                  _detailRow(
+                    Icons.add_circle_rounded,
+                    'Extra Grants',
+                    session.customPermissions.map((p) => p.name).join(', '),
+                  ),
+                ],
               ]),
             ),
           ),

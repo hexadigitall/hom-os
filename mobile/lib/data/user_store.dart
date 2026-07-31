@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:hive/hive.dart';
 import '../models/hotel_user.dart';
 import '../models/invite_code.dart';
+import '../models/role.dart';
 
 class UserStore {
   static Box<String>? _box;
@@ -92,6 +93,8 @@ class UserStore {
       phone: phone,
       passwordHash: hash,
       roleId: 'super_admin',
+      roleIds: ['super_admin'],
+      status: AccountStatus.active,
       hotelId: 'hotel_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}',
       hotelName: hotelName,
       createdAt: DateTime.now(),
@@ -128,6 +131,12 @@ class UserStore {
       phone: phone,
       passwordHash: hash,
       roleId: invite.roleId,
+      roleIds: [invite.roleId],
+      assignedDepartments: invite.departments,
+      isHeadOfDepartment: invite.isHead
+          ? {for (final d in invite.departments) d: true}
+          : const {},
+      status: AccountStatus.active,
       hotelId: invite.hotelId,
       hotelName: invite.hotelName,
       createdAt: DateTime.now(),
@@ -146,7 +155,14 @@ class UserStore {
     return base64Encode(utf8.encode(password)) == hash;
   }
 
-  static String generateInviteCode(String roleId, String roleName, String hotelId, String hotelName) {
+  static String generateInviteCode(
+    String roleId,
+    String roleName,
+    String hotelId,
+    String hotelName, {
+    List<Department> departments = const [],
+    bool isHead = false,
+  }) {
     final invites = _loadInvites();
     final ts = DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase();
     final seq = (1000 + invites.length).toRadixString(36).toUpperCase();
@@ -155,6 +171,8 @@ class UserStore {
       code: code,
       roleId: roleId,
       roleName: roleName,
+      departments: departments,
+      isHead: isHead,
       hotelId: hotelId,
       hotelName: hotelName,
       createdAt: DateTime.now(),
