@@ -38,23 +38,6 @@ jobs:
           echo "sdk.dir=$ANDROID_HOME" > local.properties
           echo "flutter.sdk=$(which flutter | xargs dirname | xargs dirname)" >> local.properties
 
-      - name: Create keystore
-        working-directory: mobile/android/app
-        run: |
-          keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android -alias upload \
-            -dname "CN=HOM, OU=Hexadigitall, O=HOM, L=PH, S=Rivers, C=NG"
-
-      - name: Create key.properties
-        working-directory: mobile/android
-        run: |
-          cat > key.properties <<EOF
-          storeFile=upload-keystore.jks
-          storePassword=android
-          keyAlias=upload
-          keyPassword=android
-          EOF
-
       - name: Flutter pub get
         run: flutter pub get
 
@@ -203,11 +186,12 @@ jobs:
           $cert = New-SelfSignedCertificate -Subject "CN=Hexadigitall" -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(5) -Type CodeSigningCert
           $pwd = ConvertTo-SecureString -String "HOM-CI-2026" -Force -AsPlainText
           Export-PfxCertificate -Cert $cert -FilePath "build\hom-sign.pfx" -Password $pwd
+          Export-Certificate -Cert $cert -FilePath "build\hom-sign.cer"
           Import-PfxCertificate -FilePath "build\hom-sign.pfx" -CertStoreLocation "Cert:\CurrentUser\My" -Password $pwd
         shell: pwsh
 
       - name: Create MSIX Installer
-        run: dart run msix:create --sign-msix false
+        run: dart run msix:create --sign-msix true --certificate-path build/hom-sign.pfx --certificate-password HOM-CI-2026
         shell: bash
 
       - name: Upload Windows Build
@@ -215,6 +199,14 @@ jobs:
         with:
           name: HOM-Windows
           path: mobile/build/windows/x64/runner/Release/
+
+      - name: Upload MSIX + certificate
+        uses: actions/upload-artifact@v4
+        with:
+          name: HOM-Msix-Cert
+          path: |
+            mobile/build/windows/msix/*.msix
+            mobile/build/hom-sign.cer
 
   # ─────────────────────────────────────────────
   # LINUX (Desktop - .deb Package)
@@ -252,7 +244,7 @@ jobs:
       - name: Create .deb package
         run: |
           BUNDLE=build/linux/x64/release/bundle
-          DEB_DIR=build/deb/hom_2.0.0_amd64
+          DEB_DIR=build/deb/hom_2.0.1_amd64
           mkdir -p "$DEB_DIR/DEBIAN"
           mkdir -p "$DEB_DIR/usr/bin"
           mkdir -p "$DEB_DIR/usr/lib/hom"
@@ -275,9 +267,9 @@ jobs:
           fi
 
           # Create control file (no leading spaces in field values)
-          printf 'Package: hom\nVersion: 2.0.0\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Hexadigitall <info@hexadigitall.com>\nDescription: HOM - Hospitality Operations Manager\n A hospitality operations management application\n for managing rooms, bookings, diesel, inventory, staff, and vendors.\nDepends: libgtk-3-0\n' > "$DEB_DIR/DEBIAN/control"
+          printf 'Package: hom\nVersion: 2.0.1\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Hexadigitall <info@hexadigitall.com>\nDescription: HOM - Hospitality Operations Manager\n A hospitality operations management application\n for managing rooms, bookings, diesel, inventory, staff, and vendors.\nDepends: libgtk-3-0\n' > "$DEB_DIR/DEBIAN/control"
 
-          dpkg-deb --build "$DEB_DIR" "build/hom_2.0.0_amd64.deb"
+          dpkg-deb --build "$DEB_DIR" "build/hom_2.0.1_amd64.deb"
 
       - name: Upload Linux Bundle
         uses: actions/upload-artifact@v4
@@ -289,7 +281,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HOM-Linux-Deb
-          path: mobile/build/hom_2.0.0_amd64.deb
+          path: mobile/build/hom_2.0.1_amd64.deb
 
   # ─────────────────────────────────────────────
   # macOS (Desktop)

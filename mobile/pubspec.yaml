@@ -1,7 +1,7 @@
 name: hom_mobile
 description: HOM — Hospitality Operations Manager
 publish_to: 'none'
-version: 2.0.0+1
+version: 2.0.1+2
 environment:
   sdk: '>=3.0.0 <4.0.0'
 dependencies:
@@ -44,5 +44,5 @@ msix_config:
   logo_path: windows/runner/resources/app_icon.png
   capabilities: internetClient
   languages: en-us
-  msix_version: 2.0.0.0
+  msix_version: 2.0.1.0
   install_certificate: false

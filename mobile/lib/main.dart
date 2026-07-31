@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -56,23 +58,47 @@ const Color primaryGreen = AppColors.primary;
 const Color darkGreen = Color(0xFF0B7A55);
 const Color inkBlack = Color(0xFF0E1A14);
 
+void _trace(String s) {
+  // ignore: avoid_print
+  print('[HOM-BOOT] $s');
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  _trace('binding initialized');
+
+  if (!kIsWeb) {
+    try {
+      await Hive.initFlutter();
+    } catch (e) {
+      _trace('hive init failed: $e');
+    }
+  }
 
   // Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    _trace('firebase ok');
   } catch (e) {
-    // Firebase not configured — app works offline with Hive
+    _trace('firebase failed: $e');
   }
 
   // Hive boxes
   await PersistenceService.init();
+  _trace('hive hom_data ok');
   await UserStore.init();
+  _trace('hive hom_users ok');
   await ProfileStore.init();
-  await AuthService.init();
+  _trace('hive hom_profiles ok');
+  try {
+    await AuthService.init();
+    _trace('auth service ok');
+  } catch (e) {
+    // Firebase Auth / Google Sign-In are not available on all platforms
+    _trace('auth service failed: $e');
+  }
 
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const iosSettings = DarwinInitializationSettings(
@@ -80,12 +106,22 @@ void main() async {
     requestBadgePermission: true,
     requestSoundPermission: true,
   );
-  await flutterLocalNotificationsPlugin.initialize(
-    const InitializationSettings(android: androidSettings, iOS: iosSettings),
-    onDidReceiveNotificationResponse: _onNotificationTap,
-  );
+  try {
+    await flutterLocalNotificationsPlugin.initialize(
+      const InitializationSettings(android: androidSettings, iOS: iosSettings),
+      onDidReceiveNotificationResponse: _onNotificationTap,
+    );
+    _trace('notifications ok');
+  } catch (e) {
+    _trace('notifications failed: $e');
+  }
 
-  _initDeepLinks();
+  try {
+    _initDeepLinks();
+    _trace('deep links ok');
+  } catch (e) {
+    _trace('deep links failed: $e');
+  }
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -95,19 +131,34 @@ void main() async {
   ]);
 
   await HOMData.load();
+  _trace('HOMData.load ok');
   await ExpenditureStore.load();
+  _trace('ExpenditureStore ok');
   await ComplianceStore.load();
+  _trace('ComplianceStore ok');
   await NotificationStore.load();
+  _trace('NotificationStore ok');
   await FnbStore.load();
+  _trace('FnbStore ok');
   await EngineeringStore.load();
+  _trace('EngineeringStore ok');
   await HousekeepingStore.load();
+  _trace('HousekeepingStore ok');
   await BackOfficeStore.load();
+  _trace('BackOfficeStore ok');
   await SecurityAuditStore.load();
+  _trace('SecurityAuditStore ok');
   await OperationsStore.init();
+  _trace('OperationsStore ok');
   await ReconciliationStore.init();
+  _trace('ReconciliationStore ok');
   await PaymentStore.init();
+  _trace('PaymentStore ok');
   await SubscriptionStore.load();
+  _trace('SubscriptionStore ok');
   await WhatsAppStore.init();
+  _trace('WhatsAppStore ok');
+  _trace('RUNNING APP');
   runApp(const HOMApp());
 }
 
