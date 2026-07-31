@@ -190,9 +190,21 @@ jobs:
           Import-PfxCertificate -FilePath "build\hom-sign.pfx" -CertStoreLocation "Cert:\CurrentUser\My" -Password $pwd
         shell: pwsh
 
-      - name: Create MSIX Installer
-        run: dart run msix:create --sign-msix true --certificate-path build/hom-sign.pfx --certificate-password HOM-CI-2026
+      - name: Create MSIX Installer (unsigned)
+        run: dart run msix:create --sign-msix false
         shell: bash
+
+      - name: Sign MSIX with Windows SDK signtool
+        shell: pwsh
+        run: |
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
+            Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $signtool) { throw "signtool.exe not found in Windows SDK" }
+          $msix = Get-ChildItem "build\windows\msix\*.msix" | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $msix) { throw "no .msix produced by msix:create" }
+          & $signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
+            /f build\hom-sign.pfx /p HOM-CI-2026 $msix
+          if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE" }
 
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
