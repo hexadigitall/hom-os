@@ -62,14 +62,15 @@ jobs:
         run: |
           flutter build apk --release || echo "Flutter exit code: $? (APK may still exist)"
           echo "--- Searching for APK ---"
-          # Gradle may build the APK even when Flutter crashes tracking it
-          find build -name "*.apk" -type f 2>/dev/null
+          mkdir -p build/app/outputs/flutter-apk
+          # Gradle 9.x puts APK in android/app/build/outputs/ instead of build/
           for p in \
+            "android/app/build/outputs/flutter-apk/app-release.apk" \
+            "android/app/build/outputs/apk/release/app-release.apk" \
             "build/app/outputs/flutter-apk/app-release.apk" \
             "build/app/outputs/apk/release/app-release.apk"; do
             if [ -f "$p" ]; then
               echo "FOUND APK: $p"
-              mkdir -p build/app/outputs/flutter-apk
               cp "$p" build/app/outputs/flutter-apk/app-release.apk 2>/dev/null || true
             fi
           done
@@ -78,6 +79,7 @@ jobs:
             echo "APK ready at build/app/outputs/flutter-apk/app-release.apk"
           else
             echo "WARNING: No APK found anywhere!"
+            find . -name "*.apk" -type f 2>/dev/null || true
             exit 1
           fi
         working-directory: mobile
