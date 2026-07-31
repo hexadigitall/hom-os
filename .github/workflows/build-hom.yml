@@ -200,7 +200,7 @@ jobs:
           $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
             Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
           if (-not $signtool) { throw "signtool.exe not found in Windows SDK" }
-          $msix = Get-ChildItem "build\windows\msix\*.msix" | Select-Object -First 1 -ExpandProperty FullName
+          $msix = Get-ChildItem "build\windows\x64\runner\Release\*.msix" | Select-Object -First 1 -ExpandProperty FullName
           if (-not $msix) { throw "no .msix produced by msix:create" }
           & $signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
             /f build\hom-sign.pfx /p HOM-CI-2026 $msix
@@ -217,7 +217,7 @@ jobs:
         with:
           name: HOM-Msix-Cert
           path: |
-            mobile/build/windows/msix/*.msix
+            mobile/build/windows/x64/runner/Release/*.msix
             mobile/build/hom-sign.cer
 
   # ─────────────────────────────────────────────
