@@ -85,10 +85,43 @@ jobs:
         working-directory: mobile
 
       - name: Build AAB
-        run: flutter build appbundle --release
+        run: |
+          flutter build appbundle --release || echo "Flutter exit code: $? (AAB may still exist)"
+          echo "--- Searching for AAB ---"
+          mkdir -p build/app/outputs/bundle/release
+          for p in \
+            "android/app/build/outputs/bundle/release/app-release.aab" \
+            "build/app/outputs/bundle/release/app-release.aab"; do
+            if [ -f "$p" ]; then
+              echo "FOUND AAB: $p"
+              cp "$p" build/app/outputs/bundle/release/app-release.aab 2>/dev/null || true
+            fi
+          done
+          if [ ! -f build/app/outputs/bundle/release/app-release.aab ]; then
+            echo "WARNING: No AAB found!"
+            find . -name "*.aab" -type f 2>/dev/null || true
+            exit 1
+          fi
+        working-directory: mobile
 
       - name: Build split APKs
-        run: flutter build apk --release --split-per-abi
+        run: |
+          flutter build apk --release --split-per-abi || echo "Flutter exit code: $? (split APKs may still exist)"
+          echo "--- Searching for split APKs ---"
+          mkdir -p build/app/outputs/flutter-apk
+          for p in android/app/build/outputs/flutter-apk/app-*-release.apk; do
+            if [ -f "$p" ]; then
+              echo "FOUND split APK: $p"
+              cp "$p" build/app/outputs/flutter-apk/ 2>/dev/null || true
+            fi
+          done
+          count=$(ls build/app/outputs/flutter-apk/app-*-release.apk 2>/dev/null | wc -l)
+          if [ "$count" -eq 0 ]; then
+            echo "WARNING: No split APKs found!"
+            find . -name "app-*-release.apk" -type f 2>/dev/null || true
+            exit 1
+          fi
+        working-directory: mobile
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
