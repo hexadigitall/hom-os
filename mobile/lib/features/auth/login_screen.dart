@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import '../../data/auth_service.dart';
 import '../../utils/theme.dart';
 
 const Color _primaryGreen = AppColors.primary;
+
+bool get _googleSupported {
+  if (kIsWeb) return false;
+  return defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -96,20 +103,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity, height: 50,
-                child: OutlinedButton.icon(
-                  onPressed: _googleLoading ? null : _googleSignIn,
-                  icon: _googleLoading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.g_mobiledata_rounded, size: 26),
-                  label: Text('Sign in with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              if (_googleSupported)
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _googleLoading ? null : _googleSignIn,
+                    icon: _googleLoading
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.g_mobiledata_rounded, size: 26),
+                    label: Text('Sign in with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: 16),
               TextButton.icon(
                 onPressed: () => Navigator.pushNamed(context, '/staff-register'),

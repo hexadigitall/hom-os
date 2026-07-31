@@ -181,15 +181,6 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
-      - name: Create self-signed certificate and install
-        run: |
-          $cert = New-SelfSignedCertificate -Subject "CN=Hexadigitall, O=Hexadigitall, C=NG" -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(5) -Type CodeSigningCert
-          $pwd = ConvertTo-SecureString -String "HOM-CI-2026" -Force -AsPlainText
-          Export-PfxCertificate -Cert $cert -FilePath "build\hom-sign.pfx" -Password $pwd
-          Export-Certificate -Cert $cert -FilePath "build\hom-sign.cer"
-          Import-PfxCertificate -FilePath "build\hom-sign.pfx" -CertStoreLocation "Cert:\CurrentUser\My" -Password $pwd
-        shell: pwsh
-
       - name: Create MSIX Installer (unsigned)
         run: dart run msix:create --sign-msix false
         shell: bash
@@ -203,7 +194,7 @@ jobs:
           $msix = Get-ChildItem "build\windows\x64\runner\Release\*.msix" | Select-Object -First 1 -ExpandProperty FullName
           if (-not $msix) { throw "no .msix produced by msix:create" }
           & $signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
-            /f build\hom-sign.pfx /p HOM-CI-2026 $msix
+            /f windows\hom-sign.pfx /p HOM-CI-2026 $msix
           if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE" }
 
       - name: Upload Windows Build
@@ -218,7 +209,7 @@ jobs:
           name: HOM-Msix-Cert
           path: |
             mobile/build/windows/x64/runner/Release/*.msix
-            mobile/build/hom-sign.cer
+            mobile/windows/hom-sign.cer
 
   # ─────────────────────────────────────────────
   # LINUX (Desktop - .deb Package)
@@ -357,3 +348,36 @@ jobs:
         with:
           name: HOM-Web
           path: mobile/build/web/
+
+  # ─────────────────────────────────────────────
+  # WEB DEPLOY (GitHub Pages)
+  # ─────────────────────────────────────────────
+  deploy-web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+
+      - name: Build Web
+        working-directory: mobile
+        run: flutter build web --release
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: mobile/build/web
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
