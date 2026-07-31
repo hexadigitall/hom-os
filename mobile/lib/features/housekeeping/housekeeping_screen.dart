@@ -29,7 +29,7 @@ class _HousekeepingScreenState extends State<HousekeepingScreen> with SingleTick
         title: const Text('Housekeeping & Assets'),
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
-          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: Colors.grey,
+          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: AppColors.grey500,
           tabs: const [
             Tab(text: 'Tasks', icon: Icon(Icons.cleaning_services_rounded, size: 15)),
             Tab(text: 'Laundry', icon: Icon(Icons.local_laundry_service_rounded, size: 15)),
@@ -61,10 +61,10 @@ class _TasksTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Pending', value: '${pending.length}', color: Colors.orange),
-            HomMetricCard(label: 'Overdue', value: '${overdue.length}', color: Colors.red),
+            HomMetricCard(label: 'Pending', value: '${pending.length}', color: AppColors.orange),
+            HomMetricCard(label: 'Overdue', value: '${overdue.length}', color: AppColors.red),
             HomMetricCard(label: 'Completed', value: '${HousekeepingStore.tasks.length - pending.length}', color: _primary),
           ]),
         ),
@@ -82,11 +82,11 @@ class _TasksTab extends StatelessWidget {
                               ? Icons.nightlight_round
                               : Icons.cleaning_services_rounded;
                   return Card(
-                    color: isOverdue ? Colors.red.shade50 : null,
+                    color: isOverdue ? AppColors.red50 : null,
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: isOverdue ? Colors.red : _primary,
-                        child: Icon(icon, color: Colors.white, size: 18),
+                        backgroundColor: isOverdue ? AppColors.red : _primary,
+                        child: Icon(icon, color: AppColors.white, size: 18),
                       ),
                       title: Text('Room ${t.roomNumber}', style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text('${t.assignedTo}  •  ${t.priorityLabel}  •  ${t.scheduledDate.toIso8601String().substring(0, 10)}', style: const TextStyle(fontSize: 11)),
@@ -101,7 +101,7 @@ class _TasksTab extends StatelessWidget {
                         RoleGate(requiredPermission: Permission.assignRoomAttendants, child: PopupMenuButton<String>(
                           itemBuilder: (_) => [
                             const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                           ],
                           onSelected: (v) {
                             if (v == 'edit') _showTaskForm(context, task: t);
@@ -116,7 +116,7 @@ class _TasksTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.assignRoomAttendants, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showTaskForm(context),
       )),
@@ -169,7 +169,7 @@ class _TasksTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (assignCtl.text.isEmpty) return;
                     final t = HousekeepingTask(
@@ -208,8 +208,8 @@ class _LaundryTab extends StatelessWidget {
               final l = items[i];
               return Card(child: ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: l.status == LaundryStatus.delivered ? _primary : l.status == LaundryStatus.ready ? Colors.blue : Colors.orange,
-                  child: Text(l.status.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                  backgroundColor: l.status == LaundryStatus.delivered ? _primary : l.status == LaundryStatus.ready ? AppColors.blue : AppColors.orange,
+                  child: Text(l.status.name[0].toUpperCase(), style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 13)),
                 ),
                 title: Text(l.itemDescription, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 subtitle: Text('${l.guestName} — Room ${l.roomNumber}  •  ${l.statusLabel}  •  ${l.type.name}', style: const TextStyle(fontSize: 11)),
@@ -219,7 +219,7 @@ class _LaundryTab extends StatelessWidget {
                   RoleGate(requiredPermission: Permission.manageLaundry, child: PopupMenuButton<String>(
                     itemBuilder: (_) => LaundryStatus.values.where((s) => s != l.status).map((s) => PopupMenuItem(value: s.name, child: Text(s.name))).toList()
                       ..add(const PopupMenuItem(value: 'edit', child: Text('Edit')))
-                      ..add(const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red)))),
+                      ..add(const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red)))),
                     onSelected: (v) {
                       if (v == 'edit') { _showLaundryEditForm(context, laundry: l); return; }
                       if (v == 'delete') { HousekeepingStore.removeLaundry(l.id); onChange(); return; }
@@ -232,7 +232,7 @@ class _LaundryTab extends StatelessWidget {
               ));
             }),
       floatingActionButton: RoleGate(requiredPermission: Permission.manageLaundry, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showLaundryForm(context),
       )),
@@ -275,7 +275,7 @@ class _LaundryTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (guestCtl.text.isEmpty || descCtl.text.isEmpty) return;
                     final item = LaundryItem(
@@ -334,7 +334,7 @@ class _LaundryTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (guestCtl.text.isEmpty || descCtl.text.isEmpty) return;
                     final item = LaundryItem(
@@ -374,11 +374,11 @@ class _LostFoundTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Unclaimed', value: '${unclaimed.length}', color: Colors.red),
+            HomMetricCard(label: 'Unclaimed', value: '${unclaimed.length}', color: AppColors.red),
             HomMetricCard(label: 'Returned', value: '${items.length - unclaimed.length}', color: _primary),
-            HomMetricCard(label: 'Total', value: '${items.length}', color: Colors.blue),
+            HomMetricCard(label: 'Total', value: '${items.length}', color: AppColors.blue),
           ]),
         ),
         Expanded(
@@ -390,13 +390,13 @@ class _LostFoundTab extends StatelessWidget {
                     color: lf.returned ? _primary.withValues(alpha: 0.05) : null,
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: lf.returned ? Colors.grey : Colors.amber,
+                        backgroundColor: lf.returned ? AppColors.grey500 : AppColors.amber,
                         child: Icon(
                           lf.category == LostFoundCategory.electronics ? Icons.phone_android_rounded
                               : lf.category == LostFoundCategory.jewelry ? Icons.diamond_rounded
                               : lf.category == LostFoundCategory.documents ? Icons.description_rounded
                               : Icons.search_rounded,
-                          color: Colors.white, size: 18,
+                          color: AppColors.white, size: 18,
                         ),
                       ),
                       title: Text(lf.itemName, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -412,13 +412,13 @@ class _LostFoundTab extends StatelessWidget {
                             },
                           )),
                         RoleGate(requiredPermission: Permission.manageLostAndFound, child: IconButton(
-                          icon: Icon(Icons.edit_rounded, size: 18, color: Colors.grey),
+                          icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.grey500),
                           onPressed: () => _showLostFoundEditForm(context, item: lf),
                         )),
                         RoleGate(requiredPermission: Permission.manageLostAndFound, child: PopupMenuButton<String>(
                           itemBuilder: (_) => [
                             const PopupMenuItem(value: 'detail', child: Text('View Details')),
-                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                           ],
                           onSelected: (v) {
                             if (v == 'detail') _showDetail(context, lf);
@@ -432,7 +432,7 @@ class _LostFoundTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.manageLostAndFound, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -498,7 +498,7 @@ class _LostFoundTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (nameCtl.text.isEmpty || foundCtl.text.isEmpty) return;
                     final item = LostFoundItem(
@@ -577,7 +577,7 @@ class _LostFoundTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (nameCtl.text.isEmpty) return;
                     final updated = LostFoundItem(
@@ -620,10 +620,10 @@ class _LinenTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Damaged Items', value: '${items.length}', color: Colors.orange),
-            HomMetricCard(label: 'Condemned', value: '$condemned', color: Colors.red),
+            HomMetricCard(label: 'Damaged Items', value: '${items.length}', color: AppColors.orange),
+            HomMetricCard(label: 'Condemned', value: '$condemned', color: AppColors.red),
             HomMetricCard(label: 'Replacement Cost', value: '₦${replCost.toStringAsFixed(0)}', color: _primary),
           ]),
         ),
@@ -634,20 +634,20 @@ class _LinenTab extends StatelessWidget {
                   final l = items[i];
                   return Card(child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: l.condition == LinenCondition.condemned ? Colors.red : l.condition == LinenCondition.stained || l.condition == LinenCondition.torn ? Colors.orange : Colors.blue,
-                      child: Text('${l.quantity}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      backgroundColor: l.condition == LinenCondition.condemned ? AppColors.red : l.condition == LinenCondition.stained || l.condition == LinenCondition.torn ? AppColors.orange : AppColors.blue,
+                      child: Text('${l.quantity}', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
                     ),
                     title: Text(l.itemName, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('${l.category.name}  •  ${l.condition.name}  •  ${l.dateRecorded.toIso8601String().substring(0, 10)}${l.roomNumber != null ? '  •  Room ${l.roomNumber}' : ''}', style: const TextStyle(fontSize: 11)),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       if (l.replacementCost != null)
-                        Text('₦${(l.replacementCost! * l.quantity).toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.redAccent, fontSize: 12)),
+                        Text('₦${(l.replacementCost! * l.quantity).toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.redAccent, fontSize: 12)),
                       RoleGate(requiredPermission: Permission.logLinenDamage, child: IconButton(
-                        icon: Icon(Icons.edit_rounded, size: 18, color: Colors.grey),
+                        icon: Icon(Icons.edit_rounded, size: 18, color: AppColors.grey500),
                         onPressed: () => _showLinenEditForm(context, item: l),
                       )),
                       RoleGate(requiredPermission: Permission.logLinenDamage, child: IconButton(
-                        icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent),
+                        icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent),
                         onPressed: () { HousekeepingStore.removeLinenDamage(l.id); onChange(); },
                       )),
                     ]),
@@ -670,7 +670,7 @@ class _LinenTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.logLinenDamage, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -731,7 +731,7 @@ class _LinenTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (nameCtl.text.isEmpty) return;
                     final item = LinenDamage(
@@ -805,7 +805,7 @@ class _LinenTab extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                   onPressed: () {
                     if (nameCtl.text.isEmpty) return;
                     final updated = LinenDamage(

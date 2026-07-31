@@ -69,13 +69,13 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
 
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.red));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F5),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -89,7 +89,7 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
               const SizedBox(height: 20),
               const Text('Welcome to HOM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
               const SizedBox(height: 4),
-              const Text('Set up your hotel to get started', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text('Set up your hotel to get started', style: TextStyle(fontSize: 14, color: AppColors.grey500)),
               const SizedBox(height: 28),
               TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Your full name', prefixIcon: Icon(Icons.person_rounded))),
               const SizedBox(height: 12),
@@ -107,7 +107,7 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
                 width: double.infinity, height: 50,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _register,
-                  child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ),
             ]),

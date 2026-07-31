@@ -34,7 +34,7 @@ class _FireScreenState extends State<FireScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text(existing != null ? 'Edit Fire Service Certificate' : 'Add Fire Service Certificate', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -44,7 +44,7 @@ class _FireScreenState extends State<FireScreen> {
               const SizedBox(height: 12),
               TextField(controller: scoreCtl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Inspection Score (0-100)')),
               const SizedBox(height: 12),
-              Text('Issue Date: ${issueDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Issue Date: ${issueDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
               TextButton.icon(
                 onPressed: () async {
                   final picked = await showDatePicker(context: context, initialDate: issueDate, firstDate: DateTime(2020), lastDate: DateTime(2030));
@@ -53,7 +53,7 @@ class _FireScreenState extends State<FireScreen> {
                 icon: const Icon(Icons.calendar_today, size: 16),
                 label: const Text('Change Issue Date'),
               ),
-              Text('Expiry Date: ${expiryDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Expiry Date: ${expiryDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
               TextButton.icon(
                 onPressed: () async {
                   final picked = await showDatePicker(context: context, initialDate: expiryDate, firstDate: DateTime(2020), lastDate: DateTime(2035));
@@ -118,26 +118,26 @@ class _FireScreenState extends State<FireScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.red.shade700, Colors.red.shade500]),
+              gradient: LinearGradient(colors: [AppColors.red700, AppColors.red500]),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Latest Certificate', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+              Text('Latest Certificate', style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
               const SizedBox(height: 4),
-              Text(latest.certificateNumber, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+              Text(latest.certificateNumber, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 20)),
               const SizedBox(height: 8),
               Row(children: [
-                Flexible(child: Text(latest.fireServiceOffice, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13), overflow: TextOverflow.ellipsis)),
+                Flexible(child: Text(latest.fireServiceOffice, style: TextStyle(color: AppColors.white.withValues(alpha: 0.9), fontSize: 13), overflow: TextOverflow.ellipsis)),
                 const SizedBox(width: 8),
                 _badge(latest.status),
               ]),
               const SizedBox(height: 4),
-              Text('Issued: ${latest.issueDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
-              Text('Expires: ${latest.expiryDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+              Text('Issued: ${latest.issueDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
+              Text('Expires: ${latest.expiryDate.toIso8601String().substring(0, 10)}', style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
               if (latest.inspectionScore != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text('Score: ${latest.inspectionScore!.toStringAsFixed(0)}/100', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                  child: Text('Score: ${latest.inspectionScore!.toStringAsFixed(0)}/100', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
                 ),
             ]),
           ),
@@ -150,9 +150,9 @@ class _FireScreenState extends State<FireScreen> {
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(children: [
-                Icon(Icons.local_fire_department_rounded, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.local_fire_department_rounded, size: 48, color: AppColors.grey300),
                 const SizedBox(height: 8),
-                Text('No fire service certificates', style: TextStyle(color: Colors.grey.shade500)),
+                Text('No fire service certificates', style: TextStyle(color: AppColors.grey500)),
               ]),
             ),
           )
@@ -163,7 +163,7 @@ class _FireScreenState extends State<FireScreen> {
               padding: const EdgeInsets.all(14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [
-                  Icon(Icons.local_fire_department_rounded, size: 18, color: Colors.red.shade700),
+                  Icon(Icons.local_fire_department_rounded, size: 18, color: AppColors.red700),
                   const SizedBox(width: 8),
                   Expanded(child: Text(c.certificateNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14), overflow: TextOverflow.ellipsis)),
                   _badge(c.status),
@@ -171,18 +171,18 @@ class _FireScreenState extends State<FireScreen> {
                     Container(
                       margin: const EdgeInsets.only(left: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(12)),
-                      child: Text('SOON', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.orange.shade700)),
+                      decoration: BoxDecoration(color: AppColors.orange50, borderRadius: BorderRadius.circular(12)),
+                      child: Text('SOON', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.orange700)),
                     ),
                   RoleGate(requiredPermission: Permission.manageFireServiceCertificates, child: IconButton(onPressed: () => _edit(c), icon: const Icon(Icons.edit_rounded, size: 18))),
-                  RoleGate(requiredPermission: Permission.manageFireServiceCertificates, child: IconButton(onPressed: () => _delete(c.id), icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                  RoleGate(requiredPermission: Permission.manageFireServiceCertificates, child: IconButton(onPressed: () => _delete(c.id), icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
                 ]),
                 const SizedBox(height: 4),
-                Text(c.fireServiceOffice, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text(c.fireServiceOffice, style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                 Row(children: [
-                  Text('Issued: ${c.issueDate.toIso8601String().substring(0, 10)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  Text('Issued: ${c.issueDate.toIso8601String().substring(0, 10)}', style: TextStyle(fontSize: 11, color: AppColors.grey500)),
                   const SizedBox(width: 12),
-                  Text('Expires: ${c.expiryDate.toIso8601String().substring(0, 10)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  Text('Expires: ${c.expiryDate.toIso8601String().substring(0, 10)}', style: TextStyle(fontSize: 11, color: AppColors.grey500)),
                 ]),
               ]),
             ),
@@ -192,8 +192,8 @@ class _FireScreenState extends State<FireScreen> {
         requiredPermission: Permission.manageFireServiceCertificates,
         child: FloatingActionButton(
           onPressed: _add,
-          backgroundColor: Colors.red.shade700,
-          child: const Icon(Icons.add, color: Colors.white),
+          backgroundColor: AppColors.red700,
+          child: const Icon(Icons.add, color: AppColors.white),
         ),
       ),
     );
@@ -203,8 +203,8 @@ class _FireScreenState extends State<FireScreen> {
     Color c;
     switch (status) {
       case 'valid': c = AppColors.primary; break;
-      case 'expired': c = Colors.red; break;
-      default: c = Colors.orange;
+      case 'expired': c = AppColors.red; break;
+      default: c = AppColors.orange;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

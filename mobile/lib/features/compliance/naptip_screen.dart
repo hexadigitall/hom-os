@@ -3,6 +3,7 @@ import '../../models/compliance.dart';
 import '../../data/compliance_store.dart';
 import '../../models/role.dart';
 import '../../utils/role_gate.dart';
+import 'package:hom_mobile/utils/theme.dart';
 
 class NaptipScreen extends StatefulWidget {
   const NaptipScreen({super.key});
@@ -39,7 +40,7 @@ class _NaptipScreenState extends State<NaptipScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               const Text('Report NAPTIP Incident', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -102,11 +103,11 @@ class _NaptipScreenState extends State<NaptipScreen> {
       body: alerts.isEmpty
           ? Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.warning_rounded, size: 64, color: Colors.grey.shade300),
+                Icon(Icons.warning_rounded, size: 64, color: AppColors.grey300),
                 const SizedBox(height: 12),
-                Text('No incidents reported', style: TextStyle(color: Colors.grey.shade500)),
+                Text('No incidents reported', style: TextStyle(color: AppColors.grey500)),
                 const SizedBox(height: 4),
-                Text('Report suspected trafficking or exploitation', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                Text('Report suspected trafficking or exploitation', style: TextStyle(fontSize: 12, color: AppColors.grey400)),
               ]),
             )
           : ListView.builder(
@@ -116,9 +117,9 @@ class _NaptipScreenState extends State<NaptipScreen> {
                 final a = alerts[i];
                 Color statusColor;
                 switch (a.status) {
-                  case 'investigated': statusColor = Colors.blue; break;
-                  case 'resolved': statusColor = Colors.green; break;
-                  default: statusColor = Colors.orange;
+                  case 'investigated': statusColor = AppColors.blue; break;
+                  case 'resolved': statusColor = AppColors.green; break;
+                  default: statusColor = AppColors.orange;
                 }
                 return Card(
                   margin: const EdgeInsets.only(bottom: 8),
@@ -128,7 +129,7 @@ class _NaptipScreenState extends State<NaptipScreen> {
                       Row(children: [
                         Expanded(
                           child: Row(children: [
-                            Icon(a.type.icon, size: 18, color: Colors.orange.shade800),
+                            Icon(a.type.icon, size: 18, color: AppColors.orange800),
                             const SizedBox(width: 8),
                             Flexible(child: Text(a.type.label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14), overflow: TextOverflow.ellipsis)),
                           ]),
@@ -143,20 +144,20 @@ class _NaptipScreenState extends State<NaptipScreen> {
                           ),
                         ),
                         RoleGate(requiredPermission: Permission.manageCompliance, child: IconButton(onPressed: () => _edit(a), icon: const Icon(Icons.edit_rounded, size: 18))),
-                        RoleGate(requiredPermission: Permission.manageCompliance, child: IconButton(onPressed: () => _delete(a.id), icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                        RoleGate(requiredPermission: Permission.manageCompliance, child: IconButton(onPressed: () => _delete(a.id), icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
                       ]),
                       const SizedBox(height: 6),
-                      Text(a.description, style: TextStyle(fontSize: 13, color: Colors.grey.shade700)),
+                      Text(a.description, style: TextStyle(fontSize: 13, color: AppColors.grey700)),
                       if (a.actionTaken.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: Text('Action: ${a.actionTaken}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          child: Text('Action: ${a.actionTaken}', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                         ),
                       if (a.reportedTo.isNotEmpty)
-                        Text('Reported to: ${a.reportedTo}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                        Text('Reported to: ${a.reportedTo}', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                       Padding(
                         padding: const EdgeInsets.only(top: 6),
-                        child: Text(_fmtDate(a.date), style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                        child: Text(_fmtDate(a.date), style: TextStyle(fontSize: 11, color: AppColors.grey400)),
                       ),
                     ]),
                   ),
@@ -167,8 +168,8 @@ class _NaptipScreenState extends State<NaptipScreen> {
         requiredPermission: Permission.manageCompliance,
         child: FloatingActionButton(
           onPressed: _add,
-          backgroundColor: Colors.orange.shade800,
-          child: const Icon(Icons.add, color: Colors.white),
+          backgroundColor: AppColors.orange800,
+          child: const Icon(Icons.add, color: AppColors.white),
         ),
       ),
     );

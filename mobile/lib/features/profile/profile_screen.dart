@@ -63,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: Text(
               session.role.name,
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 13, color: AppColors.grey600),
             ),
           ),
           const SizedBox(height: 24),
@@ -139,10 +139,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Navigator.pushReplacementNamed(context, '/login');
                 }
               },
-              icon: const Icon(Icons.logout_rounded, color: Colors.red),
-              label: const Text('Sign Out', style: TextStyle(color: Colors.red)),
+              icon: const Icon(Icons.logout_rounded, color: AppColors.red),
+              label: const Text('Sign Out', style: TextStyle(color: AppColors.red)),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
+                side: const BorderSide(color: AppColors.red),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
@@ -155,9 +155,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _detailRow(IconData icon, String label, String value) {
     return Row(children: [
-      Icon(icon, size: 18, color: Colors.grey.shade600),
+      Icon(icon, size: 18, color: AppColors.grey600),
       const SizedBox(width: 10),
-      Text('$label: ', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+      Text('$label: ', style: TextStyle(fontSize: 13, color: AppColors.grey600)),
       Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
     ]);
   }

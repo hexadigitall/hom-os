@@ -22,7 +22,7 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
   void _generate() {
     if (_selectedRoleId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a role'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Please select a role'), backgroundColor: AppColors.red),
       );
       return;
     }
@@ -59,12 +59,12 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
       padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+          Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 16),
           const Text('Invite Staff', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
           const SizedBox(height: 4),
           const Text('Generate a one-time invite code to share via WhatsApp',
-              style: TextStyle(fontSize: 13, color: Colors.grey)),
+              style: TextStyle(fontSize: 13, color: AppColors.grey500)),
           const SizedBox(height: 20),
           const Text('Select role', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
           const SizedBox(height: 8),
@@ -98,14 +98,14 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
                 border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
               ),
               child: Column(children: [
-                const Text('Invite Code', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text('Invite Code', style: TextStyle(fontSize: 12, color: AppColors.grey500)),
                 const SizedBox(height: 6),
                 SelectableText(_generatedCode!, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: 2, color: AppColors.primary)),
                 const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   TextButton.icon(onPressed: _copy, icon: const Icon(Icons.copy_rounded, size: 16), label: const Text('Copy')),
                   const SizedBox(width: 12),
-                  TextButton.icon(onPressed: _shareWhatsApp, icon: const Icon(Icons.chat_rounded, size: 16, color: Color(0xFF25D366)), label: const Text('Share', style: TextStyle(color: Color(0xFF25D366)))),
+                  TextButton.icon(onPressed: _shareWhatsApp, icon: const Icon(Icons.chat_rounded, size: 16, color: AppColors.whatsapp), label: const Text('Share', style: TextStyle(color: AppColors.whatsapp))),
                 ]),
               ]),
             ),

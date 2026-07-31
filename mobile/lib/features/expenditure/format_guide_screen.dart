@@ -6,8 +6,8 @@ class FormatGuideScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sectionStyle = TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0B7A55));
-    final codeStyle = TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.grey.shade800);
+    final sectionStyle = TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.primaryDark);
+    final codeStyle = TextStyle(fontFamily: 'monospace', fontSize: 12, color: AppColors.grey800);
     final codePad = const EdgeInsets.all(12);
 
     return Scaffold(
@@ -20,13 +20,13 @@ class FormatGuideScreen extends StatelessWidget {
               Row(children: [
                 Icon(Icons.description_rounded, color: AppColors.primary, size: 28),
                 const SizedBox(width: 10),
-                Flexible(child: Text('HOM Expenditure Format Guide', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0B7A55)), overflow: TextOverflow.ellipsis)),
+                Flexible(child: Text('HOM Expenditure Format Guide', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.primaryDark), overflow: TextOverflow.ellipsis)),
               ]),
               const SizedBox(height: 12),
               Text(
                 'Upload CSV (.csv) or Excel (.xlsx) files with expenditure data. '
                 'Your file must have a header row with the columns below.',
-                style: TextStyle(color: Colors.grey.shade700, height: 1.5),
+                style: TextStyle(color: AppColors.grey700, height: 1.5),
               ),
             ]),
           ),
@@ -40,7 +40,7 @@ class FormatGuideScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Table(
               columnWidths: const {0: FlexColumnWidth(1.6), 1: FlexColumnWidth(3), 2: FlexColumnWidth(2.5)},
-              border: TableBorder.all(color: Colors.grey.shade200),
+              border: TableBorder.all(color: AppColors.grey200),
               children: [
                 _headerRow('Column', 'Example', 'Notes'),
                 _dataRow('Date', '2026-01-15', 'YYYY-MM-DD format'),

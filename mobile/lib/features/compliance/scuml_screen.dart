@@ -6,6 +6,7 @@ import '../../models/compliance.dart';
 import '../../data/compliance_store.dart';
 import '../../models/role.dart';
 import '../../utils/role_gate.dart';
+import 'package:hom_mobile/utils/theme.dart';
 
 class ScumlScreen extends StatefulWidget {
   const ScumlScreen({super.key});
@@ -37,7 +38,7 @@ class _ScumlScreenState extends State<ScumlScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               const Text('New SCUML Transaction', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -58,7 +59,7 @@ class _ScumlScreenState extends State<ScumlScreen> {
               const SizedBox(height: 12),
               TextField(controller: purposeCtl, decoration: const InputDecoration(labelText: 'Purpose of Transaction')),
               const SizedBox(height: 12),
-              Text('Date: ${date.toIso8601String().substring(0, 10)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Date: ${date.toIso8601String().substring(0, 10)}', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -130,11 +131,11 @@ class _ScumlScreenState extends State<ScumlScreen> {
       body: records.isEmpty
           ? Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.gavel_rounded, size: 64, color: Colors.grey.shade300),
+                Icon(Icons.gavel_rounded, size: 64, color: AppColors.grey300),
                 const SizedBox(height: 12),
-                Text('No SCUML transactions', style: TextStyle(color: Colors.grey.shade500)),
+                Text('No SCUML transactions', style: TextStyle(color: AppColors.grey500)),
                 const SizedBox(height: 4),
-                Text('Transactions above ₦5M must be reported', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                Text('Transactions above ₦5M must be reported', style: TextStyle(fontSize: 12, color: AppColors.grey400)),
               ]),
             )
           : ListView.builder(
@@ -146,7 +147,7 @@ class _ScumlScreenState extends State<ScumlScreen> {
                     padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       Text('${records.length} transaction${records.length == 1 ? '' : 's'}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                      Text('Total: ${_fmt(ComplianceStore.scumlTotal)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Colors.green.shade700)),
+                      Text('Total: ${_fmt(ComplianceStore.scumlTotal)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.green700)),
                     ]),
                   );
                 }
@@ -160,19 +161,19 @@ class _ScumlScreenState extends State<ScumlScreen> {
                         Flexible(child: Text(r.guestName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), overflow: TextOverflow.ellipsis)),
                         Row(mainAxisSize: MainAxisSize.min, children: [
                           RoleGate(requiredPermission: Permission.captureGuestNIN, child: IconButton(onPressed: () => _edit(r), icon: const Icon(Icons.edit_rounded, size: 18))),
-                          RoleGate(requiredPermission: Permission.captureGuestNIN, child: IconButton(onPressed: () => _delete(r.id), icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                          RoleGate(requiredPermission: Permission.captureGuestNIN, child: IconButton(onPressed: () => _delete(r.id), icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
                         ]),
                       ]),
                       const SizedBox(height: 4),
-                      Text('${r.idType}: ${r.idNumber}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                      Text(r.address, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      Text('${r.idType}: ${r.idNumber}', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
+                      Text(r.address, style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                       const SizedBox(height: 6),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        Text(r.date.toIso8601String().substring(0, 10), style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                        Text(_fmt(r.amount), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Colors.indigo)),
+                        Text(r.date.toIso8601String().substring(0, 10), style: TextStyle(fontSize: 12, color: AppColors.grey500)),
+                        Text(_fmt(r.amount), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: AppColors.indigo)),
                       ]),
                       if (r.purpose.isNotEmpty)
-                        Text(r.purpose, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                        Text(r.purpose, style: TextStyle(fontSize: 11, color: AppColors.grey500)),
                     ]),
                   ),
                 );
@@ -182,8 +183,8 @@ class _ScumlScreenState extends State<ScumlScreen> {
         requiredPermission: Permission.captureGuestNIN,
         child: FloatingActionButton(
           onPressed: _add,
-          backgroundColor: Colors.indigo,
-          child: const Icon(Icons.add, color: Colors.white),
+          backgroundColor: AppColors.indigo,
+          child: const Icon(Icons.add, color: AppColors.white),
         ),
       ),
     );

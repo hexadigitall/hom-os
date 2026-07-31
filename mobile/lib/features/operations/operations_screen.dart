@@ -42,7 +42,7 @@ class _OperationsScreenState extends State<OperationsScreen> with SingleTickerPr
         TabBar(
           controller: _tabCtrl,
           labelColor: _primaryGreen,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppColors.grey500,
           indicatorColor: _primaryGreen,
           tabs: const [
             Tab(text: 'RevPAR', icon: Icon(Icons.trending_up_rounded, size: 18)),
@@ -58,13 +58,13 @@ class _OperationsScreenState extends State<OperationsScreen> with SingleTickerPr
       ]),
       floatingActionButton: _tabCtrl.index == 0
           ? RoleGate(requiredPermission: Permission.createExpenditure, child: FloatingActionButton(
-              backgroundColor: _primaryGreen, foregroundColor: Colors.white,
+              backgroundColor: _primaryGreen, foregroundColor: AppColors.white,
               child: const Icon(Icons.add),
               onPressed: () => _addDailyRevenue(context),
             ))
           : _tabCtrl.index == 1
           ? RoleGate(requiredPermission: Permission.logCashDrop, child: FloatingActionButton(
-              backgroundColor: _primaryGreen, foregroundColor: Colors.white,
+              backgroundColor: _primaryGreen, foregroundColor: AppColors.white,
               child: const Icon(Icons.add),
               onPressed: () => _addCashDrop(context),
             ))
@@ -111,7 +111,7 @@ class _OperationsScreenState extends State<OperationsScreen> with SingleTickerPr
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final rev = double.tryParse(revenueCtl.text) ?? 0;
                   final sold = int.tryParse(roomsSoldCtl.text) ?? 0;
@@ -175,7 +175,7 @@ class _OperationsScreenState extends State<OperationsScreen> with SingleTickerPr
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final exp = double.tryParse(expectedCtl.text) ?? 0;
                   final act = double.tryParse(actualCtl.text) ?? 0;
@@ -237,9 +237,9 @@ class _RevparTab extends StatelessWidget {
 
     return ListView(padding: const EdgeInsets.all(12), children: [
       HomResponsiveGrid(children: [
-        HomMetricCard(label: 'Occupancy', value: '${occ.toStringAsFixed(0)}%', color: Colors.blue, icon: Icons.bed_rounded, sub: '$revDays days'),
+        HomMetricCard(label: 'Occupancy', value: '${occ.toStringAsFixed(0)}%', color: AppColors.blue, icon: Icons.bed_rounded, sub: '$revDays days'),
         HomMetricCard(label: 'ADR', value: _fmt(adr), color: _primaryGreen, icon: Icons.attach_money_rounded),
-        HomMetricCard(label: 'RevPAR', value: _fmt(revpar), color: Colors.amber, icon: Icons.trending_up_rounded),
+        HomMetricCard(label: 'RevPAR', value: _fmt(revpar), color: AppColors.amber, icon: Icons.trending_up_rounded),
       ]),
       const SizedBox(height: 12),
       Container(
@@ -251,22 +251,22 @@ class _RevparTab extends StatelessWidget {
         child: Row(children: [
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('MONTHLY REVENUE', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
+              Text('MONTHLY REVENUE', style: TextStyle(color: AppColors.white.withValues(alpha: 0.7), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
               const SizedBox(height: 4),
-              Text(_fmt(totalRev), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 28)),
+              Text(_fmt(totalRev), style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 28)),
               const SizedBox(height: 4),
-              Text('$revDays days of data', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+              Text('$revDays days of data', style: TextStyle(color: AppColors.white.withValues(alpha: 0.7), fontSize: 12)),
             ]),
           ),
           if (totalExp > 0)
             Column(children: [
-              Text('${(totalRev / totalExp * 100).toStringAsFixed(0)}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24)),
-              Text('of expenses', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 10)),
+              Text('${(totalRev / totalExp * 100).toStringAsFixed(0)}%', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 24)),
+              Text('of expenses', style: TextStyle(color: AppColors.white.withValues(alpha: 0.7), fontSize: 10)),
             ]),
         ]),
       ),
       const SizedBox(height: 12),
-      Text('Daily Revenue Trend', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.grey.shade800)),
+      Text('Daily Revenue Trend', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.grey800)),
       const SizedBox(height: 8),
       SizedBox(
         height: 160,
@@ -283,11 +283,11 @@ class _RevparTab extends StatelessWidget {
                     Text(_fmt(r.totalRevenue, naira: false), style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 2),
                   Container(height: h.clamp(4, 130), decoration: BoxDecoration(
-                    color: isToday ? _primaryGreen : Colors.amber.shade400,
+                    color: isToday ? _primaryGreen : AppColors.amber400,
                     borderRadius: BorderRadius.circular(2),
                   )),
                   const SizedBox(height: 2),
-                  Text('${r.date.day}', style: TextStyle(fontSize: 7, color: isToday ? _primaryGreen : Colors.grey.shade500)),
+                  Text('${r.date.day}', style: TextStyle(fontSize: 7, color: isToday ? _primaryGreen : AppColors.grey500)),
                 ]),
               ),
             );
@@ -295,7 +295,7 @@ class _RevparTab extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: 16),
-      Text('Room Performance', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.grey.shade800)),
+      Text('Room Performance', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.grey800)),
       const SizedBox(height: 8),
       ...revs.takeLast(14).toList().reversed.map((r) {
         final pct = r.occupancyPct;
@@ -314,14 +314,14 @@ class _RevparTab extends StatelessWidget {
                 const SizedBox(height: 2),
                 ClipRRect(borderRadius: BorderRadius.circular(2), child: LinearProgressIndicator(
                   value: pct / 100, minHeight: 6,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation(pct > 70 ? _primaryGreen : pct > 40 ? Colors.amber : Colors.red.shade400),
+                  backgroundColor: AppColors.grey200,
+                  valueColor: AlwaysStoppedAnimation(pct > 70 ? _primaryGreen : pct > 40 ? AppColors.amber : AppColors.red400),
                 )),
                 const SizedBox(height: 2),
-                Text('${r.roomsSold} sold · ${pct.toStringAsFixed(0)}% occ · ${r.walkIns} walk-ins', style: TextStyle(fontSize: 9, color: Colors.grey.shade500)),
+                Text('${r.roomsSold} sold · ${pct.toStringAsFixed(0)}% occ · ${r.walkIns} walk-ins', style: TextStyle(fontSize: 9, color: AppColors.grey500)),
               ])),
               RoleGate(requiredPermission: Permission.createExpenditure, child: IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 18),
+                icon: Icon(Icons.delete_outline, color: AppColors.red300, size: 18),
                 padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                 onPressed: () { if (idx >= 0) { OperationsStore.removeRevenue(idx); onChange(); } },
               )),
@@ -360,7 +360,7 @@ class _RevparTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final rev = double.tryParse(revCtl.text) ?? 0;
                   final sold = int.tryParse(roomsSoldCtl.text) ?? 0;
@@ -405,30 +405,30 @@ class _NightAuditTab extends StatelessWidget {
 
     return ListView(padding: const EdgeInsets.all(12), children: [
       HomResponsiveGrid(children: [
-        HomMetricCard(label: 'Today', value: '${todayDrops.length} drop${todayDrops.length == 1 ? '' : 's'}', color: Colors.blue, icon: Icons.today_rounded),
+        HomMetricCard(label: 'Today', value: '${todayDrops.length} drop${todayDrops.length == 1 ? '' : 's'}', color: AppColors.blue, icon: Icons.today_rounded),
         HomMetricCard(label: 'Matched', value: '$matched', color: _primaryGreen, icon: Icons.check_circle_rounded),
-        HomMetricCard(label: 'Mismatched', value: '$mismatched', color: Colors.red, icon: Icons.warning_rounded),
+        HomMetricCard(label: 'Mismatched', value: '$mismatched', color: AppColors.red, icon: Icons.warning_rounded),
       ]),
       const SizedBox(height: 6),
       if (totalDiscrepancy > 0)
         Container(
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.shade200)),
+          decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.red200)),
           child: Row(children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+            const Icon(Icons.error_outline_rounded, color: AppColors.red, size: 20),
             const SizedBox(width: 10),
-            Text('Week discrepancy: ${_fmt(totalDiscrepancy)}', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 13)),
+            Text('Week discrepancy: ${_fmt(totalDiscrepancy)}', style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w700, fontSize: 13)),
           ]),
         ),
       const SizedBox(height: 4),
-      Text('Last 14 Drops', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.grey.shade800)),
+      Text('Last 14 Drops', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.grey800)),
       const SizedBox(height: 8),
       ...drops.take(14).map((c) {
         final isMatch = c.status == CashDropStatus.matched;
         final isLocked = SecurityAuditStore.isDateLocked(c.date);
         return Card(
-          color: isMatch ? null : Colors.red.shade50,
+          color: isMatch ? null : AppColors.red50,
           margin: const EdgeInsets.only(bottom: 6),
           child: InkWell(
             onTap: isLocked ? null : () => _editCashDrop(context, c),
@@ -440,20 +440,20 @@ class _NightAuditTab extends StatelessWidget {
                 child: Row(children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: (isMatch ? _primaryGreen : Colors.red).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                    child: Icon(isMatch ? Icons.check_rounded : Icons.close_rounded, size: 18, color: isMatch ? _primaryGreen : Colors.red),
+                    decoration: BoxDecoration(color: (isMatch ? _primaryGreen : AppColors.red).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: Icon(isMatch ? Icons.check_rounded : Icons.close_rounded, size: 18, color: isMatch ? _primaryGreen : AppColors.red),
                   ),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text('${c.shift} — ${c.date.day}/${c.date.month}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                    Text('Expected: ${_fmt(c.expectedAmount)} • Actual: ${_fmt(c.actualAmount)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                    if (c.notes.isNotEmpty) Text(c.notes, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
-                    if (isLocked) Text('Locked', style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                    Text('Expected: ${_fmt(c.expectedAmount)} • Actual: ${_fmt(c.actualAmount)}', style: TextStyle(fontSize: 11, color: AppColors.grey600)),
+                    if (c.notes.isNotEmpty) Text(c.notes, style: TextStyle(fontSize: 10, color: AppColors.grey500)),
+                    if (isLocked) Text('Locked', style: TextStyle(fontSize: 9, color: AppColors.grey500, fontWeight: FontWeight.w600)),
                   ])),
                   Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                    Text(_fmt(c.difference), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isMatch ? _primaryGreen : Colors.red)),
+                    Text(_fmt(c.difference), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isMatch ? _primaryGreen : AppColors.red)),
                     RoleGate(requiredPermission: Permission.logCashDrop, child: IconButton(
-                      icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 18),
+                      icon: Icon(Icons.delete_outline, color: AppColors.red300, size: 18),
                       padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
                       onPressed: isLocked ? null : () { OperationsStore.removeCashDrop(c.id); onChange(); },
                     )),
@@ -505,7 +505,7 @@ class _NightAuditTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryGreen, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final exp = double.tryParse(expectedCtl.text) ?? 0;
                   final act = double.tryParse(actualCtl.text) ?? 0;
@@ -543,22 +543,22 @@ class _HousekeepingTab extends StatelessWidget {
 
     return ListView(padding: const EdgeInsets.all(12), children: [
       HomResponsiveGrid(children: [
-        HomMetricCard(label: 'This Month', value: _fmt(monthLoss), color: Colors.red, icon: Icons.monetization_on_rounded),
-        HomMetricCard(label: 'All Time', value: _fmt(totalLoss), color: Colors.orange, icon: Icons.history_rounded),
-        HomMetricCard(label: 'Items Lost', value: '${OperationsStore.losses.length}', color: Colors.blue, icon: Icons.inventory_rounded),
+        HomMetricCard(label: 'This Month', value: _fmt(monthLoss), color: AppColors.red, icon: Icons.monetization_on_rounded),
+        HomMetricCard(label: 'All Time', value: _fmt(totalLoss), color: AppColors.orange, icon: Icons.history_rounded),
+        HomMetricCard(label: 'Items Lost', value: '${OperationsStore.losses.length}', color: AppColors.blue, icon: Icons.inventory_rounded),
       ]),
       const SizedBox(height: 16),
       if (byCat.isNotEmpty) ...[
-        Text('Loss by Category', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.grey.shade800)),
+        Text('Loss by Category', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.grey800)),
         const SizedBox(height: 8),
         ...byCat.entries.map((e) {
           final pct = totalLoss > 0 ? e.value / totalLoss * 100 : 0.0;
           Color c;
           switch (e.key) {
-            case 'Linen': c = Colors.blue; break;
-            case 'Amenity': c = Colors.amber; break;
-            case 'Furniture': c = Colors.purple; break;
-            default: c = Colors.grey;
+            case 'Linen': c = AppColors.blue; break;
+            case 'Amenity': c = AppColors.amber; break;
+            case 'Furniture': c = AppColors.purple; break;
+            default: c = AppColors.grey500;
           }
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -571,14 +571,14 @@ class _HousekeepingTab extends StatelessWidget {
                   borderRadius: BorderRadius.circular(3),
                   child: LinearProgressIndicator(
                     value: pct / 100,
-                    backgroundColor: Colors.grey.shade200,
+                    backgroundColor: AppColors.grey200,
                     minHeight: 16,
                     valueColor: AlwaysStoppedAnimation(c),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(width: 44, child: Text('${pct.toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey.shade700), textAlign: TextAlign.right)),
+              SizedBox(width: 44, child: Text('${pct.toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.grey700), textAlign: TextAlign.right)),
               SizedBox(width: 52, child: Text(_fmt(e.value), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.right)),
             ]),
           );
@@ -586,15 +586,15 @@ class _HousekeepingTab extends StatelessWidget {
       ],
       const SizedBox(height: 16),
       if (topItems.isNotEmpty) ...[
-        Text('Top Lost Items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.grey.shade800)),
+        Text('Top Lost Items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.grey800)),
         const SizedBox(height: 8),
         ...topItems.entries.map((e) => Padding(
           padding: const EdgeInsets.only(bottom: 6),
             child: Row(children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-                child: Text('${e.value}x', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.red.shade700)),
+                decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(8)),
+                child: Text('${e.value}x', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.red700)),
               ),
               const SizedBox(width: 10),
               Expanded(child: Text(e.key, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
@@ -602,7 +602,7 @@ class _HousekeepingTab extends StatelessWidget {
         )),
       ],
       const SizedBox(height: 16),
-      Text('Recent Records', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.grey.shade800)),
+      Text('Recent Records', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.grey800)),
       const SizedBox(height: 8),
       ...losses.take(10).map((l) => Card(
         margin: const EdgeInsets.only(bottom: 6),
@@ -611,15 +611,15 @@ class _HousekeepingTab extends StatelessWidget {
           child: Row(children: [
             Container(
               padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8)),
-              child: Text('${l.quantity}x', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.red.shade700)),
+              decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(8)),
+              child: Text('${l.quantity}x', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.red700)),
             ),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(l.item, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              Text('${l.date.day}/${l.date.month} — Room ${l.roomNumber} — ${l.category}', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+              Text('${l.date.day}/${l.date.month} — Room ${l.roomNumber} — ${l.category}', style: TextStyle(fontSize: 10, color: AppColors.grey500)),
             ])),
-            Text(_fmt(l.totalCost), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.red.shade700)),
+            Text(_fmt(l.totalCost), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.red700)),
           ]),
         ),
       )),

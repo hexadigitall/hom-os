@@ -29,7 +29,7 @@ class _SecurityAuditScreenState extends State<SecurityAuditScreen> with SingleTi
         title: const Text('Security & Audit'),
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
-          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: Colors.grey,
+          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: AppColors.grey500,
           tabs: const [
             Tab(text: 'Night Audit', icon: Icon(Icons.nightlight_round, size: 15)),
             Tab(text: 'Security', icon: Icon(Icons.security_rounded, size: 15)),
@@ -74,8 +74,8 @@ class _NightAuditTab extends StatelessWidget {
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: locked ? Colors.green.shade100 : Colors.orange.shade100, borderRadius: BorderRadius.circular(12)),
-                  child: Text(locked ? 'Locked' : 'Open', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: locked ? Colors.green : Colors.orange)),
+                  decoration: BoxDecoration(color: locked ? AppColors.green100 : AppColors.orange100, borderRadius: BorderRadius.circular(12)),
+                  child: Text(locked ? 'Locked' : 'Open', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: locked ? AppColors.green : AppColors.orange)),
                 ),
               ]),
               const SizedBox(height: 12),
@@ -95,7 +95,7 @@ class _NightAuditTab extends StatelessWidget {
                       onPressed: () => _closeAudit(context, today),
                       icon: const Icon(Icons.lock_rounded, size: 16),
                       label: const Text('Close & Lock Day'),
-                      style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white),
+                      style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white),
                     )),
                   ),
                 ),
@@ -107,15 +107,15 @@ class _NightAuditTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(children: [
-              const Icon(Icons.nightlight_round, size: 40, color: Colors.grey),
+              const Icon(Icons.nightlight_round, size: 40, color: AppColors.grey500),
               const SizedBox(height: 8),
-              const Text('No audit for today', style: TextStyle(color: Colors.grey)),
+              const Text('No audit for today', style: TextStyle(color: AppColors.grey500)),
               const SizedBox(height: 12),
               RoleGate(requiredPermission: Permission.closeNightAudit, child: ElevatedButton.icon(
                 onPressed: () => _startAudit(context),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Start Today\'s Audit'),
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white),
               )),
             ]),
           ),
@@ -125,8 +125,8 @@ class _NightAuditTab extends StatelessWidget {
       const SizedBox(height: 8),
       ...audits.map((a) => Card(child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: a.locked ? _primary : Colors.orange,
-          child: Icon(a.locked ? Icons.lock_rounded : Icons.lock_open_rounded, color: Colors.white, size: 16),
+          backgroundColor: a.locked ? _primary : AppColors.orange,
+          child: Icon(a.locked ? Icons.lock_rounded : Icons.lock_open_rounded, color: AppColors.white, size: 16),
         ),
         title: Text(a.businessDate.toIso8601String().substring(0, 10), style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text('Revenue: ₦${_fmt(a.totalRevenue)}  •  Cash: ₦${_fmt(a.cashDropTotal)}  •  ${a.closedBy ?? 'Open'}', style: const TextStyle(fontSize: 11)),
@@ -147,7 +147,7 @@ class _NightAuditTab extends StatelessWidget {
           ));
         },
         trailing: RoleGate(requiredPermission: Permission.closeNightAudit, child: IconButton(
-          icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+          icon: Icon(Icons.delete_outline, color: AppColors.red300),
           tooltip: 'Delete',
           onPressed: () {
             SecurityAuditStore.removeNightAudit(a.id);
@@ -161,7 +161,7 @@ class _NightAuditTab extends StatelessWidget {
   Widget _auditRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      Text(label, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
       Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
     ]),
   );
@@ -200,7 +200,7 @@ class _NightAuditTab extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 final room = double.tryParse(roomCtl.text) ?? 0;
                 final fnb = double.tryParse(fnbCtl.text) ?? 0;
@@ -247,7 +247,7 @@ class _NightAuditTab extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 final cash = double.tryParse(cashCtl.text) ?? 0;
                 SecurityAuditStore.updateNightAudit(audit.id, NightAuditLog(
@@ -287,11 +287,11 @@ class _SecurityTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Open', value: '${open.length}', color: Colors.red),
-            HomMetricCard(label: 'Investigating', value: '${incidents.where((i) => i.status == IncidentStatus.investigating).length}', color: Colors.orange),
-            HomMetricCard(label: 'Total', value: '${incidents.length}', color: Colors.blue),
+            HomMetricCard(label: 'Open', value: '${open.length}', color: AppColors.red),
+            HomMetricCard(label: 'Investigating', value: '${incidents.where((i) => i.status == IncidentStatus.investigating).length}', color: AppColors.orange),
+            HomMetricCard(label: 'Total', value: '${incidents.length}', color: AppColors.blue),
           ]),
         ),
         Expanded(
@@ -300,17 +300,17 @@ class _SecurityTab extends StatelessWidget {
               : ListView.builder(padding: const EdgeInsets.all(8), itemCount: incidents.length, itemBuilder: (ctx, i) {
                   final inc = incidents[i];
                   return Card(
-                    color: inc.status == IncidentStatus.resolved ? null : inc.status == IncidentStatus.investigating ? Colors.orange.shade50 : Colors.red.shade50,
+                    color: inc.status == IncidentStatus.resolved ? null : inc.status == IncidentStatus.investigating ? AppColors.orange50 : AppColors.red50,
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: inc.status == IncidentStatus.resolved ? _primary : inc.status == IncidentStatus.investigating ? Colors.orange : Colors.red,
+                        backgroundColor: inc.status == IncidentStatus.resolved ? _primary : inc.status == IncidentStatus.investigating ? AppColors.orange : AppColors.red,
                         child: Icon(
                           inc.type == IncidentType.theft ? Icons.visibility_off_rounded
                               : inc.type == IncidentType.fire ? Icons.local_fire_department_rounded
                               : inc.type == IncidentType.medical ? Icons.medical_services_rounded
                               : inc.type == IncidentType.intruder ? Icons.person_off_rounded
                               : Icons.warning_rounded,
-                          color: Colors.white, size: 18,
+                          color: AppColors.white, size: 18,
                         ),
                       ),
                       title: Text(inc.type.name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -323,7 +323,7 @@ class _SecurityTab extends StatelessWidget {
                             const PopupMenuItem(value: 'investigate', child: Text('Mark Investigating')),
                           if (inc.status != IncidentStatus.resolved)
                             const PopupMenuItem(value: 'resolve', child: Text('Mark Resolved')),
-                          const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                          const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                         ],
                         onSelected: (v) {
                           if (v == 'detail') {
@@ -358,7 +358,7 @@ class _SecurityTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.manageIncidentReports, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -401,7 +401,7 @@ class _SecurityTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   if (descCtl.text.isEmpty) return;
                   SecurityAuditStore.addIncident(SecurityIncident(
@@ -466,7 +466,7 @@ class _SecurityTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   SecurityAuditStore.updateIncident(inc.id, SecurityIncident(
                     id: inc.id,
@@ -508,11 +508,11 @@ class _VisitorsTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
             HomMetricCard(label: 'On-Site', value: '${active.length}', color: _primary),
-            HomMetricCard(label: 'Checked Out', value: '${passes.length - active.length}', color: Colors.grey),
-            HomMetricCard(label: 'Total Today', value: '${passes.length}', color: Colors.blue),
+            HomMetricCard(label: 'Checked Out', value: '${passes.length - active.length}', color: AppColors.grey500),
+            HomMetricCard(label: 'Total Today', value: '${passes.length}', color: AppColors.blue),
           ]),
         ),
         Expanded(
@@ -524,8 +524,8 @@ class _VisitorsTab extends StatelessWidget {
                     color: v.active ? _primary.withValues(alpha: 0.05) : null,
                     child: ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: v.active ? _primary : Colors.grey,
-                        child: Text(v.visitorName[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                        backgroundColor: v.active ? _primary : AppColors.grey500,
+                        child: Text(v.visitorName[0], style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
                       ),
                       title: Text(v.visitorName, style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text('${v.purpose}  •  Host: ${v.hostName}  •  ${v.checkIn.toIso8601String().substring(11, 16)}${v.badgeNumber != null ? '  •  Badge: ${v.badgeNumber}' : ''}', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
@@ -543,7 +543,7 @@ class _VisitorsTab extends StatelessWidget {
                           itemBuilder: (_) => [
                             const PopupMenuItem(value: 'detail', child: Text('View')),
                             const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                           ],
                           onSelected: (v2) {
                             if (v2 == 'detail') {
@@ -573,7 +573,7 @@ class _VisitorsTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.manageVisitorPasses, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -613,7 +613,7 @@ class _VisitorsTab extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 if (nameCtl.text.isEmpty || purposeCtl.text.isEmpty || hostCtl.text.isEmpty) return;
                 SecurityAuditStore.addVisitorPass(VisitorPass(
@@ -673,7 +673,7 @@ class _VisitorsTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   if (nameCtl.text.isEmpty || purposeCtl.text.isEmpty || hostCtl.text.isEmpty) return;
                   SecurityAuditStore.updateVisitorPass(v.id, VisitorPass(
@@ -729,17 +729,17 @@ class _ShiftTab extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('${active.shift.name} Shift', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                  Text('${active.staffName} — ${active.openedAt.hour.toString().padLeft(2, '0')}:${active.openedAt.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text('${active.staffName} — ${active.openedAt.hour.toString().padLeft(2, '0')}:${active.openedAt.minute.toString().padLeft(2, '0')}', style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
                 ])),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(12)),
-                  child: const Text('Active', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.green)),
+                  decoration: BoxDecoration(color: AppColors.green100, borderRadius: BorderRadius.circular(12)),
+                  child: const Text('Active', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.green)),
                 ),
               ]),
               if (active.notes != null && active.notes!.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text(active.notes!, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                Text(active.notes!, style: TextStyle(fontSize: 12, color: AppColors.grey700)),
               ],
               const SizedBox(height: 12),
               SizedBox(
@@ -748,7 +748,7 @@ class _ShiftTab extends StatelessWidget {
                   onPressed: () => _closeShift(context, active),
                   icon: const Icon(Icons.check_rounded, size: 16),
                   label: const Text('Close Shift'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: AppColors.white),
                 )),
               ),
             ]),
@@ -759,15 +759,15 @@ class _ShiftTab extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(children: [
-              const Icon(Icons.swap_horiz_rounded, size: 40, color: Colors.grey),
+              const Icon(Icons.swap_horiz_rounded, size: 40, color: AppColors.grey500),
               const SizedBox(height: 8),
-              const Text('No active shift', style: TextStyle(color: Colors.grey)),
+              const Text('No active shift', style: TextStyle(color: AppColors.grey500)),
               const SizedBox(height: 12),
               RoleGate(requiredPermission: Permission.manageShiftHandover, child: ElevatedButton.icon(
                 onPressed: () => _startShift(context),
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Start Shift'),
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white),
               )),
             ]),
           ),
@@ -776,7 +776,7 @@ class _ShiftTab extends StatelessWidget {
       Row(children: [
         Text('Today\'s Shifts (${today.length})', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
         const Spacer(),
-        Text('${shifts.length} total', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+        Text('${shifts.length} total', style: const TextStyle(fontSize: 11, color: AppColors.grey500)),
       ]),
       const SizedBox(height: 8),
       ...shifts.map((s) {
@@ -785,8 +785,8 @@ class _ShiftTab extends StatelessWidget {
           color: isActiveShift ? _primary.withValues(alpha: 0.03) : null,
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: isActiveShift ? _primary : Colors.grey,
-              child: Icon(_shiftIcon(s.shift), color: Colors.white, size: 16),
+              backgroundColor: isActiveShift ? _primary : AppColors.grey500,
+              child: Icon(_shiftIcon(s.shift), color: AppColors.white, size: 16),
             ),
             title: Text('${s.staffName} — ${s.shift.name} Shift', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
             subtitle: Text(
@@ -794,7 +794,7 @@ class _ShiftTab extends StatelessWidget {
               style: const TextStyle(fontSize: 11),
             ),
             trailing: RoleGate(requiredPermission: Permission.manageShiftHandover, child: IconButton(
-              icon: Icon(Icons.delete_outline, color: Colors.red.shade300),
+              icon: Icon(Icons.delete_outline, color: AppColors.red300),
               tooltip: 'Delete',
               onPressed: () { SecurityAuditStore.removeShift(s.id); onChange(); },
             )),
@@ -840,7 +840,7 @@ class _ShiftTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   if (nameCtl.text.isEmpty) return;
                   SecurityAuditStore.addShift(ShiftHandover(
@@ -872,14 +872,14 @@ class _ShiftTab extends StatelessWidget {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Text('Close Shift', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         const SizedBox(height: 12),
-        Text('Closing ${shift.shift.name} Shift — ${shift.staffName}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+        Text('Closing ${shift.shift.name} Shift — ${shift.staffName}', style: const TextStyle(fontSize: 13, color: AppColors.grey500)),
         const SizedBox(height: 8),
         TextField(controller: notesCtl, decoration: const InputDecoration(labelText: 'Shift Summary / Notes', border: OutlineInputBorder()), maxLines: 3),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+            style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
             onPressed: () {
               SecurityAuditStore.updateShift(shift.id, ShiftHandover(
                 id: shift.id, shift: shift.shift, staffName: shift.staffName,

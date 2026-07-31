@@ -35,7 +35,7 @@ class _LgaScreenState extends State<LgaScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               const Text('Log Inspection', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -47,7 +47,7 @@ class _LgaScreenState extends State<LgaScreen> {
               const SizedBox(height: 12),
               TextField(controller: scoreCtl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Score (0-100)')),
               const SizedBox(height: 12),
-              Text('Inspection Date: ${DateFormat('dd MMM yyyy').format(inspDate)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Inspection Date: ${DateFormat('dd MMM yyyy').format(inspDate)}', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
               TextButton.icon(
                 onPressed: () async {
                   final picked = await showDatePicker(context: context, initialDate: inspDate, firstDate: DateTime(2020), lastDate: DateTime.now());
@@ -112,26 +112,26 @@ class _LgaScreenState extends State<LgaScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.cyan.shade700, Colors.cyan.shade500]),
+              gradient: LinearGradient(colors: [AppColors.cyan700, AppColors.cyan500]),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Latest Certificate', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+              Text('Latest Certificate', style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
               const SizedBox(height: 4),
-              Text(latest.certificateNumber, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
+              Text(latest.certificateNumber, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 22)),
               const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: Text(latest.agency, style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13), overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(latest.agency, style: TextStyle(color: AppColors.white.withValues(alpha: 0.9), fontSize: 13), overflow: TextOverflow.ellipsis)),
                 const SizedBox(width: 8),
                 _statusBadge(latest.status),
               ]),
               if (latest.expiryDate != null) ...[
                 const SizedBox(height: 4),
-                Text('Expires: ${DateFormat('dd MMM yyyy').format(latest.expiryDate!)}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                Text('Expires: ${DateFormat('dd MMM yyyy').format(latest.expiryDate!)}', style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
               ],
               const SizedBox(height: 8),
               Row(children: [
-                Text('Score: ${latest.score.toStringAsFixed(0)}/100', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+                Text('Score: ${latest.score.toStringAsFixed(0)}/100', style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 14)),
               ]),
             ]),
           ),
@@ -144,9 +144,9 @@ class _LgaScreenState extends State<LgaScreen> {
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(children: [
-                Icon(Icons.healing_rounded, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.healing_rounded, size: 48, color: AppColors.grey300),
                 const SizedBox(height: 8),
-                Text('No inspections recorded', style: TextStyle(color: Colors.grey.shade500)),
+                Text('No inspections recorded', style: TextStyle(color: AppColors.grey500)),
               ]),
             ),
           )
@@ -161,18 +161,18 @@ class _LgaScreenState extends State<LgaScreen> {
                   Row(mainAxisSize: MainAxisSize.min, children: [
                     _statusBadge(i.status),
                     RoleGate(requiredPermission: Permission.manageLGAHealthPermits, child: IconButton(onPressed: () => _edit(i), icon: const Icon(Icons.edit_rounded, size: 18))),
-                    RoleGate(requiredPermission: Permission.manageLGAHealthPermits, child: IconButton(onPressed: () => _delete(i.id), icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                    RoleGate(requiredPermission: Permission.manageLGAHealthPermits, child: IconButton(onPressed: () => _delete(i.id), icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
                   ]),
                 ]),
                 const SizedBox(height: 4),
-                Text('${i.agency} — ${i.inspector}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text('${i.agency} — ${i.inspector}', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                 Row(children: [
-                  Text(DateFormat('dd MMM yyyy').format(i.inspectionDate), style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  Text(DateFormat('dd MMM yyyy').format(i.inspectionDate), style: TextStyle(fontSize: 12, color: AppColors.grey500)),
                   const Spacer(),
-                  Text('Score: ${i.score.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.cyan.shade700)),
+                  Text('Score: ${i.score.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.cyan700)),
                 ]),
                 if (i.expiryDate != null)
-                  Text('Exp: ${DateFormat('dd MMM yyyy').format(i.expiryDate!)}', style: TextStyle(fontSize: 11, color: Colors.grey.shade400)),
+                  Text('Exp: ${DateFormat('dd MMM yyyy').format(i.expiryDate!)}', style: TextStyle(fontSize: 11, color: AppColors.grey400)),
               ]),
             ),
           )),
@@ -181,8 +181,8 @@ class _LgaScreenState extends State<LgaScreen> {
         requiredPermission: Permission.manageLGAHealthPermits,
         child: FloatingActionButton(
           onPressed: _add,
-          backgroundColor: Colors.cyan.shade700,
-          child: const Icon(Icons.add, color: Colors.white),
+          backgroundColor: AppColors.cyan700,
+          child: const Icon(Icons.add, color: AppColors.white),
         ),
       ),
     );
@@ -192,8 +192,8 @@ class _LgaScreenState extends State<LgaScreen> {
     Color c;
     switch (status) {
       case 'valid': c = AppColors.primary; break;
-      case 'expired': c = Colors.red; break;
-      default: c = Colors.orange;
+      case 'expired': c = AppColors.red; break;
+      default: c = AppColors.orange;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

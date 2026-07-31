@@ -6,6 +6,7 @@ import 'naptip_screen.dart';
 import 'lga_screen.dart';
 import 'cash_screen.dart';
 import 'fire_screen.dart';
+import 'package:hom_mobile/utils/theme.dart';
 
 class ComplianceScreen extends StatelessWidget {
   const ComplianceScreen({super.key});
@@ -22,18 +23,18 @@ class ComplianceScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Compliance')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        Text('Regulatory & Compliance', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: Color(0xFF0B7A55))),
+        Text('Regulatory & Compliance', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark)),
         const SizedBox(height: 4),
-        Text('Stay compliant with Nigerian regulations', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+        Text('Stay compliant with Nigerian regulations', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
         const SizedBox(height: 20),
         if (thresholdAlerts > 0) ...[
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red.shade200)),
+            decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.red200)),
             child: Row(children: [
-              const Icon(Icons.warning_rounded, color: Colors.red, size: 22),
+              const Icon(Icons.warning_rounded, color: AppColors.red, size: 22),
               const SizedBox(width: 10),
-              Expanded(child: Text('$thresholdAlerts transaction(s) exceed ₦5M SCUML reporting threshold', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Colors.red.shade800))),
+              Expanded(child: Text('$thresholdAlerts transaction(s) exceed ₦5M SCUML reporting threshold', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.red800))),
             ]),
           ),
           const SizedBox(height: 16),
@@ -44,7 +45,7 @@ class ComplianceScreen extends StatelessWidget {
           title: 'SCUML',
           subtitle: 'Money Laundering Compliance',
           body: '$scumlCount transaction${scumlCount == 1 ? '' : 's'} logged',
-          color: Colors.indigo,
+          color: AppColors.indigo,
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ScumlScreen())),
         ),
         const SizedBox(height: 12),
@@ -54,7 +55,7 @@ class ComplianceScreen extends StatelessWidget {
           title: 'Cash Transactions',
           subtitle: 'Threshold monitoring',
           body: '$thresholdAlerts threshold alert${thresholdAlerts == 1 ? '' : 's'}',
-          color: Colors.deepOrange,
+          color: AppColors.deepOrange,
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CashScreen())),
         ),
         const SizedBox(height: 12),
@@ -64,7 +65,7 @@ class ComplianceScreen extends StatelessWidget {
           title: 'State Consumption Tax',
           subtitle: 'Track & file state taxes',
           body: '$taxCount state${taxCount == 1 ? '' : 's'} configured',
-          color: Colors.teal,
+          color: AppColors.teal,
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TaxScreen())),
         ),
         const SizedBox(height: 12),
@@ -74,7 +75,7 @@ class ComplianceScreen extends StatelessWidget {
           title: 'NAPTIP',
           subtitle: 'Human Trafficking Alerts',
           body: '$naptipCount alert${naptipCount == 1 ? '' : 's'}',
-          color: Colors.orange.shade800,
+          color: AppColors.orange800,
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NaptipScreen())),
         ),
         const SizedBox(height: 12),
@@ -84,7 +85,7 @@ class ComplianceScreen extends StatelessWidget {
           title: 'LGA Health & Safety',
           subtitle: 'Inspection & certification',
           body: _lgaStatusText(lgaStatus),
-          color: Colors.cyan.shade700,
+          color: AppColors.cyan700,
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LgaScreen())),
         ),
         const SizedBox(height: 12),
@@ -94,7 +95,7 @@ class ComplianceScreen extends StatelessWidget {
           title: 'Fire Service',
           subtitle: 'Fire safety certificates',
           body: fireLatest != null ? fireLatest.certificateNumber : 'No certificate',
-          color: Colors.red.shade700,
+          color: AppColors.red700,
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FireScreen())),
         ),
       ]),
@@ -112,7 +113,7 @@ class ComplianceScreen extends StatelessWidget {
 
   Widget _card(BuildContext context, {required IconData icon, required String title, required String subtitle, required String body, required Color color, required VoidCallback onTap}) {
     return Material(
-      color: Colors.white,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -121,7 +122,7 @@ class ComplianceScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: AppColors.grey200),
           ),
           child: Row(children: [
             Container(
@@ -132,11 +133,11 @@ class ComplianceScreen extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: color), overflow: TextOverflow.ellipsis),
-              Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+              Text(subtitle, style: TextStyle(fontSize: 11, color: AppColors.grey600), overflow: TextOverflow.ellipsis),
               const SizedBox(height: 4),
-              Text(body, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade800), overflow: TextOverflow.ellipsis),
+              Text(body, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.grey800), overflow: TextOverflow.ellipsis),
             ])),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+            Icon(Icons.chevron_right_rounded, color: AppColors.grey400),
           ]),
         ),
       ),

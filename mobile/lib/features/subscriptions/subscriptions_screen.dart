@@ -36,7 +36,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text(existing != null ? 'Edit Subscription' : 'New Subscription', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -55,7 +55,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 decoration: const InputDecoration(labelText: 'Billing Cycle'),
               ),
               const SizedBox(height: 12),
-              Text('Start Date: ${DateFormat('dd MMM yyyy').format(start)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Start Date: ${DateFormat('dd MMM yyyy').format(start)}', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
               TextButton.icon(
                 onPressed: () async {
                   final picked = await showDatePicker(context: context, initialDate: start, firstDate: DateTime(2020), lastDate: DateTime(2030));
@@ -150,11 +150,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         // Summary cards
         Row(children: [
-          _summaryCard('Active', '${SubscriptionStore.active.length}', Colors.green),
+          _summaryCard('Active', '${SubscriptionStore.active.length}', AppColors.green),
           const SizedBox(width: 8),
-          _summaryCard('Expiring', '${SubscriptionStore.expiringSoon.length}', Colors.orange),
+          _summaryCard('Expiring', '${SubscriptionStore.expiringSoon.length}', AppColors.orange),
           const SizedBox(width: 8),
-          _summaryCard('Monthly Total', '₦${_fmtShort(monthlyTotal)}', Colors.blue),
+          _summaryCard('Monthly Total', '₦${_fmtShort(monthlyTotal)}', AppColors.blue),
         ]),
         const SizedBox(height: 16),
         // List
@@ -167,7 +167,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                    Text(s.provider, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                    Text(s.provider, style: TextStyle(fontSize: 11, color: AppColors.grey600)),
                   ]),
                 ),
                 Row(mainAxisSize: MainAxisSize.min, children: [
@@ -184,7 +184,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                       },
                       itemBuilder: (_) => [
                         PopupMenuItem(value: 'edit', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.edit_rounded, size: 16), SizedBox(width: 8), Text('Edit', style: TextStyle(fontSize: 13))]))),
-                        PopupMenuItem(value: 'delete', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.delete_rounded, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(fontSize: 13, color: Colors.red))]))),
+                        PopupMenuItem(value: 'delete', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.delete_rounded, size: 16, color: AppColors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(fontSize: 13, color: AppColors.red))]))),
                       ],
                     ),
                   ),
@@ -194,23 +194,23 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               Row(children: [
                 Text('₦${s.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.primary)),
                 const SizedBox(width: 8),
-                Text('/${s.billingCycle.label.toLowerCase()}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text('/${s.billingCycle.label.toLowerCase()}', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                 const Spacer(),
-                Text('${s.billingCycle == BillingCycle.monthly ? s.daysUntilRenewal : (s.renewalDate.difference(DateTime.now()).inDays)}d to renewal', style: TextStyle(fontSize: 11, color: s.status == SubscriptionStatus.expiring ? Colors.orange : Colors.grey.shade500)),
+                Text('${s.billingCycle == BillingCycle.monthly ? s.daysUntilRenewal : (s.renewalDate.difference(DateTime.now()).inDays)}d to renewal', style: TextStyle(fontSize: 11, color: s.status == SubscriptionStatus.expiring ? AppColors.orange : AppColors.grey500)),
               ]),
               if (s.category.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(20)),
-                    child: Text(s.category, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                    decoration: BoxDecoration(color: AppColors.grey100, borderRadius: BorderRadius.circular(20)),
+                    child: Text(s.category, style: TextStyle(fontSize: 10, color: AppColors.grey600)),
                   ),
                 ),
               if (s.notes.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Text(s.notes, style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
+                  child: Text(s.notes, style: TextStyle(fontSize: 11, color: AppColors.grey500, fontStyle: FontStyle.italic)),
                 ),
             ]),
           ),
@@ -221,7 +221,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         child: FloatingActionButton(
           onPressed: () => _add(),
           backgroundColor: AppColors.primary,
-          child: const Icon(Icons.add, color: Colors.white),
+          child: const Icon(Icons.add, color: AppColors.white),
         ),
       ),
     );
@@ -238,7 +238,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: color)),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade700)),
+          Text(label, style: TextStyle(fontSize: 11, color: AppColors.grey700)),
         ]),
       ),
     );

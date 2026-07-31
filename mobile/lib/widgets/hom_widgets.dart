@@ -66,7 +66,7 @@ class HomAnalyticsCard extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(value, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: color), overflow: TextOverflow.ellipsis),
-              Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey), overflow: TextOverflow.ellipsis),
+              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.grey500), overflow: TextOverflow.ellipsis),
             ]),
           ),
         ]),
@@ -90,16 +90,16 @@ class HomStatusChip extends StatelessWidget {
         c = _primary; break;
       case 'cancelled': case 'maintenance': case 'fault': case 'overdue':
       case 'pending': case 'open': case 'condemned':
-        c = Colors.red; break;
+        c = AppColors.red; break;
       default:
-        c = Colors.blue;
+        c = AppColors.blue;
     }
     return HomStatusChip(label: status, color: c);
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Colors.blue;
+    final c = color ?? AppColors.blue;
     return Container(
       constraints: const BoxConstraints(maxWidth: 120),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -142,7 +142,7 @@ class HomDetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: alignRight
           ? Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(label, style: const TextStyle(fontSize: 12, color: AppColors.grey500)),
               Flexible(child: Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: valueColor), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis)),
             ])
           : Row(crossAxisAlignment: CrossAxisAlignment.start, children: [

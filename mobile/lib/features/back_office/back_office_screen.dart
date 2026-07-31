@@ -32,7 +32,7 @@ class _BackOfficeScreenState extends State<BackOfficeScreen> with SingleTickerPr
         title: const Text('Back Office & Supply Chain'),
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
-          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: Colors.grey,
+          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: AppColors.grey500,
           tabs: const [
             Tab(text: 'Procurement', icon: Icon(Icons.receipt_long_rounded, size: 15)),
             Tab(text: 'Payroll', icon: Icon(Icons.account_balance_wallet_rounded, size: 15)),
@@ -63,11 +63,11 @@ class _ProcurementTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Open Orders', value: '${openOrders.length}', color: Colors.orange),
+            HomMetricCard(label: 'Open Orders', value: '${openOrders.length}', color: AppColors.orange),
             HomMetricCard(label: 'Total Spend', value: '₦${_fmt(totalSpend)}', color: _primary),
-            HomMetricCard(label: 'Total Orders', value: '${orders.length}', color: Colors.blue),
+            HomMetricCard(label: 'Total Orders', value: '${orders.length}', color: AppColors.blue),
           ]),
         ),
         Expanded(
@@ -78,10 +78,10 @@ class _ProcurementTab extends StatelessWidget {
                   return Card(child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: po.status == ProcurementStatus.delivered ? _primary
-                          : po.status == ProcurementStatus.cancelled ? Colors.red
-                          : po.status == ProcurementStatus.approved ? Colors.blue
-                          : Colors.grey,
-                      child: Text(po.status.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          : po.status == ProcurementStatus.cancelled ? AppColors.red
+                          : po.status == ProcurementStatus.approved ? AppColors.blue
+                          : AppColors.grey500,
+                      child: Text(po.status.name[0].toUpperCase(), style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
                     ),
                     title: Text(po.vendorName, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('${po.items}  •  ₦${_fmt(po.amount)}  •  ${po.orderDate.toIso8601String().substring(0, 10)}', style: const TextStyle(fontSize: 11)),
@@ -93,8 +93,8 @@ class _ProcurementTab extends StatelessWidget {
                         if (po.status == ProcurementStatus.approved)
                           const PopupMenuItem(value: 'deliver', child: Text('Mark Delivered')),
                         if (po.status != ProcurementStatus.delivered && po.status != ProcurementStatus.cancelled)
-                          const PopupMenuItem(value: 'cancel', child: Text('Cancel', style: TextStyle(color: Colors.red))),
-                        const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                          const PopupMenuItem(value: 'cancel', child: Text('Cancel', style: TextStyle(color: AppColors.red))),
+                        const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                       ],
                       onSelected: (v) {
                         if (v == 'edit') {
@@ -120,7 +120,7 @@ class _ProcurementTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.managePurchaseOrders, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -163,7 +163,7 @@ class _ProcurementTab extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 if (vendorCtl.text.isEmpty || itemsCtl.text.isEmpty) return;
                 final po = ProcurementOrder(
@@ -200,7 +200,7 @@ class _ProcurementTab extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(height: 4, width: 40, margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2))),
             const Text('Edit Purchase Order', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
             TextField(controller: vendorCtl, decoration: const InputDecoration(labelText: 'Vendor Name', border: OutlineInputBorder())),
@@ -224,7 +224,7 @@ class _ProcurementTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   if (vendorCtl.text.isEmpty || itemsCtl.text.isEmpty) return;
                   final updated = ProcurementOrder(
@@ -262,11 +262,11 @@ class _PayrollTab extends StatelessWidget {
     return Scaffold(
       body: Column(children: [
         Container(
-          padding: const EdgeInsets.all(12), color: Colors.grey.shade50,
+          padding: const EdgeInsets.all(12), color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Pending', value: '${pending.length}', color: Colors.orange),
+            HomMetricCard(label: 'Pending', value: '${pending.length}', color: AppColors.orange),
             HomMetricCard(label: 'Paid', value: '${records.length - pending.length}', color: _primary),
-            HomMetricCard(label: 'Total Paid', value: '₦${_fmt(BackOfficeStore.totalPaid)}', color: Colors.blue),
+            HomMetricCard(label: 'Total Paid', value: '₦${_fmt(BackOfficeStore.totalPaid)}', color: AppColors.blue),
           ]),
         ),
         Expanded(
@@ -276,13 +276,13 @@ class _PayrollTab extends StatelessWidget {
                   final r = records[i];
                   return Card(child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: r.status == PayrollStatus.paid ? _primary : Colors.orange,
-                      child: Text(r.staffName[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      backgroundColor: r.status == PayrollStatus.paid ? _primary : AppColors.orange,
+                      child: Text(r.staffName[0], style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
                     ),
                     title: Text(r.staffName, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text('${r.department}  •  Gross: ₦${_fmt(r.grossPay)}  •  Net: ₦${_fmt(r.netPay)}  •  Period: ${r.periodStart.toIso8601String().substring(0, 10)}', style: const TextStyle(fontSize: 11)),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text('₦${_fmt(r.netPay)}', style: TextStyle(fontWeight: FontWeight.w700, color: r.status == PayrollStatus.paid ? _primary : Colors.orange, fontSize: 12)),
+                      Text('₦${_fmt(r.netPay)}', style: TextStyle(fontWeight: FontWeight.w700, color: r.status == PayrollStatus.paid ? _primary : AppColors.orange, fontSize: 12)),
                       if (r.status == PayrollStatus.pending)
                         RoleGate(requiredPermission: Permission.runPayroll, child: IconButton(
                           icon: Icon(Icons.check_circle, color: _primary),
@@ -296,7 +296,7 @@ class _PayrollTab extends StatelessWidget {
                         itemBuilder: (_) => [
                           const PopupMenuItem(value: 'edit', child: Text('Edit')),
                           const PopupMenuItem(value: 'detail', child: Text('View Breakdown')),
-                          const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                          const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                         ],
                         onSelected: (v) {
                           if (v == 'edit') {
@@ -309,9 +309,9 @@ class _PayrollTab extends StatelessWidget {
                                 _row('Allowances', '₦${_fmt(r.allowances)}'),
                                 _row('Gross Pay', '₦${_fmt(r.grossPay)}'),
                                 const Divider(),
-                                _row('PAYE Tax', '-₦${_fmt(r.payeTax)}', Colors.red),
-                                _row('Pension (8%)', '-₦${_fmt(r.pensionContribution)}', Colors.red),
-                                _row('Other Deductions', '-₦${_fmt(r.deductions)}', Colors.red),
+                                _row('PAYE Tax', '-₦${_fmt(r.payeTax)}', AppColors.red),
+                                _row('Pension (8%)', '-₦${_fmt(r.pensionContribution)}', AppColors.red),
+                                _row('Other Deductions', '-₦${_fmt(r.deductions)}', AppColors.red),
                                 const Divider(),
                                 _row('Net Pay', '₦${_fmt(r.netPay)}', _primary),
                               ]),
@@ -327,7 +327,7 @@ class _PayrollTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.runPayroll, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -369,7 +369,7 @@ class _PayrollTab extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 if (nameCtl.text.isEmpty) return;
                 final basic = double.tryParse(basicCtl.text) ?? 0;
@@ -418,7 +418,7 @@ class _PayrollTab extends StatelessWidget {
         child: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Container(height: 4, width: 40, margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+              decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2))),
             const Text('Edit Payroll Record', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 12),
           TextField(controller: nameCtl, decoration: const InputDecoration(labelText: 'Staff Name', border: OutlineInputBorder())),
@@ -436,7 +436,7 @@ class _PayrollTab extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 if (nameCtl.text.isEmpty) return;
                 final basic = double.tryParse(basicCtl.text) ?? r.basicSalary;
@@ -490,8 +490,8 @@ class _TaxConfigTab extends StatelessWidget {
             const Spacer(),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(color: t.active ? _primary.withValues(alpha: 0.1) : Colors.grey.shade100, borderRadius: BorderRadius.circular(12)),
-              child: Text(t.active ? 'Active' : 'Inactive', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: t.active ? _primary : Colors.grey)),
+              decoration: BoxDecoration(color: t.active ? _primary.withValues(alpha: 0.1) : AppColors.grey100, borderRadius: BorderRadius.circular(12)),
+              child: Text(t.active ? 'Active' : 'Inactive', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: t.active ? _primary : AppColors.grey500)),
             ),
           ]),
           const SizedBox(height: 16),
@@ -518,12 +518,12 @@ class _TaxConfigTab extends StatelessWidget {
                 content: const Text('This will reset all tax settings to defaults.'),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                  TextButton(onPressed: () { BackOfficeStore.resetTaxConfig(); Navigator.pop(ctx); onChange(); }, child: const Text('Reset', style: TextStyle(color: Colors.red))),
+                  TextButton(onPressed: () { BackOfficeStore.resetTaxConfig(); Navigator.pop(ctx); onChange(); }, child: const Text('Reset', style: TextStyle(color: AppColors.red))),
                 ],
               )),
-              icon: Icon(Icons.restart_alt_rounded, size: 16, color: Colors.red.shade400),
+              icon: Icon(Icons.restart_alt_rounded, size: 16, color: AppColors.red400),
               label: const Text('Reset'),
-              style: OutlinedButton.styleFrom(foregroundColor: Colors.red.shade400, side: BorderSide(color: Colors.red.shade400)),
+              style: OutlinedButton.styleFrom(foregroundColor: AppColors.red400, side: BorderSide(color: AppColors.red400)),
             )),
           ]),
         ]),
@@ -547,7 +547,7 @@ class _TaxConfigTab extends StatelessWidget {
   Widget _configRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Flexible(child: Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey))),
+      Flexible(child: Text(label, style: const TextStyle(fontSize: 13, color: AppColors.grey500))),
       const SizedBox(width: 8),
       Flexible(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13), textAlign: TextAlign.right)),
     ]),
@@ -557,7 +557,7 @@ class _TaxConfigTab extends StatelessWidget {
     padding: const EdgeInsets.symmetric(vertical: 3),
     child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('• ', style: TextStyle(fontSize: 12)),
-      Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: Colors.grey))),
+      Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.grey500))),
     ]),
   );
 
@@ -604,7 +604,7 @@ class _TaxConfigTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   BackOfficeStore.updateTaxConfig(TaxConfiguration(
                     id: t.id, name: t.name,

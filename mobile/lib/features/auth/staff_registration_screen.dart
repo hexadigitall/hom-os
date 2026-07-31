@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
+import 'package:hom_mobile/utils/theme.dart';
 
 class StaffRegistrationScreen extends StatefulWidget {
   const StaffRegistrationScreen({super.key});
@@ -67,24 +68,24 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
 
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.red));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F5),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Join with Invite Code'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.black87,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Enter the invite code from your hotel manager to create your account.',
-                style: TextStyle(fontSize: 14, color: Colors.grey)),
+                style: TextStyle(fontSize: 14, color: AppColors.grey500)),
             const SizedBox(height: 20),
             TextField(
               controller: _codeCtrl,
@@ -92,7 +93,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
                 labelText: 'Invite code',
                 prefixIcon: const Icon(Icons.vpn_key_rounded),
                 suffixIcon: _codeCtrl.text.isNotEmpty
-                    ? Icon(Icons.check_circle_rounded, color: Colors.green)
+                    ? Icon(Icons.check_circle_rounded, color: AppColors.green)
                     : null,
               ),
               textCapitalization: TextCapitalization.characters,
@@ -113,7 +114,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
               width: double.infinity, height: 50,
               child: ElevatedButton(
                 onPressed: _loading ? null : _register,
-                child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               ),
             ),
           ]),

@@ -41,7 +41,7 @@ class _FnbScreenState extends State<FnbScreen> with SingleTickerProviderStateMix
           controller: _tabController,
           indicatorColor: _primary,
           labelColor: _primary,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppColors.grey500,
           tabs: const [
             Tab(text: 'Tables', icon: Icon(Icons.table_restaurant_rounded, size: 16)),
             Tab(text: 'Orders', icon: Icon(Icons.receipt_long_rounded, size: 16)),
@@ -72,9 +72,9 @@ class _TablesTabState extends State<_TablesTab> {
   Color _tableColor(TableStatus s) {
     switch (s) {
       case TableStatus.free: return _primary;
-      case TableStatus.occupied: return Colors.red.shade400;
-      case TableStatus.reserved: return Colors.orange;
-      case TableStatus.cleaning: return Colors.grey;
+      case TableStatus.occupied: return AppColors.red400;
+      case TableStatus.reserved: return AppColors.orange;
+      case TableStatus.cleaning: return AppColors.grey500;
     }
   }
 
@@ -123,12 +123,12 @@ class _TablesTabState extends State<_TablesTab> {
                     child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Text(t.number, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: color)),
                       const SizedBox(height: 4),
-                      Text('${t.seats} seats', style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                      Text('${t.seats} seats', style: TextStyle(fontSize: 10, color: AppColors.grey600)),
                       Container(
                         margin: const EdgeInsets.only(top: 4),
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-                        child: Text(_tableLabel(t.status), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                        child: Text(_tableLabel(t.status), style: const TextStyle(color: AppColors.white, fontSize: 9, fontWeight: FontWeight.w700)),
                       ),
                     ]),
                   ),
@@ -139,7 +139,7 @@ class _TablesTabState extends State<_TablesTab> {
         requiredPermission: Permission.manageTableManagement,
         child: FloatingActionButton(
           backgroundColor: _primary,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.white,
           child: const Icon(Icons.add),
           onPressed: () => _showTableForm(context),
         ),
@@ -177,8 +177,8 @@ class _TablesTabState extends State<_TablesTab> {
             ),
           if (t.status == TableStatus.occupied)
             ListTile(
-              leading: const Icon(Icons.delete_rounded, color: Colors.red, size: 20),
-              title: const Text('Remove Table', style: TextStyle(color: Colors.red), overflow: TextOverflow.ellipsis),
+              leading: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
+              title: const Text('Remove Table', style: TextStyle(color: AppColors.red), overflow: TextOverflow.ellipsis),
               onTap: () { FnbStore.removeTable(t.id); Navigator.pop(ctx); widget.onOrderTap(); },
             ),
         ]),
@@ -223,7 +223,7 @@ class _TablesTabState extends State<_TablesTab> {
                 child: RoleGate(
                   requiredPermission: Permission.manageTableManagement,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                    style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                     onPressed: () {
                       final name = nameCtl.text.trim();
                       final capacity = int.tryParse(capacityCtl.text) ?? 4;
@@ -269,7 +269,7 @@ class _TablesTabState extends State<_TablesTab> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
               onPressed: () {
                 final order = Order(
                   id: FnbStore.genOrderId(), tableId: t.id, tableNumber: t.number,
@@ -325,7 +325,7 @@ class _TablesTabState extends State<_TablesTab> {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Order — Table ${order.tableNumber}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            Text('Server: ${order.serverName}  •  ${order.status.name}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            Text('Server: ${order.serverName}  •  ${order.status.name}', style: TextStyle(color: AppColors.grey600, fontSize: 12)),
             const Divider(),
             if (order.items.isEmpty)
               const Padding(padding: EdgeInsets.all(16), child: Text('No items yet'))
@@ -354,7 +354,7 @@ class _TablesTabState extends State<_TablesTab> {
                 const SizedBox(width: 8),
                 if (order.items.isNotEmpty)
                   Expanded(child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: AppColors.white),
                     onPressed: () {
                       for (final item in order.items) {
                         if (item.status == 'pending') item.status = 'preparing';
@@ -413,7 +413,7 @@ class _PaymentSection extends StatelessWidget {
       SizedBox(
         width: double.infinity,
         child: ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+          style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
           onPressed: onPaid,
           child: Text('Mark Paid — ₦${order.total.toStringAsFixed(0)}'),
         ),
@@ -436,14 +436,14 @@ class _PaymentChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? _primary : Colors.grey.shade100,
+          color: selected ? _primary : AppColors.grey100,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? _primary : Colors.grey.shade300),
+          border: Border.all(color: selected ? _primary : AppColors.grey300),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 14, color: selected ? Colors.white : Colors.grey.shade700),
+          Icon(icon, size: 14, color: selected ? AppColors.white : AppColors.grey700),
           const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? Colors.white : Colors.grey.shade700)),
+          Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.white : AppColors.grey700)),
         ]),
       ),
     );
@@ -471,7 +471,7 @@ class _OrdersTabState extends State<_OrdersTab> with SingleTickerProviderStateMi
   Widget build(BuildContext context) {
     return Column(children: [
       TabBar(
-        controller: _subTabController, indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: Colors.grey,
+        controller: _subTabController, indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: AppColors.grey500,
         tabs: const [
           Tab(text: 'Active Orders', icon: Icon(Icons.receipt, size: 14)),
           Tab(text: 'Kitchen View (KDS)', icon: Icon(Icons.restaurant, size: 14)),
@@ -500,15 +500,15 @@ class _ActiveOrders extends StatelessWidget {
         final o = orders[i];
         return Card(child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: o.status == OrderStatus.preparing ? Colors.orange : _primary,
-            child: Text(o.tableNumber, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+            backgroundColor: o.status == OrderStatus.preparing ? AppColors.orange : _primary,
+            child: Text(o.tableNumber, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700, fontSize: 12)),
           ),
           title: Text('Table ${o.tableNumber} — ₦${o.total.toStringAsFixed(0)}', overflow: TextOverflow.ellipsis),
           subtitle: Text('${o.serverName}  •  ${o.items.length} items  •  ${o.status.name}', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
           trailing: Row(mainAxisSize: MainAxisSize.min, children: [
             if (o.preparingCount > 0) statusBadge('${o.preparingCount} prep'),
             if (o.readyCount > 0) const SizedBox(width: 4),
-            if (o.readyCount > 0) statusBadge('${o.readyCount} ready', color: Colors.orange),
+            if (o.readyCount > 0) statusBadge('${o.readyCount} ready', color: AppColors.orange),
           ]),
           onTap: () => _showOrderDetail(context, o),
         ));
@@ -526,7 +526,7 @@ class _ActiveOrders extends StatelessWidget {
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('Order — Table ${order.tableNumber}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            Text('Server: ${order.serverName}  •  ${order.status.name}', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+            Text('Server: ${order.serverName}  •  ${order.status.name}', style: TextStyle(color: AppColors.grey600, fontSize: 12)),
             const Divider(),
             ...order.items.map((item) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -546,11 +546,11 @@ class _ActiveOrders extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: item.status == 'pending' ? Colors.blue.shade50 : item.status == 'preparing' ? Colors.orange.shade50 : item.status == 'ready' ? Colors.green.shade50 : Colors.grey.shade100,
+                      color: item.status == 'pending' ? AppColors.blue50 : item.status == 'preparing' ? AppColors.orange50 : item.status == 'ready' ? AppColors.green50 : AppColors.grey100,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(item.status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600,
-                        color: item.status == 'pending' ? Colors.blue : item.status == 'preparing' ? Colors.orange : item.status == 'ready' ? Colors.green : Colors.grey)),
+                        color: item.status == 'pending' ? AppColors.blue : item.status == 'preparing' ? AppColors.orange : item.status == 'ready' ? AppColors.green : AppColors.grey500)),
                   ),
                 ),
               ]),
@@ -576,7 +576,7 @@ class _ActiveOrders extends StatelessWidget {
                   )),
                 if (order.allServed && order.status != OrderStatus.paid) ...[
                   Expanded(child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white),
+                    style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white),
                     onPressed: () {
                       order.status = OrderStatus.paid;
                       final table = FnbStore.tables.where((t) => t.id == order.tableId).firstOrNull;
@@ -591,7 +591,7 @@ class _ActiveOrders extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(child: TextButton(
                   onPressed: () { order.status = OrderStatus.cancelled; FnbStore.updateOrder(order.id, order); Navigator.pop(ctx); onChange(); },
-                  child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+                  child: const Text('Cancel', style: TextStyle(color: AppColors.red)),
                 )),
               ]),
           ]),
@@ -618,16 +618,16 @@ class _KdsView extends StatelessWidget {
       itemBuilder: (ctx, i) {
         final o = preparing[i];
         return Card(
-          color: Colors.orange.shade50,
+          color: AppColors.orange50,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                const Icon(Icons.restaurant, size: 18, color: Colors.orange),
+                const Icon(Icons.restaurant, size: 18, color: AppColors.orange),
                 const SizedBox(width: 8),
                 Text('Table ${o.tableNumber}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 const Spacer(),
-                Text(o.createdAt.toIso8601String().substring(11, 19), style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                Text(o.createdAt.toIso8601String().substring(11, 19), style: TextStyle(color: AppColors.grey600, fontSize: 11)),
               ]),
               const Divider(),
               ...o.items.where((item) => item.status == 'preparing' || item.status == 'pending').map((item) => Padding(
@@ -635,12 +635,12 @@ class _KdsView extends StatelessWidget {
                 child: Row(children: [
                   Expanded(child: Text('${item.quantity}x ${item.name}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15))),
                   if (item.note != null && item.note!.isNotEmpty)
-                    Text('(${item.note})', style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                    Text('(${item.note})', style: TextStyle(color: AppColors.grey600, fontSize: 11)),
                   const SizedBox(width: 8),
                   RoleGate(
                     requiredPermission: Permission.manageKDS,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
+                      style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4)),
                       onPressed: () {
                         item.status = 'ready';
                         FnbStore.updateOrder(o.id, o);
@@ -708,7 +708,7 @@ class _MenuTabState extends State<_MenuTab> {
                           onPressed: () => _showItemForm(context, item: item),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent),
+                          icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent),
                           onPressed: () { FnbStore.removeMenuItem(item.id); setState(() {}); widget.onChange(); },
                         ),
                       ]),
@@ -719,7 +719,7 @@ class _MenuTabState extends State<_MenuTab> {
       ]),
       floatingActionButton: FloatingActionButton(
         backgroundColor: _primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showItemForm(context),
       ),
@@ -728,11 +728,11 @@ class _MenuTabState extends State<_MenuTab> {
 
   Color _categoryColor(MenuCategory c) {
     switch (c) {
-      case MenuCategory.food: return Colors.orange;
-      case MenuCategory.drink: return Colors.blue;
-      case MenuCategory.bar: return Colors.purple;
-      case MenuCategory.wine: return Colors.red;
-      case MenuCategory.special: return Colors.teal;
+      case MenuCategory.food: return AppColors.orange;
+      case MenuCategory.drink: return AppColors.blue;
+      case MenuCategory.bar: return AppColors.purple;
+      case MenuCategory.wine: return AppColors.red;
+      case MenuCategory.special: return AppColors.teal;
     }
   }
 
@@ -769,7 +769,7 @@ class _MenuTabState extends State<_MenuTab> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final price = double.tryParse(priceCtl.text) ?? 0;
                   if (nameCtl.text.isEmpty || price <= 0) return;
@@ -816,7 +816,7 @@ class _MenuSelectorState extends State<_MenuSelector> with SingleTickerProviderS
   Widget build(BuildContext context) {
     return Column(children: [
       TabBar(
-        controller: _catTab, isScrollable: true, indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: Colors.grey,
+        controller: _catTab, isScrollable: true, indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: AppColors.grey500,
         tabs: MenuCategory.values.map((c) => Tab(text: c.name.toUpperCase())).toList(),
       ),
       Expanded(child: TabBarView(controller: _catTab, children: MenuCategory.values.map((c) => _CategoryMenu(category: c, onAdd: widget.onAdd)).toList())),

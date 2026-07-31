@@ -45,12 +45,12 @@ class _ReconciliationScreenState extends State<ReconciliationScreen>
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(42),
           child: Container(
-            color: Colors.white,
+            color: AppColors.white,
             child: TabBar(
               controller: _tabCtrl,
               indicatorColor: _primaryGreen,
               labelColor: _primaryGreen,
-              unselectedLabelColor: Colors.grey.shade600,
+              unselectedLabelColor: AppColors.grey600,
               labelStyle:
                   const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
               unselectedLabelStyle: const TextStyle(fontSize: 12),
@@ -152,10 +152,10 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
               ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.account_balance_rounded,
-                      size: 64, color: Colors.grey.shade300),
+                      size: 64, color: AppColors.grey300),
                   const SizedBox(height: 12),
                   Text('No transactions',
-                      style: TextStyle(color: Colors.grey.shade500)),
+                      style: TextStyle(color: AppColors.grey500)),
                 ]))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 0, 12, 80),
@@ -171,7 +171,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
         child: RoleGate(requiredPermission: Permission.manageReconciliation, child: FloatingActionButton(
           onPressed: () => _uploadStatement(context),
           backgroundColor: _primaryGreen,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.white,
           child: const Icon(Icons.upload_file_rounded),
         )),
       ),
@@ -182,30 +182,30 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
     final pct = total > 0 ? matched / total * 100 : 0.0;
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      color: AppColors.white,
       child: Column(children: [
         HomResponsiveGrid(children: [
-          HomMetricCard(label: 'Transactions', value: '$total', color: Colors.blue, icon: Icons.receipt_long_rounded),
+          HomMetricCard(label: 'Transactions', value: '$total', color: AppColors.blue, icon: Icons.receipt_long_rounded),
           HomMetricCard(label: 'Matched', value: '$matched', color: _primaryGreen, icon: Icons.check_circle_rounded),
-          HomMetricCard(label: 'Unmatched', value: '$unmatched', color: unmatched > 0 ? Colors.red : Colors.grey, icon: Icons.error_outline_rounded),
+          HomMetricCard(label: 'Unmatched', value: '$unmatched', color: unmatched > 0 ? AppColors.red : AppColors.grey500, icon: Icons.error_outline_rounded),
         ]),
         const SizedBox(height: 8),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: pct / 100,
-            backgroundColor: Colors.grey.shade200,
+            backgroundColor: AppColors.grey200,
             valueColor: AlwaysStoppedAnimation(pct > 80
                 ? _primaryGreen
                 : pct > 50
-                    ? Colors.amber
-                    : Colors.red),
+                    ? AppColors.amber
+                    : AppColors.red),
             minHeight: 6,
           ),
         ),
         const SizedBox(height: 4),
         Text('${pct.toStringAsFixed(0)}% reconciled',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            style: TextStyle(fontSize: 11, color: AppColors.grey600)),
       ]),
     );
   }
@@ -231,7 +231,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
     final txnMatches = ReconciliationStore.matchesForTransaction(t.id);
     final isMatched = txnMatches.isNotEmpty;
     return Card(
-      color: isMatched ? null : Colors.orange.shade50,
+      color: isMatched ? null : AppColors.orange50,
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -242,7 +242,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (t.isCredit ? _primaryGreen : Colors.red)
+                color: (t.isCredit ? _primaryGreen : AppColors.red)
                     .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -251,7 +251,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                       ? Icons.arrow_downward_rounded
                       : Icons.arrow_upward_rounded,
                   size: 18,
-                  color: t.isCredit ? _primaryGreen : Colors.red),
+                  color: t.isCredit ? _primaryGreen : AppColors.red),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -270,7 +270,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                     Text(
                         '${t.date.day}/${t.date.month}/${t.date.year} — ${t.source}',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade500),
+                            fontSize: 10, color: AppColors.grey500),
                         overflow: TextOverflow.ellipsis),
                     if (txnMatches.isNotEmpty)
                       Padding(
@@ -292,21 +292,21 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                   style: TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
-                      color: t.isCredit ? _primaryGreen : Colors.red)),
+                      color: t.isCredit ? _primaryGreen : AppColors.red)),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isMatched
                       ? _primaryGreen.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
+                      : AppColors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(isMatched ? 'Matched' : 'Unmatched',
                     style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.w700,
-                        color: isMatched ? _primaryGreen : Colors.orange)),
+                        color: isMatched ? _primaryGreen : AppColors.orange)),
               ),
             ]),
             const SizedBox(width: 4),
@@ -330,10 +330,10 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.red.withValues(alpha: 0.1),
+                    color: AppColors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.redAccent),
+                  child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.redAccent),
                 ),
               )),
             ]),
@@ -368,7 +368,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                   width: 36,
                                   height: 4,
                                   decoration: BoxDecoration(
-                                      color: Colors.grey.shade300,
+                                      color: AppColors.grey300,
                                       borderRadius: BorderRadius.circular(2)))),
                           const SizedBox(height: 16),
                           Row(children: [
@@ -376,7 +376,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                   color:
-                                      (t.isCredit ? _primaryGreen : Colors.red)
+                                      (t.isCredit ? _primaryGreen : AppColors.red)
                                           .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12)),
                               child: Icon(
@@ -385,7 +385,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                       : Icons.arrow_upward_rounded,
                                   size: 24,
                                   color:
-                                      t.isCredit ? _primaryGreen : Colors.red),
+                                      t.isCredit ? _primaryGreen : AppColors.red),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -402,7 +402,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                       '${t.date.day}/${t.date.month}/${t.date.year} • ${t.source}',
                                       style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.grey.shade600)),
+                                          color: AppColors.grey600)),
                                 ])),
                           ]),
                           const SizedBox(height: 16),
@@ -439,7 +439,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color:
-                                                        Colors.grey.shade600),
+                                                        AppColors.grey600),
                                                 overflow:
                                                     TextOverflow.ellipsis),
                                           ])),
@@ -447,7 +447,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                         icon: const Icon(
                                             Icons.delete_outline_rounded,
                                             size: 18,
-                                            color: Colors.redAccent),
+                                            color: AppColors.redAccent),
                                         onPressed: () {
                                           ReconciliationStore.removeMatch(m.id);
                                           widget.parent.setState(() {});
@@ -464,7 +464,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                 style: TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 14,
-                                    color: Colors.grey.shade800)),
+                                    color: AppColors.grey800)),
                             const SizedBox(height: 8),
                             ...suggestions
                                 .map((s) => _suggestionTile(ctx, setSB, t, s)),
@@ -499,13 +499,13 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: (s.confidence > 0.8 ? _primaryGreen : Colors.amber)
+              color: (s.confidence > 0.8 ? _primaryGreen : AppColors.amber)
                   .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(Icons.compare_arrows_rounded,
                 size: 16,
-                color: s.confidence > 0.8 ? _primaryGreen : Colors.amber),
+                color: s.confidence > 0.8 ? _primaryGreen : AppColors.amber),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -518,13 +518,13 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                 Text(
                     '${s.entityType == MatchEntityType.booking ? 'Booking' : 'Expense'} • ₦${s.amount.toStringAsFixed(0)} • ${s.reason}',
                     style:
-                        TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+                        TextStyle(fontSize: 10, color: AppColors.grey600)),
               ])),
           Text('$confidencePct%',
               style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
-                  color: s.confidence > 0.8 ? _primaryGreen : Colors.amber)),
+                  color: s.confidence > 0.8 ? _primaryGreen : AppColors.amber)),
           const SizedBox(width: 8),
           RoleGate(requiredPermission: Permission.manageReconciliation, child: IconButton(
             icon:
@@ -575,7 +575,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                   width: 36,
                                   height: 4,
                                   decoration: BoxDecoration(
-                                      color: Colors.grey.shade300,
+                                      color: AppColors.grey300,
                                       borderRadius: BorderRadius.circular(2)))),
                           const SizedBox(height: 16),
                           const Text('Manual Match',
@@ -627,7 +627,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                             const Padding(
                                 padding: EdgeInsets.all(16),
                                 child: Text('No results',
-                                    style: TextStyle(color: Colors.grey)))
+                                    style: TextStyle(color: AppColors.grey500)))
                           else
                             ...results.map((r) => ListTile(
                                   dense: true,
@@ -646,7 +646,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                       '${r.type == MatchEntityType.booking ? 'Booking' : 'Expense'} • ₦${r.amount.toStringAsFixed(0)}',
                                       style: TextStyle(
                                           fontSize: 11,
-                                          color: Colors.grey.shade600),
+                                          color: AppColors.grey600),
                                       overflow: TextOverflow.ellipsis),
                                   trailing: RoleGate(requiredPermission: Permission.manageReconciliation, child: ElevatedButton(
                                     onPressed: () {
@@ -718,7 +718,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                     width: 36,
                                     height: 4,
                                     decoration: BoxDecoration(
-                                        color: Colors.grey.shade300,
+                                        color: AppColors.grey300,
                                         borderRadius:
                                             BorderRadius.circular(2)))),
                             const SizedBox(height: 16),
@@ -729,7 +729,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                             Text(
                                 'Total: ₦${t.amount.toStringAsFixed(0)} • Remaining: ₦${remaining.toStringAsFixed(0)}',
                                 style: TextStyle(
-                                    fontSize: 12, color: Colors.grey.shade600)),
+                                    fontSize: 12, color: AppColors.grey600)),
                             const SizedBox(height: 12),
                             ...allocations.asMap().entries.map((e) => Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
@@ -748,7 +748,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                       icon: const Icon(
                                           Icons.delete_outline_rounded,
                                           size: 18,
-                                          color: Colors.redAccent),
+                                          color: AppColors.redAccent),
                                       onPressed: () {
                                         remaining += allocations[e.key].amount;
                                         allocations.removeAt(e.key);
@@ -907,7 +907,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                               borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
                   const Text('Edit Transaction',
@@ -1038,7 +1038,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red));
       }
     }
   }
@@ -1050,7 +1050,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
         SizedBox(
             width: 90,
             child: Text(label,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12))),
+                style: TextStyle(color: AppColors.grey600, fontSize: 12))),
         Expanded(
             child: Text(value,
                 style: const TextStyle(
@@ -1106,10 +1106,10 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
               ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.account_balance_rounded,
-                      size: 64, color: Colors.grey.shade300),
+                      size: 64, color: AppColors.grey300),
                   const SizedBox(height: 12),
                   Text('No virtual accounts',
-                      style: TextStyle(color: Colors.grey.shade500)),
+                      style: TextStyle(color: AppColors.grey500)),
                 ]))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
@@ -1124,7 +1124,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
         child: RoleGate(requiredPermission: Permission.manageVirtualAccounts, child: FloatingActionButton(
           onPressed: () => _generateVA(context),
           backgroundColor: _primaryGreen,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.white,
           child: const Icon(Icons.add_rounded),
         )),
       ),
@@ -1134,11 +1134,11 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
   Widget _vaDashboard(int total, int active, int matched) {
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      color: AppColors.white,
       child: Row(children: [
         Expanded(
             child: _vaStat(
-                '$total', 'Total', Icons.account_balance_rounded, Colors.blue)),
+                '$total', 'Total', Icons.account_balance_rounded, AppColors.blue)),
         const SizedBox(width: 8),
         Expanded(
             child: _vaStat('$active', 'Active', Icons.check_circle_rounded,
@@ -1146,7 +1146,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
         const SizedBox(width: 8),
         Expanded(
             child: _vaStat(
-                '$matched', 'Matched', Icons.link_rounded, Colors.purple)),
+                '$matched', 'Matched', Icons.link_rounded, AppColors.purple)),
       ]),
     );
   }
@@ -1165,7 +1165,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
               style: TextStyle(
                   fontWeight: FontWeight.w900, fontSize: 18, color: c)),
         ]),
-        Text(l, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+        Text(l, style: TextStyle(fontSize: 10, color: AppColors.grey600)),
       ]),
     );
   }
@@ -1191,8 +1191,8 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
     final statusColor = va.status == 'active'
         ? _primaryGreen
         : va.status == 'matched'
-            ? Colors.purple
-            : Colors.grey;
+            ? AppColors.purple
+            : AppColors.grey500;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
@@ -1217,9 +1217,9 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                 const SizedBox(height: 2),
                 Text('${va.bankName} • ${va.accountNumber}',
                     style:
-                        TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        TextStyle(fontSize: 11, color: AppColors.grey600)),
                 Text('Booking: ${va.bookingId}',
-                    style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                    style: TextStyle(fontSize: 10, color: AppColors.grey500),
                     overflow: TextOverflow.ellipsis),
               ])),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -1260,10 +1260,10 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: AppColors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.redAccent),
+                child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.redAccent),
               ),
             )),
           ]),
@@ -1295,7 +1295,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                               borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
                   const Text('Generate Virtual Account',
@@ -1379,7 +1379,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                               borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
                   const Text('Edit Virtual Account',
@@ -1482,12 +1482,12 @@ class _PosTabState extends State<_PosTab> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Column(children: [
       Container(
-        color: Colors.white,
+        color: AppColors.white,
         child: TabBar(
           controller: _posTabCtrl,
           indicatorColor: _primaryGreen,
           labelColor: _primaryGreen,
-          unselectedLabelColor: Colors.grey.shade600,
+          unselectedLabelColor: AppColors.grey600,
           labelStyle:
               const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
@@ -1527,30 +1527,30 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
       Column(children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          color: AppColors.white,
           child: Row(children: [
             Expanded(
                 child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.08),
+                  color: AppColors.blue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10)),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
                       const Icon(Icons.devices_rounded,
-                          size: 14, color: Colors.blue),
+                          size: 14, color: AppColors.blue),
                       const SizedBox(width: 4),
                       Text('${terminals.length}',
                           style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 18,
-                              color: Colors.blue)),
+                              color: AppColors.blue)),
                     ]),
                     Text('Terminals',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade600)),
+                            fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
             const SizedBox(width: 8),
@@ -1575,7 +1575,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                     ]),
                     Text('Active',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade600)),
+                            fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
           ]),
@@ -1585,10 +1585,10 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
               ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.devices_rounded,
-                      size: 64, color: Colors.grey.shade300),
+                      size: 64, color: AppColors.grey300),
                   const SizedBox(height: 12),
                   Text('No POS terminals',
-                      style: TextStyle(color: Colors.grey.shade500)),
+                      style: TextStyle(color: AppColors.grey500)),
                 ]))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
@@ -1603,7 +1603,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
         child: RoleGate(requiredPermission: Permission.trackPOSTerminals, child: FloatingActionButton(
           onPressed: () => _addTerminal(context),
           backgroundColor: _primaryGreen,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.white,
           child: const Icon(Icons.add_rounded),
         )),
       ),
@@ -1619,13 +1619,13 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: (t.status == 'active' ? _primaryGreen : Colors.grey)
+              color: (t.status == 'active' ? _primaryGreen : AppColors.grey500)
                   .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(Icons.devices_rounded,
                 size: 18,
-                color: t.status == 'active' ? _primaryGreen : Colors.grey),
+                color: t.status == 'active' ? _primaryGreen : AppColors.grey500),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1637,7 +1637,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                         fontWeight: FontWeight.w700, fontSize: 13)),
                 Text('${t.bankName} • ${t.merchantCode}',
                     style:
-                        TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                        TextStyle(fontSize: 11, color: AppColors.grey600)),
               ])),
           RoleGate(requiredPermission: Permission.trackPOSTerminals, child: Switch(
             value: t.status == 'active',
@@ -1669,10 +1669,10 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.1),
+                  color: AppColors.red.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(Icons.delete_outline_rounded, size: 14, color: Colors.redAccent),
+                child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.redAccent),
               ),
             )),
           ]),
@@ -1704,7 +1704,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                               borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
                   const Text('Add POS Terminal',
@@ -1785,7 +1785,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                               borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
                   const Text('Edit POS Terminal',
@@ -1891,30 +1891,30 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
       Column(children: [
         Container(
           padding: const EdgeInsets.all(16),
-          color: Colors.white,
+          color: AppColors.white,
           child: Row(children: [
             Expanded(
                 child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.08),
+                  color: AppColors.blue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10)),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
                       const Icon(Icons.receipt_long_rounded,
-                          size: 14, color: Colors.blue),
+                          size: 14, color: AppColors.blue),
                       const SizedBox(width: 4),
                       Text('${all.length}',
                           style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 18,
-                              color: Colors.blue)),
+                              color: AppColors.blue)),
                     ]),
                     Text('Total',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade600)),
+                            fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
             const SizedBox(width: 8),
@@ -1922,24 +1922,24 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                 child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.08),
+                  color: AppColors.orange.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(10)),
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
                       const Icon(Icons.pending_rounded,
-                          size: 14, color: Colors.orange),
+                          size: 14, color: AppColors.orange),
                       const SizedBox(width: 4),
                       Text('$pending',
                           style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 18,
-                              color: Colors.orange)),
+                              color: AppColors.orange)),
                     ]),
                     Text('Pending',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade600)),
+                            fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
             const SizedBox(width: 8),
@@ -1964,7 +1964,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                     ]),
                     Text('Settled',
                         style: TextStyle(
-                            fontSize: 10, color: Colors.grey.shade600)),
+                            fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
           ]),
@@ -1986,10 +1986,10 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
               ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.receipt_long_rounded,
-                      size: 64, color: Colors.grey.shade300),
+                      size: 64, color: AppColors.grey300),
                   const SizedBox(height: 12),
                   Text('No settlements',
-                      style: TextStyle(color: Colors.grey.shade500)),
+                      style: TextStyle(color: AppColors.grey500)),
                 ]))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 80),
@@ -2004,7 +2004,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
         child: RoleGate(requiredPermission: Permission.trackPOSTerminals, child: FloatingActionButton(
           onPressed: () => _recordSettlement(context),
           backgroundColor: _primaryGreen,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.white,
           child: const Icon(Icons.add_rounded),
         )),
       ),
@@ -2032,8 +2032,8 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
     final statusColor = s.status == 'settled'
         ? _primaryGreen
         : s.status == 'pending'
-            ? Colors.orange
-            : Colors.red;
+            ? AppColors.orange
+            : AppColors.red;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -2061,7 +2061,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                   Text(
                       '${s.date.day}/${s.date.month}/${s.date.year} • Terminal: ${s.terminalId}',
                       style:
-                          TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                          TextStyle(fontSize: 10, color: AppColors.grey600),
                       overflow: TextOverflow.ellipsis),
                 ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -2104,7 +2104,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                         width: 36,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
+                            color: AppColors.grey300,
                             borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
                 Row(children: [
@@ -2126,7 +2126,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                                 fontWeight: FontWeight.w900, fontSize: 18)),
                         Text('${s.date.day}/${s.date.month}/${s.date.year}',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade600)),
+                                fontSize: 12, color: AppColors.grey600)),
                       ])),
                 ]),
                 const SizedBox(height: 16),
@@ -2197,7 +2197,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                              color: Colors.grey.shade300,
+                              color: AppColors.grey300,
                               borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(height: 16),
                   const Text('Record POS Settlement',
@@ -2266,7 +2266,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
         SizedBox(
             width: 90,
             child: Text(label,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12))),
+                style: TextStyle(color: AppColors.grey600, fontSize: 12))),
         Expanded(
             child: Text(value,
                 style: const TextStyle(

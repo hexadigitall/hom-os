@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
@@ -55,8 +55,8 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 const String _tabStateKey = 'last_active_tab';
 
 const Color primaryGreen = AppColors.primary;
-const Color darkGreen = Color(0xFF0B7A55);
-const Color inkBlack = Color(0xFF0E1A14);
+const Color darkGreen = AppColors.primaryDark;
+const Color inkBlack = AppColors.ink;
 
 void _trace(String s) {
   // ignore: avoid_print
@@ -306,35 +306,39 @@ class _HomeShellState extends State<HomeShell> {
         child: Padding(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 16),
             const Text('All Features', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
             const SizedBox(height: 16),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1,
-              children: items.map((item) => GestureDetector(
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _goToTab(item.index);
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: _tab == item.index ? primaryGreen.withValues(alpha: 0.1) : Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _tab == item.index ? primaryGreen.withValues(alpha: 0.3) : Colors.grey.shade200),
+            ConstrainedBox(
+              // Cap the grid height so the sheet never overflows in landscape.
+              constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.55),
+              child: GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 1,
+                children: items.map((item) => GestureDetector(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _goToTab(item.index);
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _tab == item.index ? primaryGreen.withValues(alpha: 0.1) : AppColors.grey50,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _tab == item.index ? primaryGreen.withValues(alpha: 0.3) : AppColors.grey200),
+                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(item.icon, color: _tab == item.index ? primaryGreen : AppColors.grey700, size: 26),
+                      const SizedBox(height: 6),
+                      Text(item.label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _tab == item.index ? primaryGreen : AppColors.grey800), textAlign: TextAlign.center),
+                    ]),
                   ),
-                  child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Icon(item.icon, color: _tab == item.index ? primaryGreen : Colors.grey.shade700, size: 26),
-                    const SizedBox(height: 6),
-                    Text(item.label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _tab == item.index ? primaryGreen : Colors.grey.shade800), textAlign: TextAlign.center),
-                  ]),
-                ),
-              )).toList(),
+                )).toList(),
+              ),
             ),
           ]),
         ),
@@ -379,9 +383,9 @@ class _HomeShellState extends State<HomeShell> {
                   right: 2, top: 2,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    decoration: const BoxDecoration(color: AppColors.red, shape: BoxShape.circle),
                     constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Text('$unread', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
+                    child: Text('$unread', style: const TextStyle(color: AppColors.white, fontSize: 9, fontWeight: FontWeight.w800), textAlign: TextAlign.center),
                   ),
                 ),
             ]),
@@ -580,9 +584,9 @@ Widget _statusChip(String s) {
     case 'checked-in': case 'available': case 'approved': case 'delivered':
       c = primaryGreen; break;
     case 'cancelled': case 'maintenance':
-      c = Colors.red; break;
+      c = AppColors.red; break;
     default:
-      c = Colors.blue;
+      c = AppColors.blue;
   }
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -601,7 +605,7 @@ Future<void> _sendWhatsApp(BuildContext context, String rawPhone, String message
   } catch (_) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open WhatsApp. Please ensure WhatsApp is installed.'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Could not open WhatsApp. Please ensure WhatsApp is installed.'), backgroundColor: AppColors.red),
       );
     }
   }
@@ -623,7 +627,7 @@ void _showForm(BuildContext context, String title, List<Widget> fields, VoidCall
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
             const SizedBox(height: 16),
@@ -656,26 +660,26 @@ class OverviewScreen extends StatelessWidget {
 
     return ListView(padding: const EdgeInsets.all(16), children: [
       HomResponsiveGrid(children: [
-        HomMetricCard(label: 'Rooms', value: '${HOMData.rooms.length}', color: Colors.blue, icon: Icons.bed_rounded, sub: '$avail available'),
+        HomMetricCard(label: 'Rooms', value: '${HOMData.rooms.length}', color: AppColors.blue, icon: Icons.bed_rounded, sub: '$avail available'),
         HomMetricCard(label: 'Bookings', value: '$active', color: primaryGreen, icon: Icons.calendar_month_rounded, sub: '${HOMData.bookings.length} total'),
-        HomMetricCard(label: 'Fuel', value: '${totalDieselL.toStringAsFixed(0)}L', color: Colors.amber, icon: Icons.local_gas_station_rounded, sub: '${dieselLogs.length} logs'),
-        HomMetricCard(label: 'Low Stock', value: '$low', color: Colors.red, icon: Icons.warning_rounded, sub: '${HOMData.inventory.length} items'),
+        HomMetricCard(label: 'Fuel', value: '${totalDieselL.toStringAsFixed(0)}L', color: AppColors.amber, icon: Icons.local_gas_station_rounded, sub: '${dieselLogs.length} logs'),
+        HomMetricCard(label: 'Low Stock', value: '$low', color: AppColors.red, icon: Icons.warning_rounded, sub: '${HOMData.inventory.length} items'),
       ]),
       const SizedBox(height: 16),
       if (theft > 0)
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(16)),
           child: Row(children: [
-            const Icon(Icons.warning_rounded, color: Colors.red, size: 20),
+            const Icon(Icons.warning_rounded, color: AppColors.red, size: 20),
             const SizedBox(width: 10),
-            Flexible(child: Text('$theft theft alert(s)!', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 13))),
+            Flexible(child: Text('$theft theft alert(s)!', style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w700, fontSize: 13))),
           ]),
         )
       else
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(16)),
+          decoration: BoxDecoration(color: AppColors.green50, borderRadius: BorderRadius.circular(16)),
           child: const Row(children: [
             Icon(Icons.check_circle, color: primaryGreen, size: 20),
             SizedBox(width: 10),
@@ -769,20 +773,20 @@ class _BookingsScreenState extends State<BookingsScreen> {
             _statusChip(b.status),
           ]),
           const SizedBox(height: 4),
-          Text('Room ${b.room} • ${b.checkin} → ${b.checkout} • ₦${b.amount}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+          Text('Room ${b.room} • ${b.checkin} → ${b.checkout} • ₦${b.amount}', style: TextStyle(fontSize: 12, color: AppColors.grey600), overflow: TextOverflow.ellipsis),
             Row(children: [
-              Flexible(child: Text(b.phone, style: TextStyle(fontSize: 11, color: Colors.grey.shade500), overflow: TextOverflow.ellipsis)),
+              Flexible(child: Text(b.phone, style: TextStyle(fontSize: 11, color: AppColors.grey500), overflow: TextOverflow.ellipsis)),
               const Spacer(),
               if (b.phone.isNotEmpty)
                 GestureDetector(
                   onTap: () => _sendWhatsApp(context, b.phone, 'Dear ${b.guest}, your booking at HOM Hotel is confirmed! Room ${b.room}, Check-in: ${b.checkin}, Check-out: ${b.checkout}. Thank you!'),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: AppColors.whatsapp.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.chat_rounded, size: 12, color: const Color(0xFF25D366)),
+                      Icon(Icons.chat_rounded, size: 12, color: AppColors.whatsapp),
                       SizedBox(width: 4),
-                      Text('WhatsApp', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF25D366))),
+                      Text('WhatsApp', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.whatsapp)),
                     ]),
                   ),
                 ),
@@ -791,9 +795,9 @@ class _BookingsScreenState extends State<BookingsScreen> {
             if (b.status != 'checked-out' && b.status != 'cancelled') ...[
               RoleGate(requiredPermission: Permission.editBooking, child: IconButton(onPressed: () => _edit(b), icon: const Icon(Icons.edit_rounded, size: 18), tooltip: 'Edit')),
               RoleGate(requiredPermission: Permission.checkOutGuest, child: IconButton(onPressed: () => _checkout(b), icon: const Icon(Icons.logout_rounded, size: 18, color: primaryGreen), tooltip: 'Check out')),
-              RoleGate(requiredPermission: Permission.editBooking, child: IconButton(onPressed: () => _cancel(b), icon: const Icon(Icons.cancel_rounded, size: 18, color: Colors.red), tooltip: 'Cancel')),
+              RoleGate(requiredPermission: Permission.editBooking, child: IconButton(onPressed: () => _cancel(b), icon: const Icon(Icons.cancel_rounded, size: 18, color: AppColors.red), tooltip: 'Cancel')),
             ],
-            RoleGate(requiredPermission: Permission.deleteBooking, child: IconButton(onPressed: () { setState(() => HOMData.bookings.remove(b)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent), tooltip: 'Delete')),
+            RoleGate(requiredPermission: Permission.deleteBooking, child: IconButton(onPressed: () { setState(() => HOMData.bookings.remove(b)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent), tooltip: 'Delete')),
           ]),
         ]),
       ))),
@@ -847,7 +851,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
       const Padding(padding: EdgeInsets.all(16), child: Text('Set Status', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
       ...['available', 'occupied', 'maintenance'].map((s) => ListTile(
         title: Text(s.toUpperCase()),
-        leading: Icon(s == 'available' ? Icons.check_circle_rounded : s == 'occupied' ? Icons.person_rounded : Icons.build_rounded, color: s == r.status ? primaryGreen : Colors.grey),
+        leading: Icon(s == 'available' ? Icons.check_circle_rounded : s == 'occupied' ? Icons.person_rounded : Icons.build_rounded, color: s == r.status ? primaryGreen : AppColors.grey500),
         onTap: () { r.status = s; Navigator.pop(ctx); setState(() {}); HOMData.save(); },
       )),
     ])));
@@ -868,12 +872,12 @@ class _RoomsScreenState extends State<RoomsScreen> {
             Flexible(child: Text('Room ${r.number}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20), overflow: TextOverflow.ellipsis)),
             _statusChip(r.status),
           ]),
-          Text('${r.type} — ₦${r.price}/night', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+          Text('${r.type} — ₦${r.price}/night', style: TextStyle(fontSize: 13, color: AppColors.grey600)),
           const SizedBox(height: 8),
           Wrap(spacing: 4, children: [
             RoleGate(requiredPermission: Permission.updateRoomStatus, child: TextButton.icon(onPressed: () => _toggleStatus(r), icon: const Icon(Icons.swap_horiz_rounded, size: 14), label: const Text('Status'))),
             RoleGate(requiredPermission: Permission.manageRooms, child: IconButton(onPressed: () => _edit(r), icon: const Icon(Icons.edit_rounded, size: 18))),
-            RoleGate(requiredPermission: Permission.manageRooms, child: IconButton(onPressed: () { setState(() => HOMData.rooms.remove(r)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+            RoleGate(requiredPermission: Permission.manageRooms, child: IconButton(onPressed: () { setState(() => HOMData.rooms.remove(r)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
           ]),
         ]),
       ))),
@@ -928,7 +932,7 @@ class _FuelScreenState extends State<DieselScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               const Text('Log Fuel Purchase', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -994,7 +998,7 @@ class _FuelScreenState extends State<DieselScreen> {
                     if (log.theftAlertRate != null) {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text('THEFT ALERT: ${log.theftAlertRate!.toStringAsFixed(1)} ${log.fuelType.efficiencyUnit}!'),
-                        backgroundColor: Colors.red,
+                        backgroundColor: AppColors.red,
                       ));
                       NotificationStore.notifyFuelTheft(log.theftAlertRate!, log.fuelType.displayName, log.supplier);
                     }
@@ -1029,7 +1033,7 @@ class _FuelScreenState extends State<DieselScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text('Edit ${log.fuelType.displayName}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -1081,11 +1085,11 @@ class _FuelScreenState extends State<DieselScreen> {
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [Colors.amber.shade700, Colors.amber.shade500]),
+          gradient: LinearGradient(colors: [AppColors.amber700, AppColors.amber500]),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('FUEL & ENERGY DASHBOARD', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
+          Text('FUEL & ENERGY DASHBOARD', style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
           const SizedBox(height: 10),
           Row(children: [
             _statBlock('₦${_fmtShort(monthCost)}', 'This Month', Icons.monetization_on_rounded),
@@ -1100,14 +1104,14 @@ class _FuelScreenState extends State<DieselScreen> {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: (monthCost / totalExp).clamp(0.0, 1.0),
-                backgroundColor: Colors.white.withValues(alpha: 0.3),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                backgroundColor: AppColors.white.withValues(alpha: 0.3),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.white),
                 minHeight: 6,
               ),
             ),
             const SizedBox(height: 4),
             Text('Energy is ${(monthCost / totalExp * 100).toStringAsFixed(0)}% of total expenditure',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11)),
+                style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 11)),
           ],
         ]),
       ),
@@ -1117,14 +1121,14 @@ class _FuelScreenState extends State<DieselScreen> {
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Cost Breakdown by Fuel Type', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.grey.shade800)),
+              Text('Cost Breakdown by Fuel Type', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.grey800)),
               const SizedBox(height: 10),
               ...FuelType.values.where((t) => (costs[t] ?? 0) > 0).map((t) {
                 final pct = costs[t]! / totalCost * 100;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Row(children: [
-                    Icon(t.icon, size: 16, color: Colors.amber.shade700),
+                    Icon(t.icon, size: 16, color: AppColors.amber700),
                     const SizedBox(width: 8),
                     Flexible(flex: 2, child: Text(t.displayName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
                     Expanded(
@@ -1133,7 +1137,7 @@ class _FuelScreenState extends State<DieselScreen> {
                         borderRadius: BorderRadius.circular(3),
                         child: LinearProgressIndicator(
                           value: pct / 100,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: AppColors.grey200,
                           minHeight: 14,
                         ),
                       ),
@@ -1162,14 +1166,14 @@ class _FuelScreenState extends State<DieselScreen> {
       ..._logs.map((f) {
         final theft = f.theftAlertRate;
         return Card(
-          color: theft != null ? Colors.red.shade50 : null,
+          color: theft != null ? AppColors.red50 : null,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Expanded(
                   child: Row(children: [
-                    Icon(f.fuelType.icon, size: 16, color: theft != null ? Colors.red : Colors.amber.shade700),
+                    Icon(f.fuelType.icon, size: 16, color: theft != null ? AppColors.red : AppColors.amber700),
                     const SizedBox(width: 6),
                     Flexible(child: Text('${f.quantity.toStringAsFixed(0)}${f.fuelType.unit} — ${f.supplier}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13), overflow: TextOverflow.ellipsis)),
                   ]),
@@ -1177,15 +1181,15 @@ class _FuelScreenState extends State<DieselScreen> {
                 if (theft != null) Container(
                   margin: const EdgeInsets.only(right: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
-                  child: Text('${theft.toStringAsFixed(1)} ${f.fuelType.efficiencyUnit}', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                  decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(12)),
+                  child: Text('${theft.toStringAsFixed(1)} ${f.fuelType.efficiencyUnit}', style: const TextStyle(color: AppColors.white, fontSize: 9, fontWeight: FontWeight.w700)),
                 ),
                 RoleGate(requiredPermission: Permission.trackFuelDeliveryCycles, child: IconButton(onPressed: () => _edit(f), icon: const Icon(Icons.edit_rounded, size: 16))),
-                RoleGate(requiredPermission: Permission.trackFuelDeliveryCycles, child: IconButton(onPressed: () { setState(() => HOMData.fuelLogs.remove(f)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 16, color: Colors.redAccent))),
+                RoleGate(requiredPermission: Permission.trackFuelDeliveryCycles, child: IconButton(onPressed: () { setState(() => HOMData.fuelLogs.remove(f)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 16, color: AppColors.redAccent))),
               ]),
               const SizedBox(height: 4),
               Text('${_fmtDate(f.date)} • ${f.fuelType.displayName} • ₦${f.cost.toStringAsFixed(0)}${f.usageHours != null ? ' • ${f.usageHours!.toStringAsFixed(0)} hrs' : ''}${f.note.isNotEmpty ? ' • ${f.note}' : ''}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  style: TextStyle(fontSize: 11, color: AppColors.grey600)),
             ]),
           ),
         );
@@ -1198,12 +1202,12 @@ class _FuelScreenState extends State<DieselScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: ChoiceChip(
-        avatar: Icon(icon, size: 14, color: active ? Colors.white : Colors.grey.shade600),
-        label: Text(label, style: TextStyle(fontSize: 11, fontWeight: active ? FontWeight.w800 : FontWeight.w500, color: active ? Colors.white : null)),
+        avatar: Icon(icon, size: 14, color: active ? AppColors.white : AppColors.grey600),
+        label: Text(label, style: TextStyle(fontSize: 11, fontWeight: active ? FontWeight.w800 : FontWeight.w500, color: active ? AppColors.white : null)),
         selected: active,
         onSelected: (_) => setState(() => _filter = t),
-        selectedColor: Colors.amber.shade700,
-        backgroundColor: Colors.grey.shade100,
+        selectedColor: AppColors.amber700,
+        backgroundColor: AppColors.grey100,
         visualDensity: VisualDensity.compact,
       ),
     );
@@ -1213,11 +1217,11 @@ class _FuelScreenState extends State<DieselScreen> {
     return Expanded(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(icon, color: Colors.white.withValues(alpha: 0.9), size: 14),
+          Icon(icon, color: AppColors.white.withValues(alpha: 0.9), size: 14),
           const SizedBox(width: 4),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
+          Text(value, style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w900, fontSize: 15)),
         ]),
-        Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 10)),
+        Text(label, style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 10)),
       ]),
     );
   }
@@ -1288,11 +1292,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
             Flexible(child: Text(it.name, style: const TextStyle(fontWeight: FontWeight.w800), overflow: TextOverflow.ellipsis)),
             if (it.qty <= it.low) Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(12)),
-              child: const Text('LOW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.red)),
+              decoration: BoxDecoration(color: AppColors.red100, borderRadius: BorderRadius.circular(12)),
+              child: const Text('LOW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.red)),
             ),
           ]),
-          Text('Qty: ${it.qty} • Min: ${it.low} • ₦${it.cost}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          Text('Qty: ${it.qty} • Min: ${it.low} • ₦${it.cost}', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
           const SizedBox(height: 8),
           Wrap(alignment: WrapAlignment.center, spacing: 4, children: [
             RoleGate(requiredPermission: Permission.manageInventory, child: IconButton(onPressed: () { setState(() {
@@ -1302,7 +1306,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Text('${it.qty}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
             RoleGate(requiredPermission: Permission.manageInventory, child: IconButton(onPressed: () { setState(() => it.qty += 10); HOMData.save(); }, icon: const Icon(Icons.add_circle, size: 28, color: primaryGreen))),
             RoleGate(requiredPermission: Permission.manageInventory, child: IconButton(onPressed: () => _edit(it), icon: const Icon(Icons.edit_rounded, size: 18))),
-            RoleGate(requiredPermission: Permission.manageInventory, child: IconButton(onPressed: () { setState(() => HOMData.inventory.remove(it)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+            RoleGate(requiredPermission: Permission.manageInventory, child: IconButton(onPressed: () { setState(() => HOMData.inventory.remove(it)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
           ]),
         ]),
       ))),
@@ -1374,7 +1378,7 @@ class _StaffScreenState extends State<StaffScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open WhatsApp'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Could not open WhatsApp'), backgroundColor: AppColors.red),
       );
     }
   }
@@ -1405,21 +1409,21 @@ class _StaffScreenState extends State<StaffScreen> {
               Flexible(child: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15), overflow: TextOverflow.ellipsis)),
               Row(children: [
                 if (s.phone.isNotEmpty)
-                  RoleGate(requiredPermission: Permission.runPayroll, child: IconButton(onPressed: () => _sendPayslip(s), icon: const Icon(Icons.chat_rounded, size: 18, color: Color(0xFF25D366)), tooltip: 'WhatsApp')),
+                  RoleGate(requiredPermission: Permission.runPayroll, child: IconButton(onPressed: () => _sendPayslip(s), icon: const Icon(Icons.chat_rounded, size: 18, color: AppColors.whatsapp), tooltip: 'WhatsApp')),
                 RoleGate(requiredPermission: Permission.manageStaff, child: IconButton(onPressed: () => _edit(s), icon: const Icon(Icons.edit_rounded, size: 18))),
-                RoleGate(requiredPermission: Permission.manageStaff, child: IconButton(onPressed: () { setState(() => HOMData.staff.remove(s)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                RoleGate(requiredPermission: Permission.manageStaff, child: IconButton(onPressed: () { setState(() => HOMData.staff.remove(s)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
               ]),
             ]),
-            Text(s.role, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-            if (s.phone.isNotEmpty) Text(s.phone, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+            Text(s.role, style: TextStyle(fontSize: 12, color: AppColors.grey600)),
+            if (s.phone.isNotEmpty) Text(s.phone, style: TextStyle(fontSize: 11, color: AppColors.grey500)),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: AppColors.grey50, borderRadius: BorderRadius.circular(10)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('Gross: ₦${s.salary}', style: const TextStyle(fontSize: 12)),
-                Text('PAYE 7%: ₦$p', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                Text('Pension 8%: ₦$pe', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text('PAYE 7%: ₦$p', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
+                Text('Pension 8%: ₦$pe', style: TextStyle(fontSize: 12, color: AppColors.grey600)),
                 Text('Net: ₦$net', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: primaryGreen)),
               ]),
             ),
@@ -1533,12 +1537,12 @@ class _VendorsScreenState extends State<VendorsScreen> {
         subtitle: Text('${v.contact} • ${v.category}'),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
           if (v.contact.isNotEmpty)
-            IconButton(onPressed: () => _sendWhatsApp(context, v.contact, 'Hello ${v.name}, this is HOM Hotel. We have a new purchase order for you.'), icon: const Icon(Icons.chat_rounded, size: 18, color: Color(0xFF25D366)), tooltip: 'WhatsApp'),
+            IconButton(onPressed: () => _sendWhatsApp(context, v.contact, 'Hello ${v.name}, this is HOM Hotel. We have a new purchase order for you.'), icon: const Icon(Icons.chat_rounded, size: 18, color: AppColors.whatsapp), tooltip: 'WhatsApp'),
           RoleGate(requiredPermission: Permission.manageVendors, child: IconButton(onPressed: () => _editVendor(v), icon: const Icon(Icons.edit_rounded, size: 18))),
           RoleGate(requiredPermission: Permission.manageVendors, child: IconButton(onPressed: () { setState(() {
             HOMData.vendors.remove(v);
             HOMData.purchaseOrders.removeWhere((po) => po.vendorId == v.id);
-          }); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+          }); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
         ]),
       ))),
       const SizedBox(height: 16),
@@ -1551,7 +1555,7 @@ class _VendorsScreenState extends State<VendorsScreen> {
           trailing: Row(mainAxisSize: MainAxisSize.min, children: [
             RoleGate(requiredPermission: Permission.managePurchaseOrders, child: GestureDetector(onTap: () => _cycleStatus(po), child: _statusChip(po.status))),
             RoleGate(requiredPermission: Permission.managePurchaseOrders, child: IconButton(onPressed: () => _editPO(po), icon: const Icon(Icons.edit_rounded, size: 18))),
-            RoleGate(requiredPermission: Permission.managePurchaseOrders, child: IconButton(onPressed: () { setState(() => HOMData.purchaseOrders.remove(po)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+            RoleGate(requiredPermission: Permission.managePurchaseOrders, child: IconButton(onPressed: () { setState(() => HOMData.purchaseOrders.remove(po)); HOMData.save(); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
           ]),
         ));
       }),

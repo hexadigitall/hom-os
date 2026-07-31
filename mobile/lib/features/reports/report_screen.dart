@@ -132,7 +132,7 @@ class _ReportScreenState extends State<ReportScreen> {
       body: Column(children: [
         Container(
           padding: const EdgeInsets.all(12),
-          color: Colors.white,
+          color: AppColors.white,
           child: Column(children: [
             Row(children: [
               Expanded(
@@ -163,9 +163,9 @@ class _ReportScreenState extends State<ReportScreen> {
               : _reports.isEmpty
                   ? Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.bar_chart_rounded, size: 64, color: Colors.grey.shade300),
+                        Icon(Icons.bar_chart_rounded, size: 64, color: AppColors.grey300),
                         const SizedBox(height: 12),
-                        Text('No data for selected period', style: TextStyle(color: Colors.grey.shade500)),
+                        Text('No data for selected period', style: TextStyle(color: AppColors.grey500)),
                       ]),
                     )
                   : ListView.builder(
@@ -181,7 +181,7 @@ class _ReportScreenState extends State<ReportScreen> {
   Widget _segmentedBtn(List<(String, ReportGranularity)> items) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: AppColors.grey100,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -194,14 +194,14 @@ class _ReportScreenState extends State<ReportScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: active ? AppColors.primary : Colors.transparent,
+                  color: active ? AppColors.primary : AppColors.transparent,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   label,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: active ? Colors.white : Colors.grey.shade700,
+                    color: active ? AppColors.white : AppColors.grey700,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                   ),
@@ -224,7 +224,7 @@ class _ReportScreenState extends State<ReportScreen> {
         onSelected: (_) => setState(() { _catFilter = cat; _generate(); }),
         visualDensity: VisualDensity.compact,
         selectedColor: AppColors.primary.withValues(alpha: 0.1),
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: AppColors.grey100,
       ),
     );
   }
@@ -251,7 +251,7 @@ class _ReportScreenState extends State<ReportScreen> {
             ),
           ]),
           const SizedBox(height: 4),
-          Text('${report.recordCount} transactions', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+          Text('${report.recordCount} transactions', style: TextStyle(color: AppColors.grey600, fontSize: 12)),
           const SizedBox(height: 8),
           Text(ReportEngine.formatCurrency(report.grandTotal), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: AppColors.primary)),
           const SizedBox(height: 12),
@@ -262,11 +262,11 @@ class _ReportScreenState extends State<ReportScreen> {
               const SizedBox(width: 8),
               Expanded(flex: 3, child: Text(c.category.displayName, style: const TextStyle(fontSize: 12))),
               Expanded(flex: 2, child: Text(ReportEngine.formatCurrency(c.total), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600), textAlign: TextAlign.right)),
-              SizedBox(width: 36, child: Text('${c.percentage.toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, color: Colors.grey.shade500), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis)),
+              SizedBox(width: 36, child: Text('${c.percentage.toStringAsFixed(0)}%', style: TextStyle(fontSize: 11, color: AppColors.grey500), textAlign: TextAlign.right, overflow: TextOverflow.ellipsis)),
             ]),
           )),
           if (report.categories.length > 5)
-            Text('...and ${report.categories.length - 5} more categories', style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+            Text('...and ${report.categories.length - 5} more categories', style: TextStyle(color: AppColors.grey500, fontSize: 11)),
         ]),
       ),
     );

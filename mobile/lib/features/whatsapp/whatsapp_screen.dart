@@ -49,13 +49,13 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF25D366).withValues(alpha: 0.1),
+                  color: AppColors.whatsapp.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.check_circle, size: 14, color: Color(0xFF25D366)),
+                  const Icon(Icons.check_circle, size: 14, color: AppColors.whatsapp),
                   const SizedBox(width: 4),
-                  Text('$sentToday sent', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF25D366))),
+                  Text('$sentToday sent', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.whatsapp)),
                 ]),
               ),
             ),
@@ -67,7 +67,7 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
         TabBar(
           controller: _tabCtrl,
           labelColor: _primaryGreen,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppColors.grey500,
           indicatorColor: _primaryGreen,
           tabs: const [
             Tab(text: 'Contacts', icon: Icon(Icons.people_rounded, size: 18)),
@@ -83,8 +83,8 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
       ]),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _addContact(context),
-        backgroundColor: const Color(0xFF25D366),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: AppColors.whatsapp,
+        child: const Icon(Icons.add, color: AppColors.white),
       ),
     );
   }
@@ -92,7 +92,7 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
   Widget _dashboardRow(int contacts, int sentToday) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      color: Colors.white,
+      color: AppColors.white,
       child: Row(children: [
         _stat('$contacts', 'Contacts', Icons.people_rounded),
         const SizedBox(width: 12),
@@ -106,14 +106,14 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
   Widget _stat(String v, String l, IconData i) {
     return Expanded(child: Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: AppColors.whatsapp.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(12)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(i, size: 14, color: const Color(0xFF25D366)),
+          Icon(i, size: 14, color: AppColors.whatsapp),
           const SizedBox(width: 4),
-          Text(v, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: Color(0xFF25D366))),
+          Text(v, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: AppColors.whatsapp)),
         ]),
-        Text(l, style: TextStyle(fontSize: 10, color: Colors.grey.shade600)),
+        Text(l, style: TextStyle(fontSize: 10, color: AppColors.grey600)),
       ]),
     ));
   }
@@ -134,7 +134,7 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               const Text('Add WhatsApp Contact', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -169,7 +169,7 @@ class _WhatsAppScreenState extends State<WhatsAppScreen> with SingleTickerProvid
                     Navigator.pop(ctx);
                     setState(() {});
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), padding: const EdgeInsets.symmetric(vertical: 14)),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.whatsapp, padding: const EdgeInsets.symmetric(vertical: 14)),
                   child: const Text('Add Contact'),
                 ),
               ),
@@ -210,11 +210,11 @@ class _ContactsTab extends StatelessWidget {
         child: contacts.isEmpty
             ? Center(
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.chat_rounded, size: 64, color: Colors.grey.shade300),
+                  Icon(Icons.chat_rounded, size: 64, color: AppColors.grey300),
                   const SizedBox(height: 12),
-                  Text('No contacts yet', style: TextStyle(color: Colors.grey.shade500)),
+                  Text('No contacts yet', style: TextStyle(color: AppColors.grey500)),
                   const SizedBox(height: 4),
-                  Text('Add contacts to send WhatsApp messages', style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+                  Text('Add contacts to send WhatsApp messages', style: TextStyle(fontSize: 12, color: AppColors.grey400)),
                 ]),
               )
             : ListView.builder(
@@ -237,14 +237,14 @@ class _ContactsTab extends StatelessWidget {
         child: Row(children: [
           CircleAvatar(
             radius: 18,
-            backgroundColor: const Color(0xFF25D366).withValues(alpha: 0.15),
-            child: Text(c.name[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF25D366))),
+            backgroundColor: AppColors.whatsapp.withValues(alpha: 0.15),
+            child: Text(c.name[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.whatsapp)),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              Text(c.phone, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+              Text(c.phone, style: TextStyle(fontSize: 12, color: AppColors.grey600)),
               if (c.entityType != ContactEntityType.other)
                 Container(
                   margin: const EdgeInsets.only(top: 4),
@@ -257,7 +257,7 @@ class _ContactsTab extends StatelessWidget {
           RoleGate(
             requiredPermission: Permission.sendAutomatedWhatsApp,
             child: IconButton(
-              icon: const Icon(Icons.message_rounded, size: 20, color: Color(0xFF25D366)),
+              icon: const Icon(Icons.message_rounded, size: 20, color: AppColors.whatsapp),
               tooltip: 'Send WhatsApp',
               onPressed: () => _sendToContact(context, c),
             ),
@@ -272,7 +272,7 @@ class _ContactsTab extends StatelessWidget {
             },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'edit', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.edit_rounded, size: 16), SizedBox(width: 8), Text('Edit', style: TextStyle(fontSize: 13))]))),
-              PopupMenuItem(value: 'delete', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.delete_rounded, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(fontSize: 13, color: Colors.red))]))),
+              PopupMenuItem(value: 'delete', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.delete_rounded, size: 16, color: AppColors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(fontSize: 13, color: AppColors.red))]))),
             ],
           ),
         ]),
@@ -305,7 +305,7 @@ class _ContactsTab extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text('Edit ${c.name}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -351,12 +351,12 @@ class _ContactsTab extends StatelessWidget {
 
   Color _entityColor(ContactEntityType t) {
     switch (t) {
-      case ContactEntityType.booking: return Colors.blue;
+      case ContactEntityType.booking: return AppColors.blue;
       case ContactEntityType.staff: return _primaryGreen;
-      case ContactEntityType.vendor: return Colors.orange;
-      case ContactEntityType.subscription: return Colors.purple;
-      case ContactEntityType.compliance: return Colors.indigo;
-      case ContactEntityType.other: return Colors.grey;
+      case ContactEntityType.vendor: return AppColors.orange;
+      case ContactEntityType.subscription: return AppColors.purple;
+      case ContactEntityType.compliance: return AppColors.indigo;
+      case ContactEntityType.other: return AppColors.grey500;
     }
   }
 
@@ -415,14 +415,14 @@ class _SendSheetState extends State<_SendSheet> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Row(children: [
-              CircleAvatar(radius: 16, backgroundColor: const Color(0xFF25D366).withValues(alpha: 0.15), child: Text(widget.contact.name[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF25D366), fontSize: 14))),
+              CircleAvatar(radius: 16, backgroundColor: AppColors.whatsapp.withValues(alpha: 0.15), child: Text(widget.contact.name[0].toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.whatsapp, fontSize: 14))),
               const SizedBox(width: 10),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(widget.contact.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                Text(widget.contact.phone, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                Text(widget.contact.phone, style: TextStyle(fontSize: 12, color: AppColors.grey600)),
               ])),
             ]),
             const SizedBox(height: 16),
@@ -442,7 +442,7 @@ class _SendSheetState extends State<_SendSheet> {
                         _msgCtrl.text = t.message;
                       });
                     },
-                    selectedColor: const Color(0xFF25D366).withValues(alpha: 0.2),
+                    selectedColor: AppColors.whatsapp.withValues(alpha: 0.2),
                     visualDensity: VisualDensity.compact,
                   ),
                 )).toList()),
@@ -467,8 +467,8 @@ class _SendSheetState extends State<_SendSheet> {
                   icon: const Icon(Icons.send_rounded, size: 16),
                   label: const Text('Send via WhatsApp'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF25D366),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.whatsapp,
+                    foregroundColor: AppColors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
@@ -500,7 +500,7 @@ class _SendSheetState extends State<_SendSheet> {
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open WhatsApp. Please ensure WhatsApp is installed.'), backgroundColor: Colors.red),
+          const SnackBar(content: Text('Could not open WhatsApp. Please ensure WhatsApp is installed.'), backgroundColor: AppColors.red),
         );
       }
     }
@@ -523,11 +523,11 @@ class _TemplatesTab extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: Colors.amber.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.shade200)),
+          decoration: BoxDecoration(color: AppColors.amber50, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.amber200)),
           child: Row(children: [
-            const Icon(Icons.info_rounded, size: 16, color: Colors.amber),
+            const Icon(Icons.info_rounded, size: 16, color: AppColors.amber),
             const SizedBox(width: 8),
-            Expanded(child: Text('Template pre-loaded. Send to $initialPhone', style: TextStyle(fontSize: 12, color: Colors.amber.shade900))),
+            Expanded(child: Text('Template pre-loaded. Send to $initialPhone', style: TextStyle(fontSize: 12, color: AppColors.amber900))),
           ]),
         ),
       ...templates.map((t) => Card(
@@ -540,16 +540,16 @@ class _TemplatesTab extends StatelessWidget {
             child: Row(children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.message_rounded, size: 20, color: Color(0xFF25D366)),
+                decoration: BoxDecoration(color: AppColors.whatsapp.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                child: const Icon(Icons.message_rounded, size: 20, color: AppColors.whatsapp),
               ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(t.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                 const SizedBox(height: 2),
-                Text(t.message.replaceAll(RegExp(r'\[.*?\]'), '...'), style: TextStyle(fontSize: 11, color: Colors.grey.shade500), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(t.message.replaceAll(RegExp(r'\[.*?\]'), '...'), style: TextStyle(fontSize: 11, color: AppColors.grey500), maxLines: 1, overflow: TextOverflow.ellipsis),
               ])),
-              const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              const Icon(Icons.chevron_right_rounded, color: AppColors.grey500),
             ]),
           ),
         ),
@@ -574,7 +574,7 @@ class _TemplatesTab extends StatelessWidget {
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+                Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 16),
                 Text(t.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
                 const SizedBox(height: 12),
@@ -606,8 +606,8 @@ class _TemplatesTab extends StatelessWidget {
                       icon: const Icon(Icons.send_rounded, size: 16),
                       label: const Text('Send via WhatsApp'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.whatsapp,
+                        foregroundColor: AppColors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
@@ -636,9 +636,9 @@ class _HistoryTabState extends State<_HistoryTab> {
     return messages.isEmpty
         ? Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.history_rounded, size: 64, color: Colors.grey.shade300),
+              Icon(Icons.history_rounded, size: 64, color: AppColors.grey300),
               const SizedBox(height: 12),
-              Text('No messages sent yet', style: TextStyle(color: Colors.grey.shade500)),
+              Text('No messages sent yet', style: TextStyle(color: AppColors.grey500)),
             ]),
           )
         : ListView.builder(
@@ -652,21 +652,21 @@ class _HistoryTabState extends State<_HistoryTab> {
                   dense: true,
                   leading: CircleAvatar(
                     radius: 14,
-                    backgroundColor: const Color(0xFF25D366).withValues(alpha: 0.15),
-                    child: Text(m.contactName[0].toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF25D366))),
+                    backgroundColor: AppColors.whatsapp.withValues(alpha: 0.15),
+                    child: Text(m.contactName[0].toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.whatsapp)),
                   ),
                   title: Text(m.contactName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis),
-                  subtitle: Text(m.message, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                  subtitle: Text(m.message, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: AppColors.grey600)),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}', style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                      Text('${m.sentAt.hour.toString().padLeft(2, '0')}:${m.sentAt.minute.toString().padLeft(2, '0')}', style: TextStyle(fontSize: 10, color: AppColors.grey500)),
                       const SizedBox(height: 2),
                       Icon(Icons.check_circle, size: 14,
                         color: m.status == MessageStatus.sent
-                            ? const Color(0xFF25D366)
+                            ? AppColors.whatsapp
                             : m.status == MessageStatus.delivered
-                                ? Colors.blue
-                                : Colors.red),
+                                ? AppColors.blue
+                                : AppColors.red),
                     ]),
                     RoleGate(
                       requiredPermission: Permission.manageWhatsApp,
@@ -680,7 +680,7 @@ class _HistoryTabState extends State<_HistoryTab> {
                         },
                         itemBuilder: (_) => [
                           PopupMenuItem(value: 'edit', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.edit_rounded, size: 16), SizedBox(width: 8), Text('Edit', style: TextStyle(fontSize: 13))]))),
-                          PopupMenuItem(value: 'delete', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.delete_rounded, size: 16, color: Colors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(fontSize: 13, color: Colors.red))]))),
+                          PopupMenuItem(value: 'delete', child: SizedBox(width: 80, child: Row(children: [Icon(Icons.delete_rounded, size: 16, color: AppColors.red), SizedBox(width: 8), Text('Delete', style: TextStyle(fontSize: 13, color: AppColors.red))]))),
                         ],
                       ),
                     ),
@@ -706,7 +706,7 @@ class _HistoryTabState extends State<_HistoryTab> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text('Edit Message', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -744,7 +744,7 @@ class _HistoryTabState extends State<_HistoryTab> {
                       Navigator.pop(ctx);
                       setState(() {});
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), padding: const EdgeInsets.symmetric(vertical: 14)),
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.whatsapp, padding: const EdgeInsets.symmetric(vertical: 14)),
                     child: const Text('Save Changes'),
                   ),
                 ),

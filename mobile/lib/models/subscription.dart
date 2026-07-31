@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hom_mobile/utils/theme.dart';
 
 enum BillingCycle {
   monthly('Monthly', 1),
@@ -13,10 +14,10 @@ enum BillingCycle {
 }
 
 enum SubscriptionStatus {
-  active('Active', Colors.green),
-  expiring('Expiring Soon', Colors.orange),
-  expired('Expired', Colors.red),
-  cancelled('Cancelled', Colors.grey);
+  active('Active', AppColors.green),
+  expiring('Expiring Soon', AppColors.orange),
+  expired('Expired', AppColors.red),
+  cancelled('Cancelled', AppColors.grey500);
 
   final String label;
   final Color color;

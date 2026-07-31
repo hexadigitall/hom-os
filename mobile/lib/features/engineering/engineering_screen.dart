@@ -30,7 +30,7 @@ class _EngineeringScreenState extends State<EngineeringScreen> with SingleTicker
         title: const Text('Engineering & Power'),
         bottom: TabBar(
           controller: _tabController, isScrollable: true,
-          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: Colors.grey,
+          indicatorColor: _primary, labelColor: _primary, unselectedLabelColor: AppColors.grey500,
           tabs: const [
             Tab(text: 'Dashboard', icon: Icon(Icons.dashboard_rounded, size: 15)),
             Tab(text: 'Generators', icon: Icon(Icons.power, size: 15)),
@@ -74,14 +74,14 @@ class _DashboardTab extends StatelessWidget {
         const SizedBox(height: 8),
         Wrap(children: [
           HomMetricCard(label: 'Running', value: '${EngineeringStore.runningCount}', color: _primary),
-          HomMetricCard(label: 'Faults', value: '${EngineeringStore.faultCount}', color: Colors.red),
-          HomMetricCard(label: 'Total kVA', value: EngineeringStore.totalCapacity.toStringAsFixed(0), color: Colors.blue),
-          HomMetricCard(label: 'Avg Load', value: '${EngineeringStore.avgLoadPct.toStringAsFixed(0)}%', color: Colors.orange),
+          HomMetricCard(label: 'Faults', value: '${EngineeringStore.faultCount}', color: AppColors.red),
+          HomMetricCard(label: 'Total kVA', value: EngineeringStore.totalCapacity.toStringAsFixed(0), color: AppColors.blue),
+          HomMetricCard(label: 'Avg Load', value: '${EngineeringStore.avgLoadPct.toStringAsFixed(0)}%', color: AppColors.orange),
         ]),
         const SizedBox(height: 16),
         Wrap(children: [
-          HomAnalyticsCard(label: 'Run Hours', value: '${EngineeringStore.totalRunHours.toStringAsFixed(0)}h', icon: Icons.timer, color: Colors.blue),
-          HomAnalyticsCard(label: 'Energy Cost (₦)', value: _fmtShort(fuelCost), icon: Icons.monetization_on_rounded, color: Colors.red),
+          HomAnalyticsCard(label: 'Run Hours', value: '${EngineeringStore.totalRunHours.toStringAsFixed(0)}h', icon: Icons.timer, color: AppColors.blue),
+          HomAnalyticsCard(label: 'Energy Cost (₦)', value: _fmtShort(fuelCost), icon: Icons.monetization_on_rounded, color: AppColors.red),
         ]),
         const SizedBox(height: 16),
 
@@ -89,18 +89,18 @@ class _DashboardTab extends StatelessWidget {
         const SizedBox(height: 8),
         ...EngineeringStore.generators.map((g) => Card(child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: g.status == GeneratorStatus.running ? _primary : g.status == GeneratorStatus.fault ? Colors.red : Colors.grey,
-            child: Text('${g.capacityKva.toStringAsFixed(0)}k', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+            backgroundColor: g.status == GeneratorStatus.running ? _primary : g.status == GeneratorStatus.fault ? AppColors.red : AppColors.grey500,
+            child: Text('${g.capacityKva.toStringAsFixed(0)}k', style: const TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w700)),
           ),
           title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
           subtitle: Text('${g.statusLabel}  •  ${g.currentLoadKva.toStringAsFixed(0)}/${g.capacityKva.toStringAsFixed(0)} kVA (${g.loadPct.toStringAsFixed(0)}%)  •  ${g.currentRunHours.toStringAsFixed(0)}h', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
           trailing: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: g.status == GeneratorStatus.running ? _primary.withValues(alpha: 0.1) : Colors.grey.shade100,
+              color: g.status == GeneratorStatus.running ? _primary.withValues(alpha: 0.1) : AppColors.grey100,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(g.statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: g.status == GeneratorStatus.running ? _primary : Colors.grey)),
+            child: Text(g.statusLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: g.status == GeneratorStatus.running ? _primary : AppColors.grey500)),
           ),
         ))),
         const SizedBox(height: 16),
@@ -117,7 +117,7 @@ class _DashboardTab extends StatelessWidget {
             const SizedBox(height: 4),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text('Diesel Generation', style: TextStyle(fontWeight: FontWeight.w600)),
-              Text('₦${_fmtShort(totalGenCost)}/mo', style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.orange)),
+              Text('₦${_fmtShort(totalGenCost)}/mo', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.orange)),
             ]),
             const SizedBox(height: 8),
             LinearProgressIndicator(value: tariff != null && totalGenCost > 0 ? (tariff.monthlyCost / (tariff.monthlyCost + totalGenCost)).clamp(0.0, 1.0) : 0),
@@ -127,11 +127,11 @@ class _DashboardTab extends StatelessWidget {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(16)),
             child: Row(children: [
-              const Icon(Icons.warning_rounded, color: Colors.red, size: 20),
+              const Icon(Icons.warning_rounded, color: AppColors.red, size: 20),
               const SizedBox(width: 10),
-              Flexible(child: Text('$theftCount tank theft alert(s)! Variance detected in dip readings.', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 13))),
+              Flexible(child: Text('$theftCount tank theft alert(s)! Variance detected in dip readings.', style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w700, fontSize: 13))),
             ]),
           ),
         ],
@@ -139,7 +139,7 @@ class _DashboardTab extends StatelessWidget {
           const SizedBox(height: 16),
           HomSectionTitle(title: 'Upcoming Water Treatment'),
           ...upcomingWater.take(3).map((w) => Card(child: ListTile(
-            leading: const Icon(Icons.water_drop_rounded, color: Colors.blue),
+            leading: const Icon(Icons.water_drop_rounded, color: AppColors.blue),
             title: Text('${w.source} — ${w.treatmentAction}', style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
             subtitle: Text('Due: ${w.nextScheduledDate!.toIso8601String().substring(0, 10)}', style: const TextStyle(fontSize: 11)),
           ))),
@@ -168,12 +168,12 @@ class _GeneratorsTab extends StatelessWidget {
       body: Column(children: [
         Container(
           padding: const EdgeInsets.all(12),
-          color: Colors.grey.shade50,
+          color: AppColors.grey50,
           child: Wrap(children: [
             HomMetricCard(label: 'Running', value: '${EngineeringStore.runningCount}', color: _primary),
-            HomMetricCard(label: 'Faults', value: '${EngineeringStore.faultCount}', color: Colors.red),
-            HomMetricCard(label: 'Total kVA', value: EngineeringStore.totalCapacity.toStringAsFixed(0), color: Colors.blue),
-            HomMetricCard(label: 'Avg Load', value: '${EngineeringStore.avgLoadPct.toStringAsFixed(0)}%', color: Colors.orange),
+            HomMetricCard(label: 'Faults', value: '${EngineeringStore.faultCount}', color: AppColors.red),
+            HomMetricCard(label: 'Total kVA', value: EngineeringStore.totalCapacity.toStringAsFixed(0), color: AppColors.blue),
+            HomMetricCard(label: 'Avg Load', value: '${EngineeringStore.avgLoadPct.toStringAsFixed(0)}%', color: AppColors.orange),
           ]),
         ),
         Expanded(
@@ -187,8 +187,8 @@ class _GeneratorsTab extends StatelessWidget {
                     return Card(child: Column(children: [
                       ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: g.status == GeneratorStatus.running ? _primary : g.status == GeneratorStatus.fault ? Colors.red : Colors.grey,
-                          child: Text(g.capacityKva.toStringAsFixed(0), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                          backgroundColor: g.status == GeneratorStatus.running ? _primary : g.status == GeneratorStatus.fault ? AppColors.red : AppColors.grey500,
+                          child: Text(g.capacityKva.toStringAsFixed(0), style: const TextStyle(color: AppColors.white, fontSize: 11, fontWeight: FontWeight.w700)),
                         ),
                         title: Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                         subtitle: Text('${g.model ?? ''}  •  ${g.statusLabel}  •  ${g.currentRunHours.toStringAsFixed(0)}h', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
@@ -205,14 +205,14 @@ class _GeneratorsTab extends StatelessWidget {
                           itemBuilder: (_) => [
                             const PopupMenuItem(value: 'edit', child: Text('Edit')),
                             PopupMenuItem(value: 'toggle', child: Text(g.status == GeneratorStatus.running ? 'Stop' : 'Start')),
-                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                            const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                           ],
                         )),
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                         child: Row(children: [
-                          Expanded(child: _loadBar('Load', g.loadPct, Colors.amber)),
+                          Expanded(child: _loadBar('Load', g.loadPct, AppColors.amber)),
                           const SizedBox(width: 8),
                           Text('${g.currentLoadKva.toStringAsFixed(0)}/${g.capacityKva.toStringAsFixed(0)} kVA', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600)),
                         ]),
@@ -223,7 +223,7 @@ class _GeneratorsTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.trackGeneratorRunHours, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -240,7 +240,7 @@ class _GeneratorsTab extends StatelessWidget {
       const SizedBox(height: 2),
       ClipRRect(
         borderRadius: BorderRadius.circular(3),
-        child: LinearProgressIndicator(value: pct / 100, backgroundColor: Colors.grey.shade200, color: color, minHeight: 8),
+        child: LinearProgressIndicator(value: pct / 100, backgroundColor: AppColors.grey200, color: color, minHeight: 8),
       ),
     ]);
   }
@@ -262,7 +262,7 @@ class _GeneratorsTab extends StatelessWidget {
         builder: (ctx, setSheet) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 12),
             Text(gen == null ? 'Add Generator' : 'Edit Generator', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
@@ -292,7 +292,7 @@ class _GeneratorsTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final kva = double.tryParse(kvaCtl.text) ?? 0;
                   if (nameCtl.text.isEmpty || kva <= 0) return;
@@ -341,17 +341,17 @@ class _FuelTanksTab extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(12)),
             child: Row(children: [
-              const Icon(Icons.warning_rounded, color: Colors.red, size: 18),
+              const Icon(Icons.warning_rounded, color: AppColors.red, size: 18),
               const SizedBox(width: 8),
-              Flexible(child: Text('${thefts.length} theft alert(s) detected!', style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700, fontSize: 13))),
+              Flexible(child: Text('${thefts.length} theft alert(s) detected!', style: const TextStyle(color: AppColors.red, fontWeight: FontWeight.w700, fontSize: 13))),
             ]),
           ),
         Wrap(children: [
-          HomMetricCard(label: 'Total Dips', value: '${dips.length}', color: Colors.blue),
-          HomMetricCard(label: 'Theft Alerts', value: '${thefts.length}', color: Colors.red),
-          HomMetricCard(label: 'Diesel Cost', value: '₦${dieselCost.toStringAsFixed(0)}', color: Colors.orange),
+          HomMetricCard(label: 'Total Dips', value: '${dips.length}', color: AppColors.blue),
+          HomMetricCard(label: 'Theft Alerts', value: '${thefts.length}', color: AppColors.red),
+          HomMetricCard(label: 'Diesel Cost', value: '₦${dieselCost.toStringAsFixed(0)}', color: AppColors.orange),
         ]),
         const SizedBox(height: 12),
         SizedBox(
@@ -360,28 +360,28 @@ class _FuelTanksTab extends StatelessWidget {
             onPressed: () => _showDipForm(context),
             icon: const Icon(Icons.add, size: 16),
             label: const Text('Record Dip Reading'),
-            style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white),
           )),
         ),
         const SizedBox(height: 16),
         HomSectionTitle(title: 'Dip History'),
         ...dips.take(10).map((d) => Card(
-          color: d.isTheftAlert ? Colors.red.shade50 : null,
+          color: d.isTheftAlert ? AppColors.red50 : null,
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: d.isTheftAlert ? Colors.red : Colors.green,
-              child: Icon(d.isTheftAlert ? Icons.warning_rounded : Icons.check, color: Colors.white, size: 18),
+              backgroundColor: d.isTheftAlert ? AppColors.red : AppColors.green,
+              child: Icon(d.isTheftAlert ? Icons.warning_rounded : Icons.check, color: AppColors.white, size: 18),
             ),
             title: Text('${d.tankName} — ${d.calculatedVolumeL.toStringAsFixed(0)}L', style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
             subtitle: Text('Dip: ${d.dipReadingCm.toStringAsFixed(0)}cm  •  ${d.date.toIso8601String().substring(0, 10)}${d.variancePct != null ? '  •  Var: ${d.variancePct!.toStringAsFixed(1)}%' : ''}',
-                style: TextStyle(fontSize: 11, color: d.isTheftAlert ? Colors.red : Colors.grey.shade600), overflow: TextOverflow.ellipsis),
+                style: TextStyle(fontSize: 11, color: d.isTheftAlert ? AppColors.red : AppColors.grey600), overflow: TextOverflow.ellipsis),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
               RoleGate(requiredPermission: Permission.trackFuelDeliveryCycles, child: IconButton(
                 icon: const Icon(Icons.edit_rounded, size: 18),
                 onPressed: () => _showDipForm(context, dip: d),
               )),
               RoleGate(requiredPermission: Permission.trackFuelDeliveryCycles, child: IconButton(
-                icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent),
+                icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent),
                 onPressed: () { EngineeringStore.removeTankDipLog(d.id); onChange(); },
               )),
             ]),
@@ -392,13 +392,13 @@ class _FuelTanksTab extends StatelessWidget {
         HomSectionTitle(title: 'Fuel Consumption (30d)'),
         const SizedBox(height: 8),
         ...logs.where((f) => f.fuelType.name == 'diesel' || f.fuelType.name == 'petrol').take(5).map((f) => Card(child: ListTile(
-          leading: Icon(f.fuelType.icon, color: Colors.amber.shade700),
+          leading: Icon(f.fuelType.icon, color: AppColors.amber700),
           title: Text('${f.quantity.toStringAsFixed(0)}${f.fuelType.unit} — ${f.supplier}', style: const TextStyle(fontWeight: FontWeight.w600)),
           subtitle: Text('${f.date.toIso8601String().substring(0, 10)}  •  ₦${f.cost.toStringAsFixed(0)}', style: const TextStyle(fontSize: 11)),
           trailing: f.theftAlertRate != null ? Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
-            child: Text('${f.theftAlertRate!.toStringAsFixed(1)} L/hr', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+            decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(12)),
+            child: Text('${f.theftAlertRate!.toStringAsFixed(1)} L/hr', style: const TextStyle(color: AppColors.white, fontSize: 9, fontWeight: FontWeight.w700)),
           ) : null,
         ))),
       ]),
@@ -414,8 +414,8 @@ class _FuelTanksTab extends StatelessWidget {
         _det('Tank Capacity', '${d.tankCapacityL.toStringAsFixed(0)} L'),
         _det('Calculated Volume', '${d.calculatedVolumeL.toStringAsFixed(0)} L'),
         _det('Expected Volume', d.expectedVolumeL?.toStringAsFixed(0) ?? 'N/A'),
-        if (d.varianceL != null) _det('Variance', '${d.varianceL!.toStringAsFixed(0)} L (${d.variancePct!.toStringAsFixed(1)}%)', d.isTheftAlert ? Colors.red : null),
-        if (d.isTheftAlert) _det('⚠ ALERT', 'Possible theft detected!', Colors.red),
+        if (d.varianceL != null) _det('Variance', '${d.varianceL!.toStringAsFixed(0)} L (${d.variancePct!.toStringAsFixed(1)}%)', d.isTheftAlert ? AppColors.red : null),
+        if (d.isTheftAlert) _det('⚠ ALERT', 'Possible theft detected!', AppColors.red),
         _det('Performed By', d.performedBy ?? 'N/A'),
         if (d.notes != null) _det('Notes', d.notes!),
       ]),
@@ -445,7 +445,7 @@ class _FuelTanksTab extends StatelessWidget {
         builder: (ctx, setSheet) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 12),
             Text(dip == null ? 'Record Tank Dip' : 'Edit Dip Reading', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
@@ -468,7 +468,7 @@ class _FuelTanksTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final reading = double.tryParse(readingCtl.text) ?? 0;
                   final cap = double.tryParse(capacityCtl.text) ?? 5000;
@@ -533,8 +533,8 @@ class _GridCostTab extends StatelessWidget {
           color: t.band == active?.band ? _primary.withValues(alpha: 0.05) : null,
           child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: t.band == active?.band ? _primary : Colors.grey,
-              child: Text(t.band.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+              backgroundColor: t.band == active?.band ? _primary : AppColors.grey500,
+              child: Text(t.band.name.toUpperCase(), style: const TextStyle(color: AppColors.white, fontSize: 12, fontWeight: FontWeight.w700)),
             ),
             title: Text(t.label, style: const TextStyle(fontWeight: FontWeight.w600)),
             subtitle: Text('${t.hoursPerDay.toStringAsFixed(0)}h/day  •  ₦${t.costPerKwh.toStringAsFixed(0)}/kWh  •  ₦${_fmtShort(t.monthlyCost)}/mo'),
@@ -543,7 +543,7 @@ class _GridCostTab extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(color: _primary, borderRadius: BorderRadius.circular(12)),
-                  child: const Text('ACTIVE', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w800)),
+                  child: const Text('ACTIVE', style: TextStyle(color: AppColors.white, fontSize: 9, fontWeight: FontWeight.w800)),
                 )
               else
                 RoleGate(requiredPermission: Permission.trackGridTariffUsage, child: TextButton(
@@ -560,7 +560,7 @@ class _GridCostTab extends StatelessWidget {
                 },
                 itemBuilder: (_) => [
                   const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+                  const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: AppColors.red))),
                 ],
               )),
             ]),
@@ -584,25 +584,25 @@ class _GridCostTab extends StatelessWidget {
               Text('Grid Monthly: ₦${_fmtShort(active?.monthlyCost ?? 0)}',
                   style: const TextStyle(fontWeight: FontWeight.w600)),
               Text('Diesel Monthly: ₦${_fmtShort(dieselCost)}',
-                  style: TextStyle(fontWeight: FontWeight.w600, color: Colors.orange)),
+                  style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.orange)),
             ]),
             const SizedBox(height: 8),
             if (active != null && dieselPerKwh > 0)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: active.costPerKwh < dieselPerKwh ? Colors.green.shade50 : Colors.orange.shade50,
+                  color: active.costPerKwh < dieselPerKwh ? AppColors.green50 : AppColors.orange50,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(children: [
                   Icon(active.costPerKwh < dieselPerKwh ? Icons.check_circle : Icons.info_rounded,
-                      color: active.costPerKwh < dieselPerKwh ? Colors.green : Colors.orange, size: 18),
+                      color: active.costPerKwh < dieselPerKwh ? AppColors.green : AppColors.orange, size: 18),
                   const SizedBox(width: 8),
                   Flexible(child: Text(
                     active.costPerKwh < dieselPerKwh
                         ? 'Grid is cheaper than diesel. Use grid during supply hours.'
                         : 'Diesel is cheaper than grid. Consider running gen-sets during peak hours.',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active.costPerKwh < dieselPerKwh ? Colors.green : Colors.orange),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: active.costPerKwh < dieselPerKwh ? AppColors.green : AppColors.orange),
                   )),
                 ]),
               ),
@@ -611,7 +611,7 @@ class _GridCostTab extends StatelessWidget {
       ]),
       ),
       floatingActionButton: RoleGate(requiredPermission: Permission.trackGridTariffUsage, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showTariffForm(context),
       )),
@@ -632,7 +632,7 @@ class _GridCostTab extends StatelessWidget {
         builder: (ctx, setSheet) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 12),
             Text(tariff == null ? 'Add Tariff' : 'Edit Tariff', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
@@ -656,7 +656,7 @@ class _GridCostTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final hours = double.tryParse(hoursCtl.text) ?? 0;
                   final cost = double.tryParse(costCtl.text) ?? 0;
@@ -700,11 +700,11 @@ class _MaintenanceTab extends StatelessWidget {
       body: Column(children: [
         Container(
           padding: const EdgeInsets.all(12),
-          color: Colors.grey.shade50,
+          color: AppColors.grey50,
           child: Wrap(children: [
-            HomMetricCard(label: 'Pending', value: '${tasks.length}', color: Colors.blue),
-            HomMetricCard(label: 'Overdue', value: '${overdue.length}', color: Colors.red),
-            HomMetricCard(label: 'Urgent', value: '${tasks.where((t) => t.priority == MaintenancePriority.urgent || t.priority == MaintenancePriority.critical).length}', color: Colors.orange),
+            HomMetricCard(label: 'Pending', value: '${tasks.length}', color: AppColors.blue),
+            HomMetricCard(label: 'Overdue', value: '${overdue.length}', color: AppColors.red),
+            HomMetricCard(label: 'Urgent', value: '${tasks.where((t) => t.priority == MaintenancePriority.urgent || t.priority == MaintenancePriority.critical).length}', color: AppColors.orange),
           ]),
         ),
         Expanded(
@@ -717,11 +717,11 @@ class _MaintenanceTab extends StatelessWidget {
                     final t = tasks[i];
                     final isOverdue = overdue.contains(t);
                     return Card(
-                      color: isOverdue ? Colors.red.shade50 : null,
+                      color: isOverdue ? AppColors.red50 : null,
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: isOverdue ? Colors.red : _primary,
-                          child: Icon(isOverdue ? Icons.warning_rounded : Icons.check_circle_outline, color: Colors.white, size: 20),
+                          backgroundColor: isOverdue ? AppColors.red : _primary,
+                          child: Icon(isOverdue ? Icons.warning_rounded : Icons.check_circle_outline, color: AppColors.white, size: 20),
                         ),
                         title: Text(t.equipmentName, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                         subtitle: Text('${t.description}  •  Due: ${t.scheduledDate.toIso8601String().substring(0, 10)}  •  ${t.assignedTo}  •  ${t.priority.name}', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
@@ -739,7 +739,7 @@ class _MaintenanceTab extends StatelessWidget {
                             onPressed: () => _showForm(context, task: t),
                           )),
                           RoleGate(requiredPermission: Permission.managePreventativeMaintenance, child: IconButton(
-                            icon: const Icon(Icons.delete_rounded, color: Colors.redAccent, size: 18),
+                            icon: const Icon(Icons.delete_rounded, color: AppColors.redAccent, size: 18),
                             onPressed: () { EngineeringStore.removeTask(t.id); onChange(); },
                           )),
                         ]),
@@ -750,7 +750,7 @@ class _MaintenanceTab extends StatelessWidget {
         ),
       ]),
       floatingActionButton: RoleGate(requiredPermission: Permission.managePreventativeMaintenance, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -772,7 +772,7 @@ class _MaintenanceTab extends StatelessWidget {
         builder: (ctx, setSheet) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 12),
             Text(task == null ? 'Schedule Maintenance' : 'Edit Maintenance', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
@@ -810,7 +810,7 @@ class _MaintenanceTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   if (equipCtl.text.isEmpty || assignCtl.text.isEmpty) return;
                   final updated = MaintenanceTask(
@@ -855,9 +855,9 @@ class _WaterTab extends StatelessWidget {
           if (upcoming.isNotEmpty) ...[
             HomSectionTitle(title: 'Upcoming Tasks'),
             ...upcoming.take(5).map((w) => Card(
-              color: w.nextScheduledDate!.isBefore(DateTime.now().add(const Duration(days: 2))) ? Colors.orange.shade50 : null,
+              color: w.nextScheduledDate!.isBefore(DateTime.now().add(const Duration(days: 2))) ? AppColors.orange50 : null,
               child: ListTile(
-                leading: const Icon(Icons.schedule_rounded, color: Colors.blue),
+                leading: const Icon(Icons.schedule_rounded, color: AppColors.blue),
                 title: Text('${w.source} — ${w.treatmentAction}', style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                 subtitle: Text('Due: ${w.nextScheduledDate!.toIso8601String().substring(0, 10)}  •  ${w.chemicalUsed ?? ''} ${w.chemicalDosageMl != null ? '(${w.chemicalDosageMl!.toStringAsFixed(0)}ml)' : ''}', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
               ),
@@ -867,8 +867,8 @@ class _WaterTab extends StatelessWidget {
           HomSectionTitle(title: 'Treatment Log'),
           ...logs.map((w) => Card(child: ListTile(
             leading: CircleAvatar(
-              backgroundColor: w.source == 'RO Plant' ? Colors.blue : w.source == 'Swimming Pool' ? Colors.teal : Colors.grey,
-              child: Text(w.source[0], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+              backgroundColor: w.source == 'RO Plant' ? AppColors.blue : w.source == 'Swimming Pool' ? AppColors.teal : AppColors.grey500,
+              child: Text(w.source[0], style: const TextStyle(color: AppColors.white, fontWeight: FontWeight.w700)),
             ),
             title: Text('${w.source} — ${w.treatmentAction}', style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
             subtitle: Text('pH: ${w.phLevel}  •  Cl: ${w.chlorineLevel?.toStringAsFixed(1) ?? 'N/A'}  •  TDS: ${w.tdsLevel?.toStringAsFixed(0) ?? 'N/A'}  •  ${w.date.toIso8601String().substring(0, 10)}', style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis),
@@ -878,7 +878,7 @@ class _WaterTab extends StatelessWidget {
                 onPressed: () => _showForm(context, log: w),
               )),
               RoleGate(requiredPermission: Permission.manageWaterTreatment, child: IconButton(
-                icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent),
+                icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent),
                 onPressed: () { EngineeringStore.removeWaterLog(w.id); onChange(); },
               )),
             ]),
@@ -887,7 +887,7 @@ class _WaterTab extends StatelessWidget {
         ]),
       ),
       floatingActionButton: RoleGate(requiredPermission: Permission.manageWaterTreatment, child: FloatingActionButton(
-        backgroundColor: _primary, foregroundColor: Colors.white,
+        backgroundColor: _primary, foregroundColor: AppColors.white,
         child: const Icon(Icons.add),
         onPressed: () => _showForm(context),
       )),
@@ -935,7 +935,7 @@ class _WaterTab extends StatelessWidget {
         builder: (ctx, setSheet) => SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 12),
             Text(log == null ? 'Log Water Treatment' : 'Edit Water Log', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             const SizedBox(height: 12),
@@ -975,7 +975,7 @@ class _WaterTab extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                style: ElevatedButton.styleFrom(backgroundColor: _primary, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                 onPressed: () {
                   final entry = WaterTreatmentLog(
                     id: log?.id ?? 'w_${DateTime.now().millisecondsSinceEpoch}',

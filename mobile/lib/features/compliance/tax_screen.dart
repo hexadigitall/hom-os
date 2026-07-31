@@ -31,7 +31,7 @@ class _TaxScreenState extends State<TaxScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text(config.stateName.isEmpty ? 'Add State Tax Config' : 'Edit ${config.stateName}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -108,12 +108,12 @@ class _TaxScreenState extends State<TaxScreen> {
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.teal.shade50, borderRadius: BorderRadius.circular(8)),
-                  child: Text('${c.rate}%', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.teal.shade700)),
+                  decoration: BoxDecoration(color: AppColors.teal50, borderRadius: BorderRadius.circular(8)),
+                  child: Text('${c.rate}%', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: AppColors.teal700)),
                 ),
                 const SizedBox(width: 4),
                 RoleGate(requiredPermission: Permission.manageTaxConfig, child: IconButton(onPressed: () => _editConfig(c), icon: const Icon(Icons.edit_rounded, size: 18))),
-                RoleGate(requiredPermission: Permission.manageTaxConfig, child: IconButton(onPressed: () { ComplianceStore.removeTaxConfig(c.stateName); setState(() {}); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                RoleGate(requiredPermission: Permission.manageTaxConfig, child: IconButton(onPressed: () { ComplianceStore.removeTaxConfig(c.stateName); setState(() {}); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
               ]),
           ),
         )),
@@ -137,9 +137,9 @@ class _TaxScreenState extends State<TaxScreen> {
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(children: [
-                Icon(Icons.account_balance_rounded, size: 48, color: Colors.grey.shade300),
+                Icon(Icons.account_balance_rounded, size: 48, color: AppColors.grey300),
                 const SizedBox(height: 8),
-                Text('No reports filed yet', style: TextStyle(color: Colors.grey.shade500)),
+                Text('No reports filed yet', style: TextStyle(color: AppColors.grey500)),
               ]),
             ),
           )
@@ -155,9 +155,9 @@ class _TaxScreenState extends State<TaxScreen> {
                   _statusChip(r.status),
                 ]),
                 const SizedBox(height: 6),
-                Text('Sales: ${_fmt(r.totalSales)}', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
-                Text('Tax Due: ${_fmt(r.taxDue)}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.teal.shade700)),
-                Align(alignment: Alignment.centerRight, child: IconButton(onPressed: () { ComplianceStore.removeTaxReport(r.id); setState(() {}); }, icon: const Icon(Icons.delete_rounded, size: 18, color: Colors.redAccent))),
+                Text('Sales: ${_fmt(r.totalSales)}', style: TextStyle(fontSize: 13, color: AppColors.grey600)),
+                Text('Tax Due: ${_fmt(r.taxDue)}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.teal700)),
+                Align(alignment: Alignment.centerRight, child: IconButton(onPressed: () { ComplianceStore.removeTaxReport(r.id); setState(() {}); }, icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
               ]),
             ),
           )),
@@ -180,14 +180,14 @@ class _TaxScreenState extends State<TaxScreen> {
                   decoration: const InputDecoration(labelText: 'Total Sales (₦)', hintText: 'e.g. 500000'),
                 ),
                 const SizedBox(height: 8),
-                Text('${configs.length} state(s) configured', style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
+                Text('${configs.length} state(s) configured', style: TextStyle(fontSize: 13, color: AppColors.grey600)),
                 if (configs.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   ...configs.map((c) => Padding(
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       Text(c.stateName, style: const TextStyle(fontSize: 12)),
-                      Text('${c.rate}% → ₦${((double.tryParse(salesCtl.text) ?? 0) * c.rate / 100).toStringAsFixed(0)}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.teal.shade700)),
+                      Text('${c.rate}% → ₦${((double.tryParse(salesCtl.text) ?? 0) * c.rate / 100).toStringAsFixed(0)}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.teal700)),
                     ]),
                   )),
                 ],
@@ -215,8 +215,8 @@ class _TaxScreenState extends State<TaxScreen> {
         },
         icon: const Icon(Icons.add_chart_rounded),
         label: const Text('Generate Report'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
+        backgroundColor: AppColors.teal,
+        foregroundColor: AppColors.white,
       ),
     );
   }
@@ -224,9 +224,9 @@ class _TaxScreenState extends State<TaxScreen> {
   Widget _statusChip(String s) {
     Color c;
     switch (s) {
-      case 'filed': c = Colors.teal; break;
+      case 'filed': c = AppColors.teal; break;
       case 'paid': c = AppColors.primary; break;
-      default: c = Colors.orange;
+      default: c = AppColors.orange;
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

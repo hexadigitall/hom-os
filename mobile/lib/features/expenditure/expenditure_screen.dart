@@ -61,7 +61,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)))),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: AppColors.grey300, borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 16),
               Text(existing != null ? 'Edit Expenditure' : 'New Expenditure', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
               const SizedBox(height: 16),
@@ -97,7 +97,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
                 decoration: const InputDecoration(labelText: 'Department'),
               ),
               const SizedBox(height: 12),
-              Text('Date: ${date.toIso8601String().substring(0, 10)}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              Text('Date: ${date.toIso8601String().substring(0, 10)}', style: TextStyle(color: AppColors.grey600, fontSize: 13)),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -152,7 +152,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
               requiredPermission: Permission.createExpenditure,
               child: TextButton(
                 onPressed: () { ExpenditureStore.clear(); setState(() {}); },
-                child: const Text('Clear All', style: TextStyle(color: Colors.redAccent)),
+                child: const Text('Clear All', style: TextStyle(color: AppColors.redAccent)),
               ),
             ),
         ],
@@ -160,7 +160,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
       body: Column(children: [
         Container(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          color: Colors.white,
+          color: AppColors.white,
           child: Column(children: [
             TextField(
               decoration: InputDecoration(
@@ -200,11 +200,11 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
           child: records.isEmpty
               ? Center(
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(Icons.receipt_long_rounded, size: 64, color: Colors.grey.shade300),
+                    Icon(Icons.receipt_long_rounded, size: 64, color: AppColors.grey300),
                     const SizedBox(height: 12),
-                    Text('No expenditure records', style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                    Text('No expenditure records', style: TextStyle(color: AppColors.grey500, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 4),
-                    Text('Tap + to add a record, or import via Upload', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                    Text('Tap + to add a record, or import via Upload', style: TextStyle(color: AppColors.grey400, fontSize: 12)),
                   ]),
                 )
               : ListView.builder(
@@ -230,15 +230,15 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
                               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Text(ReportEngine.formatCurrency(r.amount), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
                                 const SizedBox(height: 2),
-                                Text(r.category.displayName, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                                Text(r.category.displayName, style: TextStyle(fontSize: 12, color: AppColors.grey700)),
                                 Text('${r.date.toIso8601String().substring(0, 10)}${r.vendor.isNotEmpty ? ' • ${r.vendor}' : ''}',
-                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                                    style: TextStyle(fontSize: 11, color: AppColors.grey500)),
                               ]),
                             ),
                             RoleGate(
                               requiredPermission: Permission.createExpenditure,
                               child: IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent),
+                                icon: const Icon(Icons.delete_outline_rounded, size: 20, color: AppColors.redAccent),
                                 onPressed: () => _delete(r.id),
                               ),
                             ),
@@ -255,7 +255,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
         child: FloatingActionButton(
           onPressed: _add,
           backgroundColor: AppColors.primary,
-          child: const Icon(Icons.add, color: Colors.white),
+          child: const Icon(Icons.add, color: AppColors.white),
         ),
       ),
     );
@@ -271,7 +271,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
         onSelected: (_) => setState(() => _catFilter = cat),
         visualDensity: VisualDensity.compact,
         selectedColor: AppColors.primary.withValues(alpha: 0.1),
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: AppColors.grey100,
       ),
     );
   }
@@ -286,7 +286,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
         onSelected: (_) => setState(() => _deptFilter = d),
         visualDensity: VisualDensity.compact,
         selectedColor: AppColors.primary.withValues(alpha: 0.1),
-        backgroundColor: Colors.grey.shade100,
+        backgroundColor: AppColors.grey100,
       ),
     );
   }
@@ -333,7 +333,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: 96, child: Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13))),
+        SizedBox(width: 96, child: Text(label, style: TextStyle(color: AppColors.grey600, fontSize: 13))),
         const SizedBox(width: 4),
         Expanded(child: Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
       ]),

@@ -58,7 +58,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
           controller: _tabController,
           indicatorColor: AppColors.primary,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: AppColors.grey500,
           tabs: const [
             Tab(text: 'All', icon: Icon(Icons.all_inclusive_rounded, size: 16)),
             Tab(text: 'Alarms', icon: Icon(Icons.warning_rounded, size: 16)),
@@ -69,9 +69,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
       ),
       body: notifications.isEmpty
           ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.notifications_none_rounded, size: 64, color: Colors.grey.shade300),
+              Icon(Icons.notifications_none_rounded, size: 64, color: AppColors.grey300),
               const SizedBox(height: 12),
-              Text('No notifications', style: TextStyle(color: Colors.grey.shade500)),
+              Text('No notifications', style: TextStyle(color: AppColors.grey500)),
             ]))
           : ListView.builder(
               padding: const EdgeInsets.all(8),
@@ -104,8 +104,8 @@ class _NotificationCard extends StatelessWidget {
     final n = notification;
     final Color accent;
     switch (n.urgency) {
-      case Urgency.high: accent = Colors.red; break;
-      case Urgency.medium: accent = Colors.orange; break;
+      case Urgency.high: accent = AppColors.red; break;
+      case Urgency.medium: accent = AppColors.orange; break;
       case Urgency.low: accent = AppColors.primary; break;
     }
     return Card(
@@ -130,10 +130,10 @@ class _NotificationCard extends StatelessWidget {
                   Flexible(child: Text(n.title, style: TextStyle(fontWeight: n.read ? FontWeight.w600 : FontWeight.w800, fontSize: 13), overflow: TextOverflow.ellipsis)),
                 ]),
                 const SizedBox(height: 2),
-                Text(n.body, style: TextStyle(fontSize: 12, color: Colors.grey.shade700), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Text(n.body, style: TextStyle(fontSize: 12, color: AppColors.grey700), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Row(children: [
-                  Text(_ago(n.timestamp), style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                  Text(_ago(n.timestamp), style: TextStyle(fontSize: 10, color: AppColors.grey400)),
                   if (n.actionLabel != null) ...[
                     const SizedBox(width: 8),
                     Container(
@@ -145,7 +145,7 @@ class _NotificationCard extends StatelessWidget {
                 ]),
               ]),
             ),
-            IconButton(onPressed: onDelete, icon: const Icon(Icons.close_rounded, size: 16, color: Colors.grey)),
+            IconButton(onPressed: onDelete, icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.grey500)),
           ]),
         ),
       ),

@@ -69,13 +69,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showError(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.red));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F5),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
               const Text('Welcome Back', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
               const SizedBox(height: 4),
-              const Text('Sign in to continue', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              const Text('Sign in to continue', style: TextStyle(fontSize: 14, color: AppColors.grey500)),
               const SizedBox(height: 28),
               TextField(controller: _emailCtrl, decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_rounded)), keyboardType: TextInputType.emailAddress, textInputAction: TextInputAction.next),
               const SizedBox(height: 12),
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity, height: 50,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _login,
-                  child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -111,9 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     icon: _googleLoading
                         ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.g_mobiledata_rounded, size: 26),
-                    label: Text('Sign in with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
+                    label: Text('Sign in with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.grey700)),
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade300),
+                      side: BorderSide(color: AppColors.grey300),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
