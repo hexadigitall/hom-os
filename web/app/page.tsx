@@ -19,7 +19,7 @@ export default function Home(){
         <div>
           <div className="inline-flex items-center gap-2 bg-white border border-hom-primary/20 px-3 py-1 rounded-full text-xs font-bold text-hom-primary">THE HOTEL OS</div>
           <h1 className="mt-6 text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] sm:leading-[0.85]">HOM.<br/>The Hotel OS.</h1>
-          <p className="mt-6 text-base sm:text-lg text-zinc-600 max-w-xl">HOM — Hospitality Operations Manager. One OS for bookings, diesel theft detection, inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud API and Booking.com sync.</p>
+          <p className="mt-6 text-base sm:text-lg text-zinc-600 max-w-xl">HOM — Hospitality Operations Manager. One OS for bookings, diesel theft detection, inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud API and Booking.com sync. Role-based access — every account is granted access by roles and departments.</p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
             <a href="/dashboard" className="bg-hom-primary text-white px-8 py-3.5 rounded-full font-black text-center">Launch Dashboard</a>
             <a href="https://hexadigitall.com" className="border px-8 py-3.5 rounded-full font-bold text-center">By Hexadigitall</a>

@@ -2,6 +2,25 @@
 
 Built by Hexadigitall — https://hexadigitall.com / https://github.com/hexadigitall
 
+## Ecosystem-wide convention
+
+> All updates and changes apply to **every** part of the HOM ecosystem: the
+> Next.js web app (`web/`), the Flutter mobile app (`mobile/`), and the brand
+> assets (`brand/`). Do not ship a feature to one platform only.
+
+### Role-based access (RBAC)
+
+HOM uses a shared **additive, zero-trust RBAC model**:
+
+- Cold start: no default admin. First boot = owner registration, then invite codes.
+- Access = union of assigned roles + custom grants, only while `status == active`.
+- Departments scope what a user can see/do; heads of departments can head more
+  than one department. Suspension revokes access immediately.
+
+The model is implemented in lockstep in two places — **keep them in sync**:
+- `mobile/lib/models/role.dart` + `mobile/lib/data/role_store.dart` (Flutter)
+- `web/lib/rbac.ts` + `web/lib/auth.tsx` (Next.js)
+
 ## Structure
 ```
 /hom.com.ng/
