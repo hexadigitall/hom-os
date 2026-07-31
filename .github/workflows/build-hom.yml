@@ -183,7 +183,7 @@ jobs:
 
       - name: Create self-signed certificate and install
         run: |
-          $cert = New-SelfSignedCertificate -Subject "CN=Hexadigitall" -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(5) -Type CodeSigningCert
+          $cert = New-SelfSignedCertificate -Subject "CN=Hexadigitall, O=Hexadigitall, C=NG" -CertStoreLocation "Cert:\CurrentUser\My" -KeyAlgorithm RSA -KeyLength 2048 -NotAfter (Get-Date).AddYears(5) -Type CodeSigningCert
           $pwd = ConvertTo-SecureString -String "HOM-CI-2026" -Force -AsPlainText
           Export-PfxCertificate -Cert $cert -FilePath "build\hom-sign.pfx" -Password $pwd
           Export-Certificate -Cert $cert -FilePath "build\hom-sign.cer"
