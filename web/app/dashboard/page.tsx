@@ -4,7 +4,7 @@ import Script from 'next/script';
 import {
   BedDouble, CalendarCheck, Fuel, Package, Users, CreditCard,
   MessageCircle, Globe, Store, Plus, Trash2, Edit3, CheckCircle,
-  XCircle, LogOut, AlertTriangle, Send, Search, ChevronDown, Eye, X
+  XCircle, LogOut, AlertTriangle, Send, Search, ChevronDown, Eye, X, Menu
 } from 'lucide-react';
 import { sendWhatsApp, bookingConfirmationTemplate, payslipTemplate } from '@/lib/whatsapp';
 import { fetchBookingComBookings, checkOverbooking, ExternalBooking } from '@/lib/bookingcom';
@@ -81,6 +81,7 @@ export default function Dashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
   const [whatsappLog, setWhatsappLog] = useState<{to: string; msg: string; time: string}[]>([]);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     setRooms(load('hom_rooms', defaultRooms));
@@ -130,6 +131,8 @@ export default function Dashboard() {
     { id: 'bookingcom', label: 'Booking.com', icon: Globe },
   ];
 
+  const goTab = (id: string) => { setTab(id); setShowForm(false); setEditItem(null); setMobileNavOpen(false); };
+
   const paye = (s: number) => Math.round(s * 0.07);
   const pension = (s: number) => Math.round(s * 0.08);
 
@@ -144,7 +147,7 @@ export default function Dashboard() {
           </div>
           <nav className="space-y-0.5 flex-1">
             {navItems.map(({ id, label, icon: Icon }) => (
-              <button key={id} onClick={() => { setTab(id); setShowForm(false); setEditItem(null); }}
+              <button key={id} onClick={() => goTab(id)}
                 className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${tab === id ? 'bg-[#0E9F6E] text-white' : 'hover:bg-white/10 text-zinc-400'}`}>
                 <Icon size={16} /><span className="text-sm">{label}</span>
               </button>
@@ -154,28 +157,52 @@ export default function Dashboard() {
         </aside>
 
         <div className="flex-1 flex flex-col min-h-screen">
-          <header className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-10">
-            <div className="flex items-center gap-3">
-              <button className="md:hidden p-2" onClick={() => setTab(tab)}>
-                <div className="space-y-1"><div className="w-5 h-0.5 bg-zinc-600" /><div className="w-5 h-0.5 bg-zinc-600" /><div className="w-5 h-0.5 bg-zinc-600" /></div>
+          <header className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <button className="md:hidden p-2 -ml-2" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
+                <Menu size={20} />
               </button>
-              <h1 className="font-bold capitalize flex items-center gap-2">
-                {navItems.find(n => n.id === tab) && (() => { const Icon = navItems.find(n => n.id === tab)!.icon; return <Icon size={20} className="text-[#0E9F6E]" />; })()}
-                {tab === 'overview' ? 'Dashboard Overview' : tab}
+              <h1 className="font-bold capitalize flex items-center gap-2 min-w-0 truncate">
+                {navItems.find(n => n.id === tab) && (() => { const Icon = navItems.find(n => n.id === tab)!.icon; return <Icon size={20} className="text-[#0E9F6E] shrink-0" />; })()}
+                <span className="truncate">{tab === 'overview' ? 'Dashboard Overview' : tab}</span>
               </h1>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative hidden sm:block">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-3 py-1.5 border rounded-lg text-sm w-48" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-3 py-1.5 border rounded-lg text-sm w-36 lg:w-48" />
               </div>
-              <span className="text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">HOM LIVE</span>
+              <span className="text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap">HOM LIVE</span>
             </div>
           </header>
 
+          {mobileNavOpen && (
+            <div className="fixed inset-0 z-40 md:hidden">
+              <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
+              <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-[#0E1A14] text-white p-4 flex flex-col shadow-2xl">
+                <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 bg-white rounded-[12px] border-2 border-[#0E9F6E] p-1 flex-shrink-0"><img src="/logo.png" className="h-full w-full" alt="HOM" /></div>
+                    <div><div className="font-black text-sm">HOM</div><div className="text-[8px] text-green-300 tracking-widest leading-tight">HOSPITALITY OPERATIONS MANAGER</div></div>
+                  </div>
+                  <button onClick={() => setMobileNavOpen(false)} aria-label="Close menu"><X size={20} /></button>
+                </div>
+                <nav className="space-y-0.5 flex-1 overflow-y-auto">
+                  {navItems.map(({ id, label, icon: Icon }) => (
+                    <button key={id} onClick={() => goTab(id)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${tab === id ? 'bg-[#0E9F6E] text-white' : 'hover:bg-white/10 text-zinc-400'}`}>
+                      <Icon size={16} /><span className="text-sm">{label}</span>
+                    </button>
+                  ))}
+                </nav>
+                <div className="pt-4 border-t border-white/10 text-[10px] text-zinc-500">HOM v5 — Hexadigitall</div>
+              </div>
+            </div>
+          )}
+
           <div className="md:hidden flex gap-1.5 overflow-x-auto p-3 pb-2">
             {navItems.map(({ id, label, icon: Icon }) => (
-              <button key={id} onClick={() => { setTab(id); setShowForm(false); setEditItem(null); }}
+              <button key={id} onClick={() => goTab(id)}
                 className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap flex items-center gap-1 ${tab === id ? 'bg-[#0E9F6E] text-white' : 'bg-white border text-zinc-600'}`}>
                 <Icon size={12} />{label}
               </button>

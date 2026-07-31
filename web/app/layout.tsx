@@ -1,5 +1,6 @@
 import "./globals.css";
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hom-os-web.vercel.app"),
   title: "HOM — Hospitality Operations Manager",
   description: "HOM - Hospitality Operations Manager: Bookings, Diesel theft, Inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud, Booking.com sync. The Hotel OS Powering Nigeria. Built by Hexadigitall.",
   icons: {
