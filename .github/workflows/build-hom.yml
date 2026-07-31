@@ -203,13 +203,23 @@ jobs:
           name: HOM-Windows
           path: mobile/build/windows/x64/runner/Release/
 
-      - name: Upload MSIX + certificate
+      - name: Stage MSIX installer package
+        shell: pwsh
+        run: |
+          $stage = "build\windows\installer"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $msix = Get-ChildItem "build\windows\x64\runner\Release\*.msix" | Select-Object -First 1
+          if (-not $msix) { throw "no .msix produced by msix:create" }
+          Copy-Item $msix.FullName -Destination $stage
+          Copy-Item windows\hom-sign.cer -Destination $stage
+          Copy-Item windows\install-msix.ps1 -Destination $stage
+          Get-ChildItem $stage | Select-Object Name, Length
+
+      - name: Upload MSIX installer package
         uses: actions/upload-artifact@v4
         with:
-          name: HOM-Msix-Cert
-          path: |
-            mobile/build/windows/x64/runner/Release/*.msix
-            mobile/windows/hom-sign.cer
+          name: HOM-Msix-Installer
+          path: mobile/build/windows/installer/
 
   # ─────────────────────────────────────────────
   # LINUX (Desktop - .deb Package)
