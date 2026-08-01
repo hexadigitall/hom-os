@@ -70,7 +70,7 @@ function DashboardInner() {
   const initials = (session.userName || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   return (
-    <main className="min-h-screen bg-hom-background flex">
+    <main className="min-h-screen bg-hom-background flex overflow-x-clip">
       <aside className="w-64 bg-hom-ink text-white p-4 hidden md:flex flex-col sticky top-0 h-screen overflow-y-auto">
         <Brand />
         <nav className="space-y-0.5 flex-1">
@@ -84,7 +84,7 @@ function DashboardInner() {
         <div className="pt-4 border-t border-white/10 text-[10px] text-zinc-500">HOM v5 — Hexadigitall</div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
         <header className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <button className="md:hidden p-2 -ml-2" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
@@ -95,16 +95,16 @@ function DashboardInner() {
               <span className="truncate">{current?.label || 'HOM'}</span>
             </h1>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="relative hidden sm:block">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="relative hidden md:block">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-3 py-1.5 border rounded-lg text-sm w-36 lg:w-48" />
             </div>
-            <span className="text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap">HOM LIVE</span>
+            <span className="hidden sm:inline-flex text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0">HOM LIVE</span>
             {hasIdentity(session) && (
               <div className="hidden sm:flex items-center gap-2 pl-2 border-l">
-                <div className="h-8 w-8 rounded-full bg-hom-primary text-white flex items-center justify-center text-xs font-black">{initials}</div>
-                <div className="leading-tight min-w-0">
+                <div className="h-8 w-8 rounded-full bg-hom-primary text-white flex items-center justify-center text-xs font-black shrink-0">{initials}</div>
+                <div className="hidden lg:block leading-tight min-w-0">
                   <div className="text-xs font-bold truncate max-w-[120px]">{session.userName}</div>
                   <div className="text-[9px] text-zinc-500 truncate max-w-[120px]">{roleName || 'Unassigned'}</div>
                 </div>
@@ -149,8 +149,10 @@ function DashboardInner() {
           ))}
         </div>
 
-        <div className="p-4 md:p-6 flex-1">
-          {current ? <current.module /> : <div className="p-8 text-center text-sm text-zinc-400">No modules available for your access level.</div>}
+        <div className="p-4 md:p-6 flex-1 min-w-0">
+          <div className="w-full max-w-7xl mx-auto">
+            {current ? <current.module /> : <div className="p-8 text-center text-sm text-zinc-400">No modules available for your access level.</div>}
+          </div>
         </div>
       </div>
     </main>

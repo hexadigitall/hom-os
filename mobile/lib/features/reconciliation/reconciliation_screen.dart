@@ -168,12 +168,14 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
       Positioned(
         right: 16,
         bottom: 16,
-        child: RoleGate(requiredPermission: Permission.manageReconciliation, child: FloatingActionButton(
-          onPressed: () => _uploadStatement(context),
-          backgroundColor: _primaryGreen,
-          foregroundColor: AppColors.white,
-          child: const Icon(Icons.upload_file_rounded),
-        )),
+        child: RoleGate(
+            requiredPermission: Permission.manageReconciliation,
+            child: FloatingActionButton(
+              onPressed: () => _uploadStatement(context),
+              backgroundColor: _primaryGreen,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.upload_file_rounded),
+            )),
       ),
     ]);
   }
@@ -185,9 +187,21 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
       color: AppColors.white,
       child: Column(children: [
         HomResponsiveGrid(children: [
-          HomMetricCard(label: 'Transactions', value: '$total', color: AppColors.blue, icon: Icons.receipt_long_rounded),
-          HomMetricCard(label: 'Matched', value: '$matched', color: _primaryGreen, icon: Icons.check_circle_rounded),
-          HomMetricCard(label: 'Unmatched', value: '$unmatched', color: unmatched > 0 ? AppColors.red : AppColors.grey500, icon: Icons.error_outline_rounded),
+          HomMetricCard(
+              label: 'Transactions',
+              value: '$total',
+              color: AppColors.blue,
+              icon: Icons.receipt_long_rounded),
+          HomMetricCard(
+              label: 'Matched',
+              value: '$matched',
+              color: _primaryGreen,
+              icon: Icons.check_circle_rounded),
+          HomMetricCard(
+              label: 'Unmatched',
+              value: '$unmatched',
+              color: unmatched > 0 ? AppColors.red : AppColors.grey500,
+              icon: Icons.error_outline_rounded),
         ]),
         const SizedBox(height: 8),
         ClipRRect(
@@ -269,8 +283,8 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                     const SizedBox(height: 2),
                     Text(
                         '${t.date.day}/${t.date.month}/${t.date.year} — ${t.source}',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.grey500),
+                        style:
+                            TextStyle(fontSize: 10, color: AppColors.grey500),
                         overflow: TextOverflow.ellipsis),
                     if (txnMatches.isNotEmpty)
                       Padding(
@@ -311,31 +325,37 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
             ]),
             const SizedBox(width: 4),
             Column(mainAxisSize: MainAxisSize.min, children: [
-              RoleGate(requiredPermission: Permission.manageReconciliation, child: InkWell(
-                onTap: () => _editTransaction(context, t),
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: _primaryGreen.withValues(alpha: 0.1),
+              RoleGate(
+                  requiredPermission: Permission.manageReconciliation,
+                  child: InkWell(
+                    onTap: () => _editTransaction(context, t),
                     borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.edit_rounded, size: 14, color: _primaryGreen),
-                ),
-              )),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: _primaryGreen.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.edit_rounded,
+                          size: 14, color: _primaryGreen),
+                    ),
+                  )),
               const SizedBox(height: 4),
-              RoleGate(requiredPermission: Permission.manageReconciliation, child: InkWell(
-                onTap: () => _deleteTransaction(context, t),
-                borderRadius: BorderRadius.circular(6),
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: AppColors.red.withValues(alpha: 0.1),
+              RoleGate(
+                  requiredPermission: Permission.manageReconciliation,
+                  child: InkWell(
+                    onTap: () => _deleteTransaction(context, t),
                     borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.redAccent),
-                ),
-              )),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.delete_outline_rounded,
+                          size: 14, color: AppColors.redAccent),
+                    ),
+                  )),
             ]),
           ]),
         ),
@@ -375,17 +395,19 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                  color:
-                                      (t.isCredit ? _primaryGreen : AppColors.red)
-                                          .withValues(alpha: 0.1),
+                                  color: (t.isCredit
+                                          ? _primaryGreen
+                                          : AppColors.red)
+                                      .withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12)),
                               child: Icon(
                                   t.isCredit
                                       ? Icons.arrow_downward_rounded
                                       : Icons.arrow_upward_rounded,
                                   size: 24,
-                                  color:
-                                      t.isCredit ? _primaryGreen : AppColors.red),
+                                  color: t.isCredit
+                                      ? _primaryGreen
+                                      : AppColors.red),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -438,22 +460,25 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                                 '${m.entityType == MatchEntityType.booking ? 'Booking' : 'Expense'} • ₦${m.matchedAmount.toStringAsFixed(0)}',
                                                 style: TextStyle(
                                                     fontSize: 11,
-                                                    color:
-                                                        AppColors.grey600),
+                                                    color: AppColors.grey600),
                                                 overflow:
                                                     TextOverflow.ellipsis),
                                           ])),
-                                      RoleGate(requiredPermission: Permission.manageReconciliation, child: IconButton(
-                                        icon: const Icon(
-                                            Icons.delete_outline_rounded,
-                                            size: 18,
-                                            color: AppColors.redAccent),
-                                        onPressed: () {
-                                          ReconciliationStore.removeMatch(m.id);
-                                          widget.parent.setState(() {});
-                                          Navigator.pop(ctx);
-                                        },
-                                      )),
+                                      RoleGate(
+                                          requiredPermission:
+                                              Permission.manageReconciliation,
+                                          child: IconButton(
+                                            icon: const Icon(
+                                                Icons.delete_outline_rounded,
+                                                size: 18,
+                                                color: AppColors.redAccent),
+                                            onPressed: () {
+                                              ReconciliationStore.removeMatch(
+                                                  m.id);
+                                              widget.parent.setState(() {});
+                                              Navigator.pop(ctx);
+                                            },
+                                          )),
                                     ]),
                                   ),
                                 )),
@@ -473,12 +498,16 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                             const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
-                              child: RoleGate(requiredPermission: Permission.manageReconciliation, child: OutlinedButton.icon(
-                                onPressed: () => _manualMatch(ctx, setSB, t),
-                                icon:
-                                    const Icon(Icons.search_rounded, size: 16),
-                                label: const Text('Manual Match'),
-                              )),
+                              child: RoleGate(
+                                  requiredPermission:
+                                      Permission.manageReconciliation,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _manualMatch(ctx, setSB, t),
+                                    icon: const Icon(Icons.search_rounded,
+                                        size: 16),
+                                    label: const Text('Manual Match'),
+                                  )),
                             ),
                           ],
                         ]),
@@ -517,8 +546,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                         fontWeight: FontWeight.w700, fontSize: 13)),
                 Text(
                     '${s.entityType == MatchEntityType.booking ? 'Booking' : 'Expense'} • ₦${s.amount.toStringAsFixed(0)} • ${s.reason}',
-                    style:
-                        TextStyle(fontSize: 10, color: AppColors.grey600)),
+                    style: TextStyle(fontSize: 10, color: AppColors.grey600)),
               ])),
           Text('$confidencePct%',
               style: TextStyle(
@@ -526,24 +554,26 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                   fontSize: 12,
                   color: s.confidence > 0.8 ? _primaryGreen : AppColors.amber)),
           const SizedBox(width: 8),
-          RoleGate(requiredPermission: Permission.manageReconciliation, child: IconButton(
-            icon:
-                const Icon(Icons.check_circle, size: 20, color: _primaryGreen),
-            onPressed: () {
-              ReconciliationStore.addMatch(ReconciliationMatch(
-                id: ReconciliationStore.genMatchId(),
-                bankTransactionId: t.id,
-                entityType: s.entityType,
-                entityId: s.entityId,
-                entityLabel: s.label,
-                entityAmount: s.amount,
-                matchedAmount: min(t.amount, s.amount),
-                confidence: s.confidence,
-              ));
-              widget.parent.setState(() {});
-              Navigator.pop(ctx);
-            },
-          )),
+          RoleGate(
+              requiredPermission: Permission.manageReconciliation,
+              child: IconButton(
+                icon: const Icon(Icons.check_circle,
+                    size: 20, color: _primaryGreen),
+                onPressed: () {
+                  ReconciliationStore.addMatch(ReconciliationMatch(
+                    id: ReconciliationStore.genMatchId(),
+                    bankTransactionId: t.id,
+                    entityType: s.entityType,
+                    entityId: s.entityId,
+                    entityLabel: s.label,
+                    entityAmount: s.amount,
+                    matchedAmount: min(t.amount, s.amount),
+                    confidence: s.confidence,
+                  ));
+                  widget.parent.setState(() {});
+                  Navigator.pop(ctx);
+                },
+              )),
         ]),
       ),
     );
@@ -648,41 +678,50 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                           fontSize: 11,
                                           color: AppColors.grey600),
                                       overflow: TextOverflow.ellipsis),
-                                  trailing: RoleGate(requiredPermission: Permission.manageReconciliation, child: ElevatedButton(
-                                    onPressed: () {
-                                      ReconciliationStore.addMatch(
-                                          ReconciliationMatch(
-                                        id: ReconciliationStore.genMatchId(),
-                                        bankTransactionId: t.id,
-                                        entityType: r.type,
-                                        entityId: r.id,
-                                        entityLabel: r.label,
-                                        entityAmount: r.amount,
-                                        matchedAmount: min(t.amount, r.amount),
-                                        isManual: true,
-                                        confidence: 1.0,
-                                      ));
-                                      widget.parent.setState(() {});
-                                      Navigator.pop(ctx);
-                                      Navigator.pop(context);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 6)),
-                                    child: const Text('Match',
-                                        style: TextStyle(fontSize: 11)),
-                                  )),
+                                  trailing: RoleGate(
+                                      requiredPermission:
+                                          Permission.manageReconciliation,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          ReconciliationStore.addMatch(
+                                              ReconciliationMatch(
+                                            id: ReconciliationStore
+                                                .genMatchId(),
+                                            bankTransactionId: t.id,
+                                            entityType: r.type,
+                                            entityId: r.id,
+                                            entityLabel: r.label,
+                                            entityAmount: r.amount,
+                                            matchedAmount:
+                                                min(t.amount, r.amount),
+                                            isManual: true,
+                                            confidence: 1.0,
+                                          ));
+                                          widget.parent.setState(() {});
+                                          Navigator.pop(ctx);
+                                          Navigator.pop(context);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 6)),
+                                        child: const Text('Match',
+                                            style: TextStyle(fontSize: 11)),
+                                      )),
                                 )),
                           if (t.amount > 0) ...[
                             const Divider(height: 24),
                             SizedBox(
                               width: double.infinity,
-                              child: RoleGate(requiredPermission: Permission.manageSplitPayments, child: OutlinedButton.icon(
-                                onPressed: () => _splitPayment(ctx2, setSB, t),
-                                icon: const Icon(Icons.call_split_rounded,
-                                    size: 16),
-                                label: const Text('Split Payment'),
-                              )),
+                              child: RoleGate(
+                                  requiredPermission:
+                                      Permission.manageSplitPayments,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _splitPayment(ctx2, setSB, t),
+                                    icon: const Icon(Icons.call_split_rounded,
+                                        size: 16),
+                                    label: const Text('Split Payment'),
+                                  )),
                             ),
                           ],
                         ]),
@@ -744,138 +783,162 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                         style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w800)),
-                                    RoleGate(requiredPermission: Permission.manageSplitPayments, child: IconButton(
-                                      icon: const Icon(
-                                          Icons.delete_outline_rounded,
-                                          size: 18,
-                                          color: AppColors.redAccent),
-                                      onPressed: () {
-                                        remaining += allocations[e.key].amount;
-                                        allocations.removeAt(e.key);
-                                        setSB2(() {});
-                                      },
-                                    )),
+                                    RoleGate(
+                                        requiredPermission:
+                                            Permission.manageSplitPayments,
+                                        child: IconButton(
+                                          icon: const Icon(
+                                              Icons.delete_outline_rounded,
+                                              size: 18,
+                                              color: AppColors.redAccent),
+                                          onPressed: () {
+                                            remaining +=
+                                                allocations[e.key].amount;
+                                            allocations.removeAt(e.key);
+                                            setSB2(() {});
+                                          },
+                                        )),
                                   ]),
                                 )),
                             if (remaining > 0)
-                              RoleGate(requiredPermission: Permission.manageSplitPayments, child: TextButton.icon(
-                                onPressed: () {
-                                  showDialog(
-                                      context: ctx2,
-                                      builder: (dCtx) {
-                                        final amtCtl = TextEditingController();
-                                        String type = 'booking';
-                                        return AlertDialog(
-                                          title: const Text('Add Allocation'),
-                                          content: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                DropdownButtonFormField<String>(
-                                                  initialValue: type,
-                                                  items: const [
-                                                    DropdownMenuItem(
-                                                        value: 'booking',
-                                                        child: Text('Booking')),
-                                                    DropdownMenuItem(
-                                                        value: 'expense',
-                                                        child: Text('Expense')),
-                                                  ],
-                                                  onChanged: (v) => type = v!,
-                                                  decoration:
-                                                      const InputDecoration(
-                                                          labelText: 'Type'),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                TextField(
-                                                  controller: amtCtl,
-                                                  keyboardType:
-                                                      TextInputType.number,
-                                                  decoration: InputDecoration(
-                                                      labelText:
-                                                          'Amount (max ₦${remaining.toStringAsFixed(0)})'),
-                                                ),
-                                              ]),
-                                          actions: [
-                                            TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(dCtx),
-                                                child: const Text('Cancel')),
-                                            ElevatedButton(
-                                                onPressed: () {
-                                                  final amt = double.tryParse(
-                                                          amtCtl.text) ??
-                                                      0;
-                                                  if (amt <= 0 ||
-                                                      amt > remaining) return;
-                                                  allocations.add(_SplitRow(
-                                                    type: type == 'booking'
-                                                        ? MatchEntityType
-                                                            .booking
-                                                        : MatchEntityType
-                                                            .expenditure,
-                                                    id: '',
-                                                    label: type == 'booking'
-                                                        ? 'Booking split'
-                                                        : 'Expense split',
-                                                    amount: amt,
-                                                  ));
-                                                  remaining -= amt;
-                                                  Navigator.pop(dCtx);
-                                                  setSB2(() {});
-                                                },
-                                                child: const Text('Add')),
-                                          ],
-                                        );
-                                      });
-                                },
-                                icon: const Icon(Icons.add_rounded, size: 16),
-                                label: Text(
-                                    'Add Split (₦${remaining.toStringAsFixed(0)} remaining)'),
-                              )),
+                              RoleGate(
+                                  requiredPermission:
+                                      Permission.manageSplitPayments,
+                                  child: TextButton.icon(
+                                    onPressed: () {
+                                      showDialog(
+                                          context: ctx2,
+                                          builder: (dCtx) {
+                                            final amtCtl =
+                                                TextEditingController();
+                                            String type = 'booking';
+                                            return AlertDialog(
+                                              title:
+                                                  const Text('Add Allocation'),
+                                              content: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    DropdownButtonFormField<
+                                                        String>(
+                                                      initialValue: type,
+                                                      items: const [
+                                                        DropdownMenuItem(
+                                                            value: 'booking',
+                                                            child: Text(
+                                                                'Booking')),
+                                                        DropdownMenuItem(
+                                                            value: 'expense',
+                                                            child: Text(
+                                                                'Expense')),
+                                                      ],
+                                                      onChanged: (v) =>
+                                                          type = v!,
+                                                      decoration:
+                                                          const InputDecoration(
+                                                              labelText:
+                                                                  'Type'),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    TextField(
+                                                      controller: amtCtl,
+                                                      keyboardType:
+                                                          TextInputType.number,
+                                                      decoration: InputDecoration(
+                                                          labelText:
+                                                              'Amount (max ₦${remaining.toStringAsFixed(0)})'),
+                                                    ),
+                                                  ]),
+                                              actions: [
+                                                TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(dCtx),
+                                                    child:
+                                                        const Text('Cancel')),
+                                                ElevatedButton(
+                                                    onPressed: () {
+                                                      final amt =
+                                                          double.tryParse(amtCtl
+                                                                  .text) ??
+                                                              0;
+                                                      if (amt <= 0 ||
+                                                          amt > remaining)
+                                                        return;
+                                                      allocations.add(_SplitRow(
+                                                        type: type == 'booking'
+                                                            ? MatchEntityType
+                                                                .booking
+                                                            : MatchEntityType
+                                                                .expenditure,
+                                                        id: '',
+                                                        label: type == 'booking'
+                                                            ? 'Booking split'
+                                                            : 'Expense split',
+                                                        amount: amt,
+                                                      ));
+                                                      remaining -= amt;
+                                                      Navigator.pop(dCtx);
+                                                      setSB2(() {});
+                                                    },
+                                                    child: const Text('Add')),
+                                              ],
+                                            );
+                                          });
+                                    },
+                                    icon:
+                                        const Icon(Icons.add_rounded, size: 16),
+                                    label: Text(
+                                        'Add Split (₦${remaining.toStringAsFixed(0)} remaining)'),
+                                  )),
                             const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
-                              child: RoleGate(requiredPermission: Permission.manageSplitPayments, child: ElevatedButton(
-                                onPressed: allocations.isEmpty || remaining > 0
-                                    ? null
-                                    : () {
-                                        final splitAllocs = <SplitAllocation>[];
-                                        for (final a in allocations) {
-                                          ReconciliationStore.addMatch(
-                                              ReconciliationMatch(
-                                            id: ReconciliationStore
-                                                .genMatchId(),
-                                            bankTransactionId: t.id,
-                                            entityType: a.type,
-                                            entityId: a.id,
-                                            entityLabel: a.label,
-                                            entityAmount: a.amount,
-                                            matchedAmount: a.amount,
-                                            isManual: true,
-                                            confidence: 1.0,
-                                          ));
-                                          splitAllocs.add(SplitAllocation(
-                                            entityType: a.type,
-                                            entityId: a.id,
-                                            entityLabel: a.label,
-                                            amount: a.amount,
-                                          ));
-                                        }
-                                        PaymentStore.createSplitPayment(
-                                          bankTransactionId: t.id,
-                                          allocations: splitAllocs,
-                                        );
-                                        widget.parent.setState(() {});
-                                        Navigator.pop(ctx);
-                                        Navigator.pop(context);
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14)),
-                                child: Text(remaining > 0
-                                    ? 'Allocate ₦${remaining.toStringAsFixed(0)} remaining'
-                                    : 'Save Allocations (₦${t.amount.toStringAsFixed(0)})'),
-                              )),
+                              child: RoleGate(
+                                  requiredPermission:
+                                      Permission.manageSplitPayments,
+                                  child: ElevatedButton(
+                                    onPressed: allocations.isEmpty ||
+                                            remaining > 0
+                                        ? null
+                                        : () {
+                                            final splitAllocs =
+                                                <SplitAllocation>[];
+                                            for (final a in allocations) {
+                                              ReconciliationStore.addMatch(
+                                                  ReconciliationMatch(
+                                                id: ReconciliationStore
+                                                    .genMatchId(),
+                                                bankTransactionId: t.id,
+                                                entityType: a.type,
+                                                entityId: a.id,
+                                                entityLabel: a.label,
+                                                entityAmount: a.amount,
+                                                matchedAmount: a.amount,
+                                                isManual: true,
+                                                confidence: 1.0,
+                                              ));
+                                              splitAllocs.add(SplitAllocation(
+                                                entityType: a.type,
+                                                entityId: a.id,
+                                                entityLabel: a.label,
+                                                amount: a.amount,
+                                              ));
+                                            }
+                                            PaymentStore.createSplitPayment(
+                                              bankTransactionId: t.id,
+                                              allocations: splitAllocs,
+                                            );
+                                            widget.parent.setState(() {});
+                                            Navigator.pop(ctx);
+                                            Navigator.pop(context);
+                                          },
+                                    style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 14)),
+                                    child: Text(remaining > 0
+                                        ? 'Allocate ₦${remaining.toStringAsFixed(0)} remaining'
+                                        : 'Save Allocations (₦${t.amount.toStringAsFixed(0)})'),
+                                  )),
                             ),
                           ]),
                     ),
@@ -936,8 +999,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                   TextField(
                       controller: srcCtl,
                       decoration: const InputDecoration(
-                          labelText: 'Source',
-                          border: OutlineInputBorder())),
+                          labelText: 'Source', border: OutlineInputBorder())),
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
@@ -963,8 +1025,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                         Navigator.pop(ctx);
                       },
                       style: ElevatedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14)),
                       child: const Text('Save Changes'),
                     ),
                   ),
@@ -1037,8 +1098,8 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error: $e'), backgroundColor: AppColors.red));
       }
     }
   }
@@ -1121,12 +1182,14 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
       Positioned(
         right: 16,
         bottom: 16,
-        child: RoleGate(requiredPermission: Permission.manageVirtualAccounts, child: FloatingActionButton(
-          onPressed: () => _generateVA(context),
-          backgroundColor: _primaryGreen,
-          foregroundColor: AppColors.white,
-          child: const Icon(Icons.add_rounded),
-        )),
+        child: RoleGate(
+            requiredPermission: Permission.manageVirtualAccounts,
+            child: FloatingActionButton(
+              onPressed: () => _generateVA(context),
+              backgroundColor: _primaryGreen,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add_rounded),
+            )),
       ),
     ]);
   }
@@ -1137,8 +1200,8 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
       color: AppColors.white,
       child: Row(children: [
         Expanded(
-            child: _vaStat(
-                '$total', 'Total', Icons.account_balance_rounded, AppColors.blue)),
+            child: _vaStat('$total', 'Total', Icons.account_balance_rounded,
+                AppColors.blue)),
         const SizedBox(width: 8),
         Expanded(
             child: _vaStat('$active', 'Active', Icons.check_circle_rounded,
@@ -1216,8 +1279,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                         fontWeight: FontWeight.w700, fontSize: 13)),
                 const SizedBox(height: 2),
                 Text('${va.bankName} • ${va.accountNumber}',
-                    style:
-                        TextStyle(fontSize: 11, color: AppColors.grey600)),
+                    style: TextStyle(fontSize: 11, color: AppColors.grey600)),
                 Text('Booking: ${va.bookingId}',
                     style: TextStyle(fontSize: 10, color: AppColors.grey500),
                     overflow: TextOverflow.ellipsis),
@@ -1241,31 +1303,37 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
           ]),
           const SizedBox(width: 4),
           Column(mainAxisSize: MainAxisSize.min, children: [
-            RoleGate(requiredPermission: Permission.manageVirtualAccounts, child: InkWell(
-              onTap: () => _editVirtualAccount(context, va),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: _primaryGreen.withValues(alpha: 0.1),
+            RoleGate(
+                requiredPermission: Permission.manageVirtualAccounts,
+                child: InkWell(
+                  onTap: () => _editVirtualAccount(context, va),
                   borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.edit_rounded, size: 14, color: _primaryGreen),
-              ),
-            )),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: _primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.edit_rounded,
+                        size: 14, color: _primaryGreen),
+                  ),
+                )),
             const SizedBox(height: 4),
-            RoleGate(requiredPermission: Permission.manageVirtualAccounts, child: InkWell(
-              onTap: () => _deleteVirtualAccount(context, va),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.red.withValues(alpha: 0.1),
+            RoleGate(
+                requiredPermission: Permission.manageVirtualAccounts,
+                child: InkWell(
+                  onTap: () => _deleteVirtualAccount(context, va),
                   borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.redAccent),
-              ),
-            )),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.delete_outline_rounded,
+                        size: 14, color: AppColors.redAccent),
+                  ),
+                )),
           ]),
         ]),
       ),
@@ -1349,7 +1417,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                       child: const Text('Generate'),
                     ),
                   ),
-                  ]),
+                ]),
           ),
         ),
       ),
@@ -1404,8 +1472,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                     decoration: const InputDecoration(
                         labelText: 'Status', border: OutlineInputBorder()),
                     items: ['active', 'matched', 'expired']
-                        .map((s) => DropdownMenuItem(
-                            value: s, child: Text(s)))
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                         .toList(),
                     onChanged: (v) => status = v!,
                   ),
@@ -1435,8 +1502,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                         Navigator.pop(ctx);
                       },
                       style: ElevatedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14)),
                       child: const Text('Save Changes'),
                     ),
                   ),
@@ -1549,8 +1615,8 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                               color: AppColors.blue)),
                     ]),
                     Text('Terminals',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.grey600)),
+                        style:
+                            TextStyle(fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
             const SizedBox(width: 8),
@@ -1574,8 +1640,8 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                               color: _primaryGreen)),
                     ]),
                     Text('Active',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.grey600)),
+                        style:
+                            TextStyle(fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
           ]),
@@ -1600,12 +1666,14 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
       Positioned(
         right: 16,
         bottom: 16,
-        child: RoleGate(requiredPermission: Permission.trackPOSTerminals, child: FloatingActionButton(
-          onPressed: () => _addTerminal(context),
-          backgroundColor: _primaryGreen,
-          foregroundColor: AppColors.white,
-          child: const Icon(Icons.add_rounded),
-        )),
+        child: RoleGate(
+            requiredPermission: Permission.trackPOSTerminals,
+            child: FloatingActionButton(
+              onPressed: () => _addTerminal(context),
+              backgroundColor: _primaryGreen,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add_rounded),
+            )),
       ),
     ]);
   }
@@ -1625,7 +1693,8 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
             ),
             child: Icon(Icons.devices_rounded,
                 size: 18,
-                color: t.status == 'active' ? _primaryGreen : AppColors.grey500),
+                color:
+                    t.status == 'active' ? _primaryGreen : AppColors.grey500),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1636,45 +1705,52 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                     style: const TextStyle(
                         fontWeight: FontWeight.w700, fontSize: 13)),
                 Text('${t.bankName} • ${t.merchantCode}',
-                    style:
-                        TextStyle(fontSize: 11, color: AppColors.grey600)),
+                    style: TextStyle(fontSize: 11, color: AppColors.grey600)),
               ])),
-          RoleGate(requiredPermission: Permission.trackPOSTerminals, child: Switch(
-            value: t.status == 'active',
-            activeTrackColor: _primaryGreen,
-            onChanged: (_) {
-              PaymentStore.togglePosTerminalStatus(t.id);
-              setState(() {});
-              widget.parent.setState(() {});
-            },
-          )),
+          RoleGate(
+              requiredPermission: Permission.trackPOSTerminals,
+              child: Switch(
+                value: t.status == 'active',
+                activeTrackColor: _primaryGreen,
+                onChanged: (_) {
+                  PaymentStore.togglePosTerminalStatus(t.id);
+                  setState(() {});
+                  widget.parent.setState(() {});
+                },
+              )),
           const SizedBox(width: 4),
           Column(mainAxisSize: MainAxisSize.min, children: [
-            RoleGate(requiredPermission: Permission.trackPOSTerminals, child: InkWell(
-              onTap: () => _editPosTerminal(context, t),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: _primaryGreen.withValues(alpha: 0.1),
+            RoleGate(
+                requiredPermission: Permission.trackPOSTerminals,
+                child: InkWell(
+                  onTap: () => _editPosTerminal(context, t),
                   borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.edit_rounded, size: 14, color: _primaryGreen),
-              ),
-            )),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: _primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.edit_rounded,
+                        size: 14, color: _primaryGreen),
+                  ),
+                )),
             const SizedBox(height: 4),
-            RoleGate(requiredPermission: Permission.trackPOSTerminals, child: InkWell(
-              onTap: () => _deletePosTerminal(context, t),
-              borderRadius: BorderRadius.circular(6),
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.red.withValues(alpha: 0.1),
+            RoleGate(
+                requiredPermission: Permission.trackPOSTerminals,
+                child: InkWell(
+                  onTap: () => _deletePosTerminal(context, t),
                   borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.redAccent),
-              ),
-            )),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.delete_outline_rounded,
+                        size: 14, color: AppColors.redAccent),
+                  ),
+                )),
           ]),
         ]),
       ),
@@ -1754,7 +1830,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                       child: const Text('Add Terminal'),
                     ),
                   ),
-                  ]),
+                ]),
           ),
         ),
       ),
@@ -1815,8 +1891,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                     decoration: const InputDecoration(
                         labelText: 'Status', border: OutlineInputBorder()),
                     items: ['active', 'inactive']
-                        .map((s) => DropdownMenuItem(
-                            value: s, child: Text(s)))
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                         .toList(),
                     onChanged: (v) => status = v!,
                   ),
@@ -1841,8 +1916,7 @@ class _PosTerminalsTabState extends State<_PosTerminalsTab> {
                         Navigator.pop(ctx);
                       },
                       style: ElevatedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14)),
+                          padding: const EdgeInsets.symmetric(vertical: 14)),
                       child: const Text('Save Changes'),
                     ),
                   ),
@@ -1913,8 +1987,8 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                               color: AppColors.blue)),
                     ]),
                     Text('Total',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.grey600)),
+                        style:
+                            TextStyle(fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
             const SizedBox(width: 8),
@@ -1938,8 +2012,8 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                               color: AppColors.orange)),
                     ]),
                     Text('Pending',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.grey600)),
+                        style:
+                            TextStyle(fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
             const SizedBox(width: 8),
@@ -1963,8 +2037,8 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                               color: _primaryGreen)),
                     ]),
                     Text('Settled',
-                        style: TextStyle(
-                            fontSize: 10, color: AppColors.grey600)),
+                        style:
+                            TextStyle(fontSize: 10, color: AppColors.grey600)),
                   ]),
             )),
           ]),
@@ -2001,12 +2075,14 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
       Positioned(
         right: 16,
         bottom: 16,
-        child: RoleGate(requiredPermission: Permission.trackPOSTerminals, child: FloatingActionButton(
-          onPressed: () => _recordSettlement(context),
-          backgroundColor: _primaryGreen,
-          foregroundColor: AppColors.white,
-          child: const Icon(Icons.add_rounded),
-        )),
+        child: RoleGate(
+            requiredPermission: Permission.trackPOSTerminals,
+            child: FloatingActionButton(
+              onPressed: () => _recordSettlement(context),
+              backgroundColor: _primaryGreen,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add_rounded),
+            )),
       ),
     ]);
   }
@@ -2060,8 +2136,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                           fontWeight: FontWeight.w700, fontSize: 13)),
                   Text(
                       '${s.date.day}/${s.date.month}/${s.date.year} • Terminal: ${s.terminalId}',
-                      style:
-                          TextStyle(fontSize: 10, color: AppColors.grey600),
+                      style: TextStyle(fontSize: 10, color: AppColors.grey600),
                       overflow: TextOverflow.ellipsis),
                 ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -2093,7 +2168,7 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
           child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -2138,33 +2213,42 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(
-                      child: RoleGate(requiredPermission: Permission.trackPOSTerminals, child: ElevatedButton.icon(
-                        onPressed: () {
-                          PaymentStore.updateSettlementStatus(s.id, 'settled');
-                          setState(() {});
-                          widget.parent.setState(() {});
-                          Navigator.pop(ctx);
-                        },
-                        icon: const Icon(Icons.check_circle_rounded, size: 16),
-                        label: const Text('Mark Settled'),
-                        style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12)),
-                      )),
+                      child: RoleGate(
+                          requiredPermission: Permission.trackPOSTerminals,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              PaymentStore.updateSettlementStatus(
+                                  s.id, 'settled');
+                              setState(() {});
+                              widget.parent.setState(() {});
+                              Navigator.pop(ctx);
+                            },
+                            icon: const Icon(Icons.check_circle_rounded,
+                                size: 16),
+                            label: const Text('Mark Settled'),
+                            style: ElevatedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12)),
+                          )),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: RoleGate(requiredPermission: Permission.trackPOSTerminals, child: OutlinedButton.icon(
-                        onPressed: () {
-                          PaymentStore.updateSettlementStatus(s.id, 'flagged');
-                          setState(() {});
-                          widget.parent.setState(() {});
-                          Navigator.pop(ctx);
-                        },
-                        icon: const Icon(Icons.flag_rounded, size: 16),
-                        label: const Text('Flag'),
-                        style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12)),
-                      )),
+                      child: RoleGate(
+                          requiredPermission: Permission.trackPOSTerminals,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              PaymentStore.updateSettlementStatus(
+                                  s.id, 'flagged');
+                              setState(() {});
+                              widget.parent.setState(() {});
+                              Navigator.pop(ctx);
+                            },
+                            icon: const Icon(Icons.flag_rounded, size: 16),
+                            label: const Text('Flag'),
+                            style: OutlinedButton.styleFrom(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 12)),
+                          )),
                     ),
                   ]),
                 ],

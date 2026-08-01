@@ -241,7 +241,7 @@ function TaxConfigTab() {
       <SectionHeader title="Tax Configuration" sub="Statutory rates applied across the dashboard">
         <Btn onClick={() => { setCfg(draft); setSaved(true); setTimeout(() => setSaved(false), 1500); }}><Check size={14} /> {saved ? 'Saved!' : 'Save Config'}</Btn>
       </SectionHeader>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <MetricCard label="VAT Rate" value={`${cfg.vatRate}%`} sub="Value added tax" color="bg-blue-50 text-blue-700" />
         <MetricCard label="CIT Rate" value={`${cfg.citRate}%`} sub="Company income tax" color="bg-green-50 text-green-700" />
         <MetricCard label="LGA Levy" value={`${cfg.lgaDevelopmentLevy}%`} sub="Dev. levy" color="bg-amber-50 text-amber-700" />

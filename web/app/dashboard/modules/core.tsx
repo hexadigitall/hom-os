@@ -82,7 +82,7 @@ export function BookingsModule() {
   return (
     <div className="space-y-4">
       <SectionHeader title={`Bookings (${bookings.items.length})`}>
-        <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search guest/room..." className="!py-1.5 !w-48" />
+        <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search guest/room..." className="!py-1.5 w-full sm:!w-48" />
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> New Booking</Btn>
       </SectionHeader>
       {showForm && (
@@ -300,7 +300,7 @@ export function InventoryModule() {
   return (
     <div className="space-y-4">
       <SectionHeader title={`Inventory (${inventory.items.length} items)`}>
-        <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="!py-1.5 !w-48" />
+        <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="!py-1.5 w-full sm:!w-48" />
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Item</Btn>
       </SectionHeader>
       {showForm && (

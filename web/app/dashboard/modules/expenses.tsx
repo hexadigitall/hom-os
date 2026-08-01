@@ -60,12 +60,12 @@ export function ExpensesModule() {
   return (
     <div className="space-y-4">
       <SectionHeader title={`Expenditure (${filtered.length} records)`} sub={`Total: ${naira(total)}`}>
-        <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="!py-1.5 !w-48" />
-        <Select value={cat} onChange={e => setCat(e.target.value)} className="!py-1.5 !w-44">
+        <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="!py-1.5 w-full sm:!w-48" />
+        <Select value={cat} onChange={e => setCat(e.target.value)} className="!py-1.5 w-full sm:!w-44">
           <option value="">All Categories</option>
           {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </Select>
-        <Select value={method} onChange={e => setMethod(e.target.value)} className="!py-1.5 !w-32">
+        <Select value={method} onChange={e => setMethod(e.target.value)} className="!py-1.5 w-full sm:!w-32">
           <option value="">All Methods</option>
           <option>Cash</option><option>Transfer</option><option>POS</option><option>Card</option>
         </Select>

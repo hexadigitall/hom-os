@@ -118,7 +118,7 @@ function BankTab() {
         </div>
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions..." className="!py-1.5 !pl-9 !w-56" />
+          <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions..." className="!py-1.5 !pl-9 w-full sm:!w-56" />
         </div>
         {canParse && (
           <>
@@ -134,11 +134,11 @@ function BankTab() {
         <MetricCard label="Unmatched" value={txns.items.length - matchedIds.size} sub="Awaiting match" color="bg-red-50 text-red-700" />
         <MetricCard label="Net Inflow" value={naira(totalCredits - totalDebits)} sub={`${naira(totalCredits)} CR • ${naira(totalDebits)} DR`} color="bg-amber-50 text-amber-700" />
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="h-2 bg-zinc-100 rounded-full overflow-hidden">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="flex-1 h-2 bg-zinc-100 rounded-full overflow-hidden">
           <div className="h-full bg-hom-primary rounded-full" style={{ width: `${txns.items.length ? (matchedIds.size / txns.items.length) * 100 : 0}%` }} />
         </div>
-        <div className="text-xs text-zinc-400 -mt-3">{txns.items.length ? ((matchedIds.size / txns.items.length) * 100).toFixed(0) : 0}% reconciled</div>
+        <div className="text-xs text-zinc-400 sm:w-40 sm:text-right sm:shrink-0">{txns.items.length ? ((matchedIds.size / txns.items.length) * 100).toFixed(0) : 0}% reconciled</div>
       </div>
       <Card className="overflow-hidden">
         <div className="divide-y">

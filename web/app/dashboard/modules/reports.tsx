@@ -92,10 +92,10 @@ export function ReportsModule() {
               className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${gran === g ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>{g[0].toUpperCase() + g.slice(1)}</button>
           ))}
         </div>
-        <Select value={periodIdx} onChange={e => setPeriodIdx(Number(e.target.value))} className="!py-1.5 !w-64">
+        <Select value={periodIdx} onChange={e => setPeriodIdx(Number(e.target.value))} className="!py-1.5 w-full sm:!w-64">
           {periods.map((p, i) => <option key={p.label} value={i}>{p.label}</option>)}
         </Select>
-        <Select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="!py-1.5 !w-44">
+        <Select value={catFilter} onChange={e => setCatFilter(e.target.value)} className="!py-1.5 w-full sm:!w-44">
           <option value="">All Categories</option>
           {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
         </Select>

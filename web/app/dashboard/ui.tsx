@@ -71,9 +71,9 @@ export function StatusChip({ status, label }: { status: string; label?: string }
 
 export function MetricCard({ label, value, sub, color = 'bg-blue-50 text-blue-700' }: { label: string; value: ReactNode; sub?: string; color?: string }) {
   return (
-    <div className="rounded-2xl p-5 border bg-white">
+    <div className="rounded-2xl p-5 border bg-white min-w-0">
       <div className={`text-xs font-bold ${color} px-2 py-0.5 rounded-full inline-block`}>{label}</div>
-      <div className="text-3xl font-black mt-2 truncate">{value}</div>
+      <div className="text-xl sm:text-2xl lg:text-3xl font-black mt-2 truncate">{value}</div>
       {sub && <div className="text-xs text-zinc-500 mt-1 truncate">{sub}</div>}
     </div>
   );
@@ -86,7 +86,7 @@ export function SectionHeader({ title, children, sub }: { title: ReactNode; chil
         <h2 className="font-bold truncate">{title}</h2>
         {sub && <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>}
       </div>
-      <div className="flex gap-2 flex-wrap shrink-0">{children}</div>
+      <div className="w-full md:w-auto flex gap-2 flex-wrap md:justify-end">{children}</div>
     </div>
   );
 }
