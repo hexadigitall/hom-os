@@ -16,18 +16,21 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameCtrl;
   late TextEditingController _phoneCtrl;
+  late TextEditingController _photoCtrl;
 
   @override
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.profile?.displayName ?? widget.user?.name ?? '');
     _phoneCtrl = TextEditingController(text: widget.profile?.phone ?? widget.user?.phone ?? '');
+    _photoCtrl = TextEditingController(text: widget.profile?.photoUrl ?? '');
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _phoneCtrl.dispose();
+    _photoCtrl.dispose();
     super.dispose();
   }
 
@@ -37,6 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (profile != null) {
       profile.displayName = _nameCtrl.text;
       profile.phone = _phoneCtrl.text;
+      profile.photoUrl = _photoCtrl.text.trim().isEmpty ? null : _photoCtrl.text.trim();
       profile.updatedAt = DateTime.now();
       ProfileStore.save(profile);
     }
@@ -68,6 +72,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             controller: _phoneCtrl,
             decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone_rounded)),
             keyboardType: TextInputType.phone,
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _photoCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Profile Photo URL (optional)',
+              prefixIcon: Icon(Icons.image_rounded),
+              hintText: 'https://...',
+            ),
           ),
           if (widget.user != null) ...[
             const SizedBox(height: 16),

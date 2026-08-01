@@ -17,6 +17,15 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  static const _languages = [
+    (code: 'en', label: 'English'),
+    (code: 'fr', label: 'French'),
+    (code: 'es', label: 'Spanish'),
+    (code: 'ha', label: 'Hausa'),
+    (code: 'yo', label: 'Yoruba'),
+    (code: 'ig', label: 'Igbo'),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final session = RoleStore.current;
@@ -48,10 +57,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: CircleAvatar(
               radius: 48,
               backgroundColor: _primaryGreen.withValues(alpha: 0.1),
-              child: Text(
-                (profile?.displayName ?? session.userName)[0].toUpperCase(),
-                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: _primaryGreen),
-              ),
+              backgroundImage: (profile?.photoUrl != null &&
+                      profile!.photoUrl!.isNotEmpty)
+                  ? NetworkImage(profile.photoUrl!)
+                  : null,
+              child: (profile?.photoUrl == null || profile!.photoUrl!.isEmpty)
+                  ? Text(
+                      (profile?.displayName ?? session.userName)[0].toUpperCase(),
+                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: _primaryGreen),
+                    )
+                  : null,
             ),
           ),
           const SizedBox(height: 16),
@@ -146,6 +161,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       setState(() {});
                     }
                   },
+                ),
+                const Divider(height: 4),
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(children: [
+                    const Icon(Icons.language_rounded, size: 18, color: AppColors.grey600),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: profile?.preferences.language ?? 'en',
+                        items: _languages
+                            .map((l) => DropdownMenuItem(value: l.code, child: Text(l.label, style: const TextStyle(fontSize: 14))))
+                            .toList(),
+                        onChanged: (v) {
+                          if (profile != null && v != null) {
+                            profile.preferences.language = v;
+                            ProfileStore.save(profile);
+                            setState(() {});
+                          }
+                        },
+                        decoration: const InputDecoration(
+                          labelText: 'Language',
+                          isDense: true,
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                  ]),
                 ),
               ]),
             ),

@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { CreditCard, MessageCircle, Globe, AlertTriangle, Trash2 } from 'lucide-react';
-import { Card, MetricCard, SectionHeader, Btn, IconBtn } from '../ui';
+import { CreditCard, MessageCircle, Globe, AlertTriangle, Trash2, Plus, Edit3, Check, X } from 'lucide-react';
+import { Card, MetricCard, SectionHeader, Btn, IconBtn, Field, TextInput, Select, TextArea, FieldGrid, EmptyState } from '../ui';
 import { useCollection, load } from '@/lib/storage';
 import { Room } from '@/lib/types';
 import { seedRooms } from '@/lib/seed';
+import { useAuth } from '@/lib/auth';
+import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { uid } from '@/lib/format';
 import { sendWhatsApp } from '@/lib/whatsapp';
+import { seedWhatsAppTemplates, WhatsAppTemplate, WhatsAppTemplateEntity } from '@/lib/whatsapptemplates';
 import { fetchBookingComBookings, checkOverbooking, ExternalBooking } from '@/lib/bookingcom';
 import { WhatsAppLogEntry, removeWhatsAppLog, clearWhatsAppLog } from '@/lib/whatsapplog';
 
@@ -41,12 +45,38 @@ export function PaystackModule() {
 // ─── WhatsApp ────────────────────────────────────────────────────────────────
 
 export function WhatsAppModule() {
+  const { session } = useAuth();
   const [log, setLog] = useState<WhatsAppLogEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const templates = useCollection<WhatsAppTemplate>('hom_whatsapp_templates', seedWhatsAppTemplates);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState({ name: '', entityType: 'other' as WhatsAppTemplateEntity, message: '' });
+
+  const canManage = hasPermission(session, PERMISSIONS.manageWhatsApp);
 
   useEffect(() => {
     setLog(load<WhatsAppLogEntry[]>('hom_whatsapp_log', []));
   }, []);
+
+  const startNew = () => {
+    setForm({ name: '', entityType: 'other', message: '' });
+    setEditId('new');
+  };
+
+  const startEdit = (t: WhatsAppTemplate) => {
+    setForm({ name: t.name, entityType: t.entityType, message: t.message });
+    setEditId(t.id);
+  };
+
+  const saveTemplate = () => {
+    if (!form.name.trim() || !form.message.trim()) return;
+    if (editId === 'new') {
+      templates.add({ id: uid('tmp'), name: form.name.trim(), entityType: form.entityType, message: form.message });
+    } else if (editId) {
+      templates.replace(editId, { id: editId, name: form.name.trim(), entityType: form.entityType, message: form.message });
+    }
+    setEditId(null);
+  };
 
   return (
     <div className="space-y-4">
@@ -61,9 +91,57 @@ export function WhatsAppModule() {
         <div className="mt-4 grid md:grid-cols-3 gap-3">
           <div className="bg-green-50 rounded-xl p-4 text-center"><div className="text-2xl font-black">{log.length}</div><div className="text-xs text-green-700">Messages Sent</div></div>
           <div className="bg-zinc-50 rounded-xl p-4 text-center"><div className="text-2xl font-black">{log.filter(m => m.msg.includes('booking')).length}</div><div className="text-xs text-zinc-500">Booking Confirms</div></div>
-          <div className="bg-zinc-50 rounded-xl p-4 text-center"><div className="text-2xl font-black">{log.filter(m => m.msg.includes('Payslip') || m.msg.includes('Net')).length}</div><div className="text-xs text-zinc-500">Payslips</div></div>
+          <div className="bg-zinc-50 rounded-xl p-4 text-center"><div className="text-2xl font-black">{templates.items.length}</div><div className="text-xs text-zinc-500">Templates</div></div>
         </div>
       </Card>
+
+      <Card className="border p-5">
+        <div className="flex justify-between items-center gap-3 flex-wrap">
+          <SectionHeader title={`Message Templates (${templates.items.length})`} sub="Placeholders like [Guest], [Room] are replaced at send time." />
+          {canManage && <Btn onClick={startNew}><Plus size={14} /> New Template</Btn>}
+        </div>
+        {editId && canManage && (
+          <div className="mt-4 border rounded-xl p-4 bg-zinc-50 space-y-3">
+            <FieldGrid>
+              <Field label="Template Name">
+                <TextInput value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Booking Confirmation" />
+              </Field>
+              <Field label="Entity Type">
+                <Select value={form.entityType} onChange={e => setForm({ ...form, entityType: e.target.value as WhatsAppTemplateEntity })}>
+                  {(['booking', 'staff', 'vendor', 'subscription', 'compliance', 'other'] as const).map(e => (
+                    <option key={e} value={e}>{e.charAt(0).toUpperCase() + e.slice(1)}</option>
+                  ))}
+                </Select>
+              </Field>
+            </FieldGrid>
+            <Field label="Message">
+              <TextArea value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} rows={5} placeholder="Dear [Guest], your booking at HOM Hotel is confirmed!" />
+            </Field>
+            <div className="flex gap-2">
+              <Btn onClick={saveTemplate}><Check size={14} /> Save</Btn>
+              <Btn color="outline" onClick={() => setEditId(null)}><X size={14} /> Cancel</Btn>
+            </div>
+          </div>
+        )}
+        <div className="mt-4 space-y-2">
+          {templates.items.length === 0 && <EmptyState text="No templates yet. Create your first one." />}
+          {templates.items.map(t => (
+            <div key={t.id} className="border rounded-xl p-3 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-sm">{t.name} <span className="ml-1 text-[10px] uppercase bg-green-100 text-green-700 rounded-full px-2 py-0.5">{t.entityType}</span></div>
+                <div className="text-xs text-zinc-500 mt-0.5 break-words">{t.message.replace(/\[[^\]]*\]/g, '…')}</div>
+              </div>
+              {canManage && (
+                <div className="flex gap-1 shrink-0">
+                  <IconBtn title="Edit" onClick={() => startEdit(t)}><Edit3 size={13} /></IconBtn>
+                  <IconBtn tone="red" title="Delete" onClick={() => templates.remove(t.id)}><Trash2 size={13} /></IconBtn>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
       {log.length > 0 && (
         <Card className="border overflow-hidden">
           <div className="p-4 border-b font-bold text-sm flex items-center justify-between">

@@ -7,8 +7,8 @@ class WhatsAppStore extends ChangeNotifier {
   static final List<WhatsAppMessage> _messages = [];
   static int _msgCounter = 0;
 
-  static const List<WhatsAppTemplate> templates = [
-    WhatsAppTemplate(
+  static final List<WhatsAppTemplate> _templates = [
+    const WhatsAppTemplate(
       id: 't1', name: 'Booking Confirmation',
       entityType: ContactEntityType.booking,
       message: 'Dear [Guest], your booking at HOM Hotel is confirmed!\n'
@@ -16,21 +16,21 @@ class WhatsAppStore extends ChangeNotifier {
           'Amount: ₦[Amount]\n'
           'Thank you for choosing HOM!',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't2', name: 'Guest Welcome',
       entityType: ContactEntityType.booking,
       message: 'Welcome to HOM Hotel, [Guest]!\n'
           'Room [Room] is ready. Enjoy your stay.\n'
           'Front Desk: [HotelPhone]',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't3', name: 'Checkout Reminder',
       entityType: ContactEntityType.booking,
       message: 'Dear [Guest], this is a reminder that your checkout '
           'from Room [Room] is tomorrow ([Checkout]).\n'
           'Thank you for staying with HOM!',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't4', name: 'Staff Payslip',
       entityType: ContactEntityType.staff,
       message: 'HOM PAYROLL — [StaffName]\n'
@@ -38,14 +38,14 @@ class WhatsAppStore extends ChangeNotifier {
           'Pension (8%): ₦[Pension]\nNet Pay: ₦[Net]\n'
           'Thank you for your service.',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't5', name: 'Purchase Order Notification',
       entityType: ContactEntityType.vendor,
       message: 'New Purchase Order from HOM Hotel\n'
           'Items: [Items]\nAmount: ₦[Amount]\n'
           'Date: [Date]\nPlease process accordingly.',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't6', name: 'Subscription Renewal Reminder',
       entityType: ContactEntityType.subscription,
       message: 'Renewal Reminder: [SubName] ([Provider])\n'
@@ -53,14 +53,14 @@ class WhatsAppStore extends ChangeNotifier {
           'Due in [Days] day(s)\n'
           'Please process renewal.',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't7', name: 'Fuel Theft Alert',
       entityType: ContactEntityType.other,
       message: '⚠️ FUEL THEFT ALERT — HOM Hotel\n'
           '[FuelType]: [Rate] [Unit] — below efficiency threshold!\n'
           'Supplier: [Supplier] | Date: [Date]',
     ),
-    WhatsAppTemplate(
+    const WhatsAppTemplate(
       id: 't8', name: 'General Reminder',
       message: 'Reminder from HOM Hotel:\n[Message]',
     ),
@@ -68,6 +68,7 @@ class WhatsAppStore extends ChangeNotifier {
 
   static List<WhatsAppContact> get contacts => List.unmodifiable(_contacts);
   static List<WhatsAppMessage> get messages => List.unmodifiable(_messages);
+  static List<WhatsAppTemplate> get templates => List.unmodifiable(_templates);
 
   static int get sentTodayCount {
     final today = DateTime.now();
@@ -83,11 +84,18 @@ class WhatsAppStore extends ChangeNotifier {
     if (c != null && c.isNotEmpty) { _contacts.addAll(c); }
     final m = PersistenceService.loadList('wa_messages', WhatsAppMessage.fromJson);
     if (m != null && m.isNotEmpty) { _messages.addAll(m); }
+    final t = PersistenceService.loadList('wa_templates', WhatsAppTemplate.fromJson);
+    if (t != null && t.isNotEmpty) {
+      _templates
+        ..clear()
+        ..addAll(t);
+    }
   }
 
   static Future<void> _save() async {
     await PersistenceService.saveList('wa_contacts', _contacts, (e) => e.toJson());
     await PersistenceService.saveList('wa_messages', _messages, (e) => e.toJson());
+    await PersistenceService.saveList('wa_templates', _templates, (e) => e.toJson());
   }
 
   static String genId() => 'wa_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
@@ -108,6 +116,27 @@ class WhatsAppStore extends ChangeNotifier {
 
   static Future<void> removeContact(String id) async {
     _contacts.removeWhere((c) => c.id == id);
+    await _save();
+  }
+
+  static String genTemplateId() =>
+      'tmp_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
+
+  static Future<void> addTemplate(WhatsAppTemplate t) async {
+    _templates.insert(0, t);
+    await _save();
+  }
+
+  static Future<void> updateTemplate(WhatsAppTemplate t) async {
+    final i = _templates.indexWhere((x) => x.id == t.id);
+    if (i >= 0) {
+      _templates[i] = t;
+      await _save();
+    }
+  }
+
+  static Future<void> removeTemplate(String id) async {
+    _templates.removeWhere((t) => t.id == id);
     await _save();
   }
 

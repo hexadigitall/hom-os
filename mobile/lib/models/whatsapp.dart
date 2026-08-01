@@ -46,6 +46,22 @@ class WhatsAppTemplate {
     required this.message,
     this.entityType,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'message': message,
+    'entityType': entityType?.name,
+  };
+
+  factory WhatsAppTemplate.fromJson(Map<String, dynamic> j) => WhatsAppTemplate(
+    id: j['id'] ?? '',
+    name: j['name'] ?? '',
+    message: j['message'] ?? '',
+    entityType: j['entityType'] != null
+        ? ContactEntityType.values.byName(j['entityType'])
+        : null,
+  );
 }
 
 class WhatsAppMessage {

@@ -54,8 +54,10 @@ function BankTab() {
   const [search, setSearch] = useState('');
   const [matchTxn, setMatchTxn] = useState<BankTransaction | null>(null);
   const [editTxn, setEditTxn] = useState<BankTransaction | null>(null);
+  const [editMatchTxn, setEditMatchTxn] = useState<BankTransaction | null>(null);
   const [splitTxn, setSplitTxn] = useState<BankTransaction | null>(null);
   const [importMsg, setImportMsg] = useState('');
+  const [addTxn, setAddTxn] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canManage = hasPermission(session, PERMISSIONS.manageReconciliation);
@@ -126,6 +128,7 @@ function BankTab() {
             <Btn onClick={() => fileRef.current?.click()}><Upload size={14} /> Import CSV</Btn>
           </>
         )}
+        {canManage && <Btn onClick={() => { setAddTxn(true); setEditTxn(null); }}><Plus size={14} /> New Transaction</Btn>}
       </SectionHeader>
       {importMsg && <div className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">{importMsg}</div>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -156,7 +159,10 @@ function BankTab() {
                 </div>
                 <div className="flex items-center gap-2">
                   {m ? (
-                    <IconBtn tone="red" title="Unmatch" onClick={() => matches.remove(m.id)}><Trash2 size={14} /></IconBtn>
+                    <>
+                      <IconBtn title="Edit match" onClick={() => setEditMatchTxn(t)}><Edit3 size={14} /></IconBtn>
+                      <IconBtn tone="red" title="Unmatch" onClick={() => matches.remove(m.id)}><Trash2 size={14} /></IconBtn>
+                    </>
                   ) : (
                     <>
                       <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => setMatchTxn(t)}><Link2 size={12} /> Match</Btn>
@@ -200,9 +206,20 @@ function BankTab() {
         </Card>
       )}
 
-      {editTxn && canManage && (
-        <TxnForm initial={editTxn} onSave={(t) => { txns.replace(t.id, t); setEditTxn(null); }} onCancel={() => setEditTxn(null)} />
+      {(addTxn || (editTxn && canManage)) && (
+        <TxnForm initial={editTxn} onSave={(t) => {
+          if (editTxn) txns.replace(t.id, t); else txns.add(t);
+          setEditTxn(null); setAddTxn(false);
+        }} onCancel={() => { setEditTxn(null); setAddTxn(false); }} />
       )}
+
+      {editMatchTxn && (() => {
+        const m = matches.items.find(x => x.bankTransactionId === editMatchTxn.id);
+        if (!m) return null;
+        return <MatchEditForm txn={editMatchTxn} match={m} entities={matchEntities}
+          onSave={(patch) => { matches.update(m.id, patch); setEditMatchTxn(null); }}
+          onCancel={() => setEditMatchTxn(null)} />;
+      })()}
 
       {splitTxn && canSplit && (
         <SplitForm txn={splitTxn} entities={matchEntities} onSave={(allocs) => {
@@ -214,17 +231,45 @@ function BankTab() {
           setSplitTxn(null);
         }} onCancel={() => setSplitTxn(null)} />
       )}
+
+      {canSplit && splits.items.length > 0 && (
+        <Card className="overflow-hidden">
+          <div className="p-4 border-b font-bold text-sm flex items-center gap-2"><Split size={14} /> Split Payments</div>
+          <div className="divide-y">
+            {splits.items.map(s => {
+              const t = txns.items.find(x => x.id === s.bankTransactionId);
+              return (
+                <div key={s.id} className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-bold text-sm">{t ? `${naira(t.amount)} — ${t.description}` : s.bankTransactionId}</div>
+                    <div className="text-[11px] text-zinc-500 mt-0.5">
+                      {s.allocations.map(a => `${a.entityLabel} (${naira(a.amount)})`).join('  +  ') || 'No allocations'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <IconBtn title="Delete split" onClick={() => splits.remove(s.id)}><Trash2 size={14} /></IconBtn>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
 
-function TxnForm({ initial, onSave, onCancel }: { initial: BankTransaction; onSave: (t: BankTransaction) => void; onCancel: () => void }) {
-  const [f, setF] = useState({
-    date: initial.date, description: initial.description, amount: String(initial.amount),
-    type: initial.type, reference: initial.reference || '', source: initial.source || '',
-  });
+function TxnForm({ initial, onSave, onCancel }: { initial: BankTransaction | null; onSave: (t: BankTransaction) => void; onCancel: () => void }) {
+  const [f, setF] = useState(initial
+    ? {
+        date: initial.date, description: initial.description, amount: String(initial.amount),
+        type: initial.type, reference: initial.reference || '', source: initial.source || '',
+      }
+    : {
+        date: today(), description: '', amount: '', type: 'CR' as 'CR' | 'DR', reference: '', source: '',
+      });
   return (
-    <FormCard title="Edit Transaction" onCancel={onCancel}>
+    <FormCard title={initial ? 'Edit Transaction' : 'Add Transaction'} onCancel={onCancel}>
       <FieldGrid>
         <Field label="Date"><DateInput value={f.date} onChange={e => setF({ ...f, date: e.target.value })} /></Field>
         <Field label="Type">
@@ -238,10 +283,44 @@ function TxnForm({ initial, onSave, onCancel }: { initial: BankTransaction; onSa
         <Field label="Source"><TextInput value={f.source} onChange={e => setF({ ...f, source: e.target.value })} placeholder="Source (bank)" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.date || !f.amount) return alert('Date and amount required'); onSave({ ...initial, ...f, amount: Number(f.amount), reference: f.reference || undefined, source: f.source || undefined }); }}>Save Changes</Btn>
+        <Btn onClick={() => { if (!f.date || !f.amount) return alert('Date and amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), reference: f.reference || undefined, source: f.source || undefined }); }}>{initial ? 'Save Changes' : 'Add Transaction'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
+  );
+}
+
+function MatchEditForm({ txn, match, entities, onSave, onCancel }: {
+  txn: BankTransaction;
+  match: ReconciliationMatch;
+  entities: { type: MatchEntityType; id: string; label: string; amount: number }[];
+  onSave: (patch: { entityType: MatchEntityType; entityId: string; entityLabel: string; entityAmount: number; matchedAmount: number }) => void;
+  onCancel: () => void;
+}) {
+  const [entityId, setEntityId] = useState(match.entityId);
+  const [amount, setAmount] = useState(String(match.matchedAmount));
+  return (
+    <Card className="p-6">
+      <h3 className="font-bold mb-1">Edit Match</h3>
+      <div className="text-xs text-zinc-500 mb-4">{fmtDate(txn.date)} • {txn.description} • {naira(txn.amount)} ({txn.type})</div>
+      <FieldGrid>
+        <Field label="Matched to">
+          <Select value={entityId} onChange={e => setEntityId(e.target.value)}>
+            <option value="">Select booking / expense...</option>
+            {entities.map(en => <option key={en.id} value={en.id}>{en.label} — {naira(en.amount)}</option>)}
+          </Select>
+        </Field>
+        <Field label="Matched amount (₦)"><NumberInput value={amount} onChange={e => setAmount(e.target.value)} /></Field>
+      </FieldGrid>
+      <div className="mt-4 flex gap-2">
+        <Btn onClick={() => {
+          if (!entityId || !amount) return alert('Entity and amount required');
+          const e = entities.find(x => x.id === entityId)!;
+          onSave({ entityType: e.type, entityId: e.id, entityLabel: e.label, entityAmount: e.amount, matchedAmount: Number(amount) });
+        }}>Save Changes</Btn>
+        <Btn color="outline" onClick={onCancel}>Cancel</Btn>
+      </div>
+    </Card>
   );
 }
 

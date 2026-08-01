@@ -90,7 +90,8 @@ class _WhatsAppScreenState extends State<WhatsAppScreen>
           _TemplatesTab(
               initialTemplateId: widget.initialTemplateId,
               initialPhone: widget.initialPhone,
-              initialVars: widget.initialVars),
+              initialVars: widget.initialVars,
+              onChanged: () => setState(() {})),
           _HistoryTab(),
         ])),
       ]),
@@ -715,14 +716,30 @@ class _TemplatesTab extends StatelessWidget {
   final String? initialTemplateId;
   final String? initialPhone;
   final Map<String, String>? initialVars;
+  final VoidCallback onChanged;
   const _TemplatesTab(
-      {this.initialTemplateId, this.initialPhone, this.initialVars});
+      {this.initialTemplateId,
+      this.initialPhone,
+      this.initialVars,
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     final templates = WhatsAppStore.templates;
     return ListView(padding: const EdgeInsets.all(12), children: [
-      if (initialTemplateId != null)
+      SizedBox(
+        width: double.infinity,
+        child: RoleGate(
+          requiredPermission: Permission.manageWhatsApp,
+          child: OutlinedButton.icon(
+            onPressed: () => _addOrEditTemplate(context),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text('New Template'),
+          ),
+        ),
+      ),
+      if (initialTemplateId != null) ...[
+        const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           margin: const EdgeInsets.only(bottom: 12),
@@ -737,6 +754,20 @@ class _TemplatesTab extends StatelessWidget {
                 child: Text('Template pre-loaded. Send to $initialPhone',
                     style: TextStyle(fontSize: 12, color: AppColors.amber900))),
           ]),
+        ),
+      ],
+      if (templates.isEmpty)
+        Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(
+            child: Column(children: [
+              Icon(Icons.message_rounded,
+                  size: 48, color: AppColors.grey300),
+              const SizedBox(height: 8),
+              Text('No templates yet. Create your first one.',
+                  style: TextStyle(color: AppColors.grey500)),
+            ]),
+          ),
         ),
       ...templates.map((t) => Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -763,12 +794,29 @@ class _TemplatesTab extends StatelessWidget {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w800, fontSize: 14)),
                         const SizedBox(height: 2),
-                        Text(t.message.replaceAll(RegExp(r'\[.*?\]'), '...'),
+                        Text(
+                            t.message.replaceAll(RegExp(r'\[.*?\]'), '...'),
                             style: TextStyle(
                                 fontSize: 11, color: AppColors.grey500),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis),
                       ])),
+                  RoleGate(
+                      requiredPermission: Permission.manageWhatsApp,
+                      child: IconButton(
+                          onPressed: () => _addOrEditTemplate(context,
+                              existing: t),
+                          icon: const Icon(Icons.edit_rounded,
+                              size: 18, color: AppColors.grey600))),
+                  RoleGate(
+                      requiredPermission: Permission.manageWhatsApp,
+                      child: IconButton(
+                          onPressed: () {
+                            WhatsAppStore.removeTemplate(t.id);
+                            onChanged();
+                          },
+                          icon: const Icon(Icons.delete_rounded,
+                              size: 18, color: AppColors.redAccent))),
                   const Icon(Icons.chevron_right_rounded,
                       color: AppColors.grey500),
                 ]),
@@ -776,6 +824,128 @@ class _TemplatesTab extends StatelessWidget {
             ),
           )),
     ]);
+  }
+
+  void _addOrEditTemplate(BuildContext context,
+      {WhatsAppTemplate? existing}) {
+    final nameCtl = TextEditingController(text: existing?.name ?? '');
+    final msgCtl = TextEditingController(text: existing?.message ?? '');
+    var entityType = existing?.entityType ?? ContactEntityType.other;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => StatefulBuilder(builder: (ctx, setSB) {
+        return Padding(
+          padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                        child: Container(
+                            width: 36,
+                            height: 4,
+                            decoration: BoxDecoration(
+                                color: AppColors.grey300,
+                                borderRadius: BorderRadius.circular(2)))),
+                    const SizedBox(height: 16),
+                    Text(existing == null
+                        ? 'New Template'
+                        : 'Edit ${existing.name}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 17)),
+                    const SizedBox(height: 16),
+                    TextField(
+                        controller: nameCtl,
+                        decoration: const InputDecoration(
+                            labelText: 'Template Name')),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<ContactEntityType>(
+                      initialValue: entityType,
+                      items: ContactEntityType.values
+                          .map((e) => DropdownMenuItem(
+                              value: e,
+                              child: Text(_entityLabel(e))))
+                          .toList(),
+                      onChanged: (v) => setSB(() => entityType = v!),
+                      decoration: const InputDecoration(
+                          labelText: 'Entity Type'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                        controller: msgCtl,
+                        maxLines: 6,
+                        decoration: const InputDecoration(
+                          labelText: 'Message',
+                          hintText: 'Use [Placeholders] like [Guest], [Room]',
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(
+                                  Radius.circular(12))),
+                        )),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (nameCtl.text.trim().isEmpty ||
+                              msgCtl.text.trim().isEmpty) {
+                            return;
+                          }
+                          if (existing == null) {
+                            WhatsAppStore.addTemplate(WhatsAppTemplate(
+                              id: WhatsAppStore.genTemplateId(),
+                              name: nameCtl.text.trim(),
+                              message: msgCtl.text,
+                              entityType: entityType,
+                            ));
+                          } else {
+                            WhatsAppStore.updateTemplate(WhatsAppTemplate(
+                              id: existing.id,
+                              name: nameCtl.text.trim(),
+                              message: msgCtl.text,
+                              entityType: entityType,
+                            ));
+                          }
+                          Navigator.pop(ctx);
+                          onChanged();
+                        },
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.whatsapp,
+                            foregroundColor: AppColors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14)),
+                        child: const Text('Save'),
+                      ),
+                    ),
+                  ]),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  String _entityLabel(ContactEntityType e) {
+    switch (e) {
+      case ContactEntityType.booking:
+        return 'Booking';
+      case ContactEntityType.staff:
+        return 'Staff';
+      case ContactEntityType.vendor:
+        return 'Vendor';
+      case ContactEntityType.subscription:
+        return 'Subscription';
+      case ContactEntityType.compliance:
+        return 'Compliance';
+      case ContactEntityType.other:
+        return 'General / Other';
+    }
   }
 
   void _previewAndSend(BuildContext context, WhatsAppTemplate t) {
