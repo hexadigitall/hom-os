@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Plus, Trash2, Edit3, Link2, Split, Banknote, Wallet, CreditCard, Search, Upload } from 'lucide-react';
 import {
   BankTransaction, ReconciliationMatch, SplitPayment, VirtualAccount,
@@ -10,6 +10,9 @@ import {
   seedBankTransactions, seedMatches, seedVirtualAccounts, seedPosTerminals, seedPosSettlements, seedBookings, seedExpenditure,
 } from '@/lib/seed';
 import { useCollection } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
+import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { parseBankCsv } from '@/lib/bankparser';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -41,13 +44,23 @@ export function ReconciliationModule() {
 // ─── Bank Statements ─────────────────────────────────────────────────────────
 
 function BankTab() {
+  const { session } = useAuth();
   const txns = useCollection<BankTransaction>('rec_bank_txns', seedBankTransactions);
   const matches = useCollection<ReconciliationMatch>('rec_matches', seedMatches);
+  const splits = useCollection<SplitPayment>('rec_split_payments', () => []);
   const bookings = useCollection<Booking>('hom_bookings', seedBookings);
   const exp = useCollection<ExpenditureRecord>('expenditure_records', seedExpenditure);
   const [filter, setFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
   const [search, setSearch] = useState('');
   const [matchTxn, setMatchTxn] = useState<BankTransaction | null>(null);
+  const [editTxn, setEditTxn] = useState<BankTransaction | null>(null);
+  const [splitTxn, setSplitTxn] = useState<BankTransaction | null>(null);
+  const [importMsg, setImportMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const canManage = hasPermission(session, PERMISSIONS.manageReconciliation);
+  const canParse = hasPermission(session, PERMISSIONS.parseBankCSV);
+  const canSplit = hasPermission(session, PERMISSIONS.manageSplitPayments);
 
   const matchedIds = new Set(matches.items.map(m => m.bankTransactionId));
   const filtered = txns.items.filter(t => {
@@ -74,6 +87,22 @@ function BankTab() {
     setMatchTxn(null);
   };
 
+  const handleImport = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const raw = String(reader.result || '');
+      const parsed = parseBankCsv(raw, file.name);
+      if (parsed.transactions.length > 0) {
+        parsed.transactions.forEach(t => txns.add(t));
+      }
+      setImportMsg(`${parsed.parsedCount} transactions parsed (${parsed.skippedCount} skipped)${parsed.errors.length ? ' — see console for errors' : ''}`);
+      if (parsed.errors.length) console.warn('Bank CSV parse errors:', parsed.errors);
+      setTimeout(() => setImportMsg(''), 5000);
+      if (fileRef.current) fileRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   const filterChip = (id: 'all' | 'matched' | 'unmatched', label: string) => (
     <button key={id} onClick={() => setFilter(id)}
       className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ${filter === id ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}>{label}</button>
@@ -91,7 +120,14 @@ function BankTab() {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <TextInput value={search} onChange={e => setSearch(e.target.value)} placeholder="Search transactions..." className="!py-1.5 !pl-9 !w-56" />
         </div>
+        {canParse && (
+          <>
+            <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={e => { if (e.target.files?.[0]) handleImport(e.target.files[0]); }} />
+            <Btn onClick={() => fileRef.current?.click()}><Upload size={14} /> Import CSV</Btn>
+          </>
+        )}
       </SectionHeader>
+      {importMsg && <div className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">{importMsg}</div>}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Transactions" value={txns.items.length} sub="On statement" color="bg-blue-50 text-blue-700" />
         <MetricCard label="Matched" value={matchedIds.size} sub="Reconciled" color="bg-green-50 text-green-700" />
@@ -122,7 +158,16 @@ function BankTab() {
                   {m ? (
                     <IconBtn tone="red" title="Unmatch" onClick={() => matches.remove(m.id)}><Trash2 size={14} /></IconBtn>
                   ) : (
-                    <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => setMatchTxn(t)}><Link2 size={12} /> Match</Btn>
+                    <>
+                      <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => setMatchTxn(t)}><Link2 size={12} /> Match</Btn>
+                      {canSplit && <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => setSplitTxn(t)}><Split size={12} /> Split</Btn>}
+                    </>
+                  )}
+                  {canManage && (
+                    <>
+                      <IconBtn title="Edit" onClick={() => setEditTxn(t)}><Edit3 size={14} /></IconBtn>
+                      <IconBtn tone="red" title="Delete" onClick={() => { matches.items.filter(x => x.bankTransactionId === t.id).forEach(x => matches.remove(x.id)); txns.remove(t.id); }}><Trash2 size={14} /></IconBtn>
+                    </>
                   )}
                 </div>
               </div>
@@ -154,13 +199,108 @@ function BankTab() {
           </div>
         </Card>
       )}
+
+      {editTxn && canManage && (
+        <TxnForm initial={editTxn} onSave={(t) => { txns.replace(t.id, t); setEditTxn(null); }} onCancel={() => setEditTxn(null)} />
+      )}
+
+      {splitTxn && canSplit && (
+        <SplitForm txn={splitTxn} entities={matchEntities} onSave={(allocs) => {
+          allocs.forEach(a => matches.add({
+            id: uid('rec'), bankTransactionId: splitTxn.id, entityType: a.entityType, entityId: a.entityId,
+            entityLabel: a.entityLabel, entityAmount: a.amount, matchedAmount: a.amount, confidence: 1, isManual: true, matchedAt: nowISO(),
+          }));
+          splits.add({ id: uid('rec'), bankTransactionId: splitTxn.id, allocations: allocs });
+          setSplitTxn(null);
+        }} onCancel={() => setSplitTxn(null)} />
+      )}
     </div>
+  );
+}
+
+function TxnForm({ initial, onSave, onCancel }: { initial: BankTransaction; onSave: (t: BankTransaction) => void; onCancel: () => void }) {
+  const [f, setF] = useState({
+    date: initial.date, description: initial.description, amount: String(initial.amount),
+    type: initial.type, reference: initial.reference || '', source: initial.source || '',
+  });
+  return (
+    <FormCard title="Edit Transaction" onCancel={onCancel}>
+      <FieldGrid>
+        <Field label="Date"><DateInput value={f.date} onChange={e => setF({ ...f, date: e.target.value })} /></Field>
+        <Field label="Type">
+          <Select value={f.type} onChange={e => setF({ ...f, type: e.target.value as 'CR' | 'DR' })}>
+            <option value="CR">Credit</option><option value="DR">Debit</option>
+          </Select>
+        </Field>
+        <Field label="Description"><TextInput value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="Description" /></Field>
+        <Field label="Amount (₦)"><NumberInput value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} placeholder="Amount" /></Field>
+        <Field label="Reference"><TextInput value={f.reference} onChange={e => setF({ ...f, reference: e.target.value })} placeholder="Reference" /></Field>
+        <Field label="Source"><TextInput value={f.source} onChange={e => setF({ ...f, source: e.target.value })} placeholder="Source (bank)" /></Field>
+      </FieldGrid>
+      <div className="mt-4 flex gap-2">
+        <Btn onClick={() => { if (!f.date || !f.amount) return alert('Date and amount required'); onSave({ ...initial, ...f, amount: Number(f.amount), reference: f.reference || undefined, source: f.source || undefined }); }}>Save Changes</Btn>
+        <Btn color="outline" onClick={onCancel}>Cancel</Btn>
+      </div>
+    </FormCard>
+  );
+}
+
+function SplitForm({ txn, entities, onSave, onCancel }: {
+  txn: BankTransaction;
+  entities: { type: MatchEntityType; id: string; label: string; amount: number }[];
+  onSave: (allocs: { entityType: MatchEntityType; entityId: string; entityLabel: string; amount: number }[]) => void;
+  onCancel: () => void;
+}) {
+  const [rows, setRows] = useState<{ entityId: string; amount: string }[]>([]);
+  const total = rows.reduce((a, r) => a + (Number(r.amount) || 0), 0);
+  const remaining = txn.amount - total;
+
+  const setRow = (i: number, patch: Partial<{ entityId: string; amount: string }>) => {
+    setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  };
+
+  return (
+    <Card className="p-6">
+      <h3 className="font-bold mb-1">Split Payment</h3>
+      <div className="text-xs text-zinc-500 mb-4">{fmtDate(txn.date)} • {txn.description} • {naira(txn.amount)} ({txn.type})</div>
+      <div className="text-sm font-bold mb-3">Total: {naira(txn.amount)} • Remaining: {naira(Math.max(0, remaining))}</div>
+      <div className="space-y-2">
+        {rows.map((r, i) => {
+          const ent = entities.find(e => e.id === r.entityId);
+          return (
+            <div key={i} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <Select value={r.entityId} onChange={e => setRow(i, { entityId: e.target.value })}>
+                  <option value="">Select booking / expense...</option>
+                  {entities.map(en => <option key={en.id} value={en.id}>{en.label} — {naira(en.amount)}</option>)}
+                </Select>
+              </div>
+              <div className="w-32">
+                <NumberInput value={r.amount} onChange={e => setRow(i, { amount: e.target.value })} placeholder="Amount" />
+              </div>
+              <IconBtn tone="red" onClick={() => setRows(rows.filter((_, idx) => idx !== i))}><Trash2 size={14} /></IconBtn>
+            </div>
+          );
+        })}
+      </div>
+      {rows.length === 0 && <div className="text-xs text-zinc-400 mb-2">No allocations yet.</div>}
+      <div className="mt-3 flex gap-2 flex-wrap">
+        <Btn color="outline" disabled={remaining <= 0} onClick={() => setRows([...rows, { entityId: entities[0]?.id || '', amount: String(Math.round(Math.min(remaining, entities[0]?.amount || remaining))) }])}><Plus size={14} /> Add Allocation</Btn>
+        <Btn color="amber" disabled={rows.length === 0 || remaining > 0} onClick={() => onSave(rows.map(r => {
+          const ent = entities.find(e => e.id === r.entityId)!;
+          return { entityType: ent.type, entityId: ent.id, entityLabel: ent.label, amount: Number(r.amount) };
+        }))}>Save Allocations ({naira(txn.amount)})</Btn>
+        <Btn color="outline" onClick={onCancel}>Cancel</Btn>
+      </div>
+    </Card>
   );
 }
 
 // ─── Virtual Accounts ────────────────────────────────────────────────────────
 
 function VirtualAccountsTab() {
+  const { session } = useAuth();
+  const canManage = hasPermission(session, PERMISSIONS.manageVirtualAccounts);
   const vas = useCollection<VirtualAccount>('rec_vas', seedVirtualAccounts);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<VirtualAccount | null>(null);
@@ -180,7 +320,7 @@ function VirtualAccountsTab() {
   return (
     <div className="space-y-4">
       <SectionHeader title="Virtual Accounts" sub="Per-booking dedicated account numbers">
-        <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Create VA</Btn>
+        {canManage && <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Create VA</Btn>}
       </SectionHeader>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Pending" value={pending} sub="Awaiting activation" color="bg-blue-50 text-blue-700" />
@@ -206,11 +346,11 @@ function VirtualAccountsTab() {
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="font-bold">{naira(v.amount)}</span>
                 <StatusChip status={v.status} />
-                {v.status !== 'matched' && (
+                {canManage && v.status !== 'matched' && (
                   <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => advance(v)}>Mark {v.status === 'pending' ? 'Active' : 'Matched'}</Btn>
                 )}
-                <IconBtn onClick={() => { setEditItem(v); setShowForm(true); }}><Edit3 size={14} /></IconBtn>
-                <IconBtn tone="red" onClick={() => vas.remove(v.id)}><Trash2 size={14} /></IconBtn>
+                {canManage && <IconBtn onClick={() => { setEditItem(v); setShowForm(true); }}><Edit3 size={14} /></IconBtn>}
+                {canManage && <IconBtn tone="red" onClick={() => vas.remove(v.id)}><Trash2 size={14} /></IconBtn>}
               </div>
             </div>
           ))}
@@ -250,11 +390,14 @@ function VaForm({ initial, onSave, onCancel }: { initial: VirtualAccount | null;
 // ─── POS ─────────────────────────────────────────────────────────────────────
 
 function PosTab() {
+  const { session } = useAuth();
+  const canManage = hasPermission(session, PERMISSIONS.trackPOSTerminals);
   const terminals = useCollection<PosTerminal>('rec_pos_terminals', seedPosTerminals);
   const settlements = useCollection<PosSettlement>('rec_pos_settlements', seedPosSettlements);
   const [showTerminal, setShowTerminal] = useState(false);
   const [showSettlement, setShowSettlement] = useState(false);
   const [editTerminal, setEditTerminal] = useState<PosTerminal | null>(null);
+  const [editSettlement, setEditSettlement] = useState<PosSettlement | null>(null);
 
   const pending = settlements.items.filter(s => s.status === 'pending');
   const settled = settlements.items.filter(s => s.status === 'settled');
@@ -264,8 +407,8 @@ function PosTab() {
   return (
     <div className="space-y-4">
       <SectionHeader title="POS Terminals & Settlements" sub="Card payments reconciliation">
-        <Btn color="outline" onClick={() => { setShowTerminal(true); setEditTerminal(null); }}><Plus size={14} /> Add Terminal</Btn>
-        <Btn onClick={() => setShowSettlement(true)}><Plus size={14} /> Log Settlement</Btn>
+        {canManage && <Btn color="outline" onClick={() => { setShowTerminal(true); setEditTerminal(null); }}><Plus size={14} /> Add Terminal</Btn>}
+        {canManage && <Btn onClick={() => { setShowSettlement(true); setEditSettlement(null); }}><Plus size={14} /> Log Settlement</Btn>}
       </SectionHeader>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Active Terminals" value={terminals.items.filter(t => t.status === 'active').length} sub={`${terminals.items.length} total`} color="bg-blue-50 text-blue-700" />
@@ -280,7 +423,10 @@ function PosTab() {
         }} onCancel={() => { setShowTerminal(false); setEditTerminal(null); }} />
       )}
       {showSettlement && (
-        <SettlementForm terminals={terminals.items} onSave={(s) => { settlements.add(s); setShowSettlement(false); }} onCancel={() => setShowSettlement(false)} />
+        <SettlementForm initial={editSettlement} terminals={terminals.items} onSave={(s) => {
+          if (editSettlement) settlements.replace(s.id, s); else settlements.add(s);
+          setShowSettlement(false); setEditSettlement(null);
+        }} onCancel={() => { setShowSettlement(false); setEditSettlement(null); }} />
       )}
       <Card className="overflow-hidden">
         <div className="p-4 border-b font-bold text-sm flex items-center gap-2"><CreditCard size={14} /> Terminals</div>
@@ -293,10 +439,14 @@ function PosTab() {
               </div>
               <div className="flex items-center gap-2">
                 <StatusChip status={t.status} />
-                <button onClick={() => terminals.update(t.id, { status: t.status === 'active' ? 'inactive' : 'active' })}
-                  className="text-[10px] px-2 py-1 rounded-full border font-medium hover:bg-zinc-50">{t.status === 'active' ? 'Deactivate' : 'Activate'}</button>
-                <IconBtn onClick={() => { setEditTerminal(t); setShowTerminal(true); }}><Edit3 size={13} /></IconBtn>
-                <IconBtn tone="red" onClick={() => terminals.remove(t.id)}><Trash2 size={13} /></IconBtn>
+                {canManage && (
+                  <>
+                    <button onClick={() => terminals.update(t.id, { status: t.status === 'active' ? 'inactive' : 'active' })}
+                      className="text-[10px] px-2 py-1 rounded-full border font-medium hover:bg-zinc-50">{t.status === 'active' ? 'Deactivate' : 'Activate'}</button>
+                    <IconBtn onClick={() => { setEditTerminal(t); setShowTerminal(true); }}><Edit3 size={13} /></IconBtn>
+                    <IconBtn tone="red" onClick={() => terminals.remove(t.id)}><Trash2 size={13} /></IconBtn>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -314,12 +464,14 @@ function PosTab() {
               </div>
               <div className="flex items-center gap-2">
                 <StatusChip status={s.status} />
-                {s.status !== 'settled' && (
+                {canManage && s.status !== 'settled' && (
                   <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => settlements.update(s.id, { status: 'settled' })}>Mark Settled</Btn>
                 )}
-                {s.status !== 'flagged' && (
+                {canManage && s.status !== 'flagged' && (
                   <IconBtn tone="amber" title="Flag" onClick={() => settlements.update(s.id, { status: 'flagged' })}><Split size={14} /></IconBtn>
                 )}
+                {canManage && <IconBtn title="Edit" onClick={() => { setEditSettlement(s); setShowSettlement(true); }}><Edit3 size={13} /></IconBtn>}
+                {canManage && <IconBtn tone="red" title="Delete" onClick={() => settlements.remove(s.id)}><Trash2 size={13} /></IconBtn>}
               </div>
             </div>
           ))}
@@ -353,10 +505,12 @@ function TerminalForm({ initial, onSave, onCancel }: { initial: PosTerminal | nu
   );
 }
 
-function SettlementForm({ terminals, onSave, onCancel }: { terminals: PosTerminal[]; onSave: (s: PosSettlement) => void; onCancel: () => void }) {
-  const [f, setF] = useState({ terminalId: terminals[0]?.terminalId || '', terminalRef: '', amount: '', date: today() });
+function SettlementForm({ initial, terminals, onSave, onCancel }: { initial: PosSettlement | null; terminals: PosTerminal[]; onSave: (s: PosSettlement) => void; onCancel: () => void }) {
+  const [f, setF] = useState(initial
+    ? { terminalId: initial.terminalId, terminalRef: initial.terminalRef, amount: String(initial.amount), date: initial.date, note: initial.note || '' }
+    : { terminalId: terminals[0]?.terminalId || '', terminalRef: '', amount: '', date: today(), note: '' });
   return (
-    <FormCard title="Log Settlement" onCancel={onCancel}>
+    <FormCard title={initial ? 'Edit Settlement' : 'Log Settlement'} onCancel={onCancel}>
       <FieldGrid>
         <Field label="Terminal">
           <Select value={f.terminalId} onChange={e => setF({ ...f, terminalId: e.target.value })}>
@@ -366,9 +520,10 @@ function SettlementForm({ terminals, onSave, onCancel }: { terminals: PosTermina
         <Field label="Settlement Ref"><TextInput value={f.terminalRef} onChange={e => setF({ ...f, terminalRef: e.target.value })} placeholder="Settlement ref" /></Field>
         <Field label="Amount (₦)"><NumberInput value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} placeholder="Amount" /></Field>
         <Field label="Date"><DateInput value={f.date} onChange={e => setF({ ...f, date: e.target.value })} /></Field>
+        <Field label="Note"><TextInput value={f.note} onChange={e => setF({ ...f, note: e.target.value })} placeholder="Optional note" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.amount) return alert('Amount required'); onSave({ id: uid('rec'), ...f, amount: Number(f.amount), status: 'pending' }); }}>Log Settlement</Btn>
+        <Btn onClick={() => { if (!f.amount) return alert('Amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), note: f.note || undefined, status: initial?.status || 'pending' }); }}>{initial ? 'Update Settlement' : 'Log Settlement'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

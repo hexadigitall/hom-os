@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Script from 'next/script';
-import { CreditCard, MessageCircle, Globe, AlertTriangle } from 'lucide-react';
-import { Card, MetricCard, SectionHeader, Btn } from '../ui';
+import { CreditCard, MessageCircle, Globe, AlertTriangle, Trash2 } from 'lucide-react';
+import { Card, MetricCard, SectionHeader, Btn, IconBtn } from '../ui';
 import { useCollection, load } from '@/lib/storage';
 import { Room } from '@/lib/types';
 import { seedRooms } from '@/lib/seed';
 import { sendWhatsApp } from '@/lib/whatsapp';
 import { fetchBookingComBookings, checkOverbooking, ExternalBooking } from '@/lib/bookingcom';
-import { WhatsAppLogEntry } from '@/lib/whatsapplog';
+import { WhatsAppLogEntry, removeWhatsAppLog, clearWhatsAppLog } from '@/lib/whatsapplog';
 
 // ─── Paystack ────────────────────────────────────────────────────────────────
 
@@ -66,12 +66,18 @@ export function WhatsAppModule() {
       </Card>
       {log.length > 0 && (
         <Card className="border overflow-hidden">
-          <div className="p-4 border-b font-bold text-sm">Message Log</div>
+          <div className="p-4 border-b font-bold text-sm flex items-center justify-between">
+            <span>Message Log</span>
+            <Btn color="outline" className="!px-3 !py-1 !text-[11px] !text-red-500" onClick={() => { clearWhatsAppLog(); setLog([]); }}><Trash2 size={12} /> Clear Log</Btn>
+          </div>
           <div className="divide-y max-h-80 overflow-y-auto">
             {log.map((m, i) => (
-              <div key={i} className="p-3 text-sm">
-                <div className="flex justify-between"><span className="font-medium">{m.to}</span><span className="text-[10px] text-zinc-400">{m.time}</span></div>
-                <div className="text-xs text-zinc-600 mt-0.5 break-words">{m.msg}</div>
+              <div key={i} className="p-3 text-sm flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between"><span className="font-medium">{m.to}</span><span className="text-[10px] text-zinc-400">{m.time}</span></div>
+                  <div className="text-xs text-zinc-600 mt-0.5 break-words">{m.msg}</div>
+                </div>
+                <IconBtn tone="red" title="Delete entry" onClick={() => { removeWhatsAppLog(i); setLog(load<WhatsAppLogEntry[]>('hom_whatsapp_log', [])); }}><Trash2 size={12} /></IconBtn>
               </div>
             ))}
           </div>

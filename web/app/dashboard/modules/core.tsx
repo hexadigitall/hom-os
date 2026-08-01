@@ -12,6 +12,8 @@ import {
   seedRooms, seedBookings, seedDiesel, seedInventory, seedStaff, seedVendors, seedPOs,
 } from '@/lib/seed';
 import { useCollection } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
+import { hasPermission, PERMISSIONS } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate, daysBetween } from '@/lib/format';
 import { sendWhatsApp, bookingConfirmationTemplate, payslipTemplate } from '@/lib/whatsapp';
 import { appendWhatsAppLog } from '@/lib/whatsapplog';
@@ -424,6 +426,9 @@ function StaffForm({ initial, onSave, onCancel }: { initial: Staff | null; onSav
 // ─── Vendors & Purchase Orders ───────────────────────────────────────────────
 
 export function VendorsModule() {
+  const { session } = useAuth();
+  const canManageVendors = hasPermission(session, PERMISSIONS.manageVendors);
+  const canManagePOs = hasPermission(session, PERMISSIONS.managePurchaseOrders);
   const vendors = useCollection<Vendor>('hom_vendors', seedVendors);
   const pos = useCollection<PurchaseOrder>('hom_purchase_orders', seedPOs);
   const [showForm, setShowForm] = useState(false);
@@ -432,8 +437,8 @@ export function VendorsModule() {
   return (
     <div className="space-y-6">
       <SectionHeader title="Vendors & Purchase Orders">
-        <Btn onClick={() => { setShowForm(true); setEditItem({ _type: 'vendor' }); }}><Plus size={14} /> Add Vendor</Btn>
-        <Btn color="amber" onClick={() => { setShowForm(true); setEditItem({ _type: 'po' }); }}><Plus size={14} /> New PO</Btn>
+        {canManageVendors && <Btn onClick={() => { setShowForm(true); setEditItem({ _type: 'vendor' }); }}><Plus size={14} /> Add Vendor</Btn>}
+        {canManagePOs && <Btn color="amber" onClick={() => { setShowForm(true); setEditItem({ _type: 'po' }); }}><Plus size={14} /> New PO</Btn>}
       </SectionHeader>
       {showForm && editItem?._type === 'vendor' && (
         <VendorForm initial={editItem.id ? editItem : null} onSave={(v) => {
@@ -455,8 +460,8 @@ export function VendorsModule() {
               <div key={v.id} className="py-3 flex justify-between items-center">
                 <div className="min-w-0"><div className="font-medium text-sm truncate">{v.name}</div><div className="text-xs text-zinc-500">{v.contact} • {v.category}</div></div>
                 <div className="flex gap-1">
-                  <IconBtn onClick={() => { setEditItem({ ...v, _type: 'vendor' }); setShowForm(true); }}><Edit3 size={12} /></IconBtn>
-                  <IconBtn tone="red" onClick={() => { vendors.remove(v.id); pos.items.filter(p => p.vendorId === v.id).forEach(p => pos.remove(p.id)); }}><Trash2 size={12} /></IconBtn>
+                  {canManageVendors && <IconBtn onClick={() => { setEditItem({ ...v, _type: 'vendor' }); setShowForm(true); }}><Edit3 size={12} /></IconBtn>}
+                  {canManageVendors && <IconBtn tone="red" onClick={() => { vendors.remove(v.id); pos.items.filter(p => p.vendorId === v.id).forEach(p => pos.remove(p.id)); }}><Trash2 size={12} /></IconBtn>}
                 </div>
               </div>
             ))}
@@ -465,15 +470,22 @@ export function VendorsModule() {
         <Card className="p-5">
           <h3 className="font-bold text-sm flex items-center gap-2"><Package size={16} className="text-amber-500" /> Purchase Orders ({pos.items.length})</h3>
           <div className="mt-3 divide-y">
-            {pos.items.map(p => (
-              <div key={p.id} className="py-3 flex justify-between items-center">
-                <div className="min-w-0"><div className="font-medium text-sm truncate">{p.items}</div><div className="text-xs text-zinc-500">{vendors.items.find(v => v.id === p.vendorId)?.name || 'Unknown'} • {naira(p.amount)} • {fmtDate(p.date)}</div></div>
-                <div className="flex items-center gap-2">
-                  <StatusChip status={p.status} />
-                  <IconBtn tone="red" onClick={() => pos.remove(p.id)}><Trash2 size={12} /></IconBtn>
+            {pos.items.map(p => {
+              const next = p.status === 'pending' ? 'approved' : p.status === 'approved' ? 'delivered' : null;
+              return (
+                <div key={p.id} className="py-3 flex justify-between items-center">
+                  <div className="min-w-0"><div className="font-medium text-sm truncate">{p.items}</div><div className="text-xs text-zinc-500">{vendors.items.find(v => v.id === p.vendorId)?.name || 'Unknown'} • {naira(p.amount)} • {fmtDate(p.date)}</div></div>
+                  <div className="flex items-center gap-2">
+                    <StatusChip status={p.status} />
+                    {canManagePOs && next && (
+                      <Btn color="outline" className="!px-2.5 !py-1 !text-[10px]" onClick={() => pos.update(p.id, { status: next })}>Mark {next[0].toUpperCase() + next.slice(1)}</Btn>
+                    )}
+                    {canManagePOs && <IconBtn onClick={() => { setEditItem({ ...p, _type: 'po' }); setShowForm(true); }}><Edit3 size={12} /></IconBtn>}
+                    {canManagePOs && <IconBtn tone="red" onClick={() => pos.remove(p.id)}><Trash2 size={12} /></IconBtn>}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {pos.items.length === 0 && <EmptyState text="No purchase orders" />}
           </div>
         </Card>

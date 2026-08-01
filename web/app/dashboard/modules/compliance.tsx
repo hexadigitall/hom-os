@@ -11,6 +11,8 @@ import {
 import { SCUML_THRESHOLD } from '@/lib/types';
 import { seedScuml, seedCash, seedTaxConfigs, seedTaxReports, seedFireCerts, seedNaptip, seedLga } from '@/lib/seed';
 import { useCollection } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
+import { hasPermission, PERMISSIONS } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -419,9 +421,12 @@ function LgaForm({ initial, onSave, onCancel }: { initial: LgaInspection | null;
 // ─── State Tax ───────────────────────────────────────────────────────────────
 
 function TaxTab() {
+  const { session } = useAuth();
+  const canManage = hasPermission(session, PERMISSIONS.manageTaxConfig);
   const tax = useCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed);
   const reports = useCollection<StateTaxReport>('cmp_tax_reports', seedTaxReports);
   const [editState, setEditState] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
   const [showReport, setShowReport] = useState<string | null>(null);
 
   const generateReport = (stateName: string) => {
@@ -438,7 +443,8 @@ function TaxTab() {
   return (
     <div className="space-y-4">
       <SectionHeader title="State Consumption Tax" sub="Configure state sales tax rates">
-        <Btn onClick={() => reports.set([])} color="outline">Clear Reports</Btn>
+        {canManage && <Btn color="outline" onClick={() => reports.set([])}>Clear Reports</Btn>}
+        {canManage && <Btn onClick={() => setCreating(true)}><Plus size={14} /> Add State</Btn>}
       </SectionHeader>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {tax.items.map(cfg => (
@@ -449,7 +455,10 @@ function TaxTab() {
                 <div className="text-3xl font-black text-hom-primary mt-1">{cfg.rate}%</div>
                 <div className="text-xs text-zinc-500 mt-1">{cfg.appliesToOtherServices ? 'Applies to other services' : 'Standard goods'}</div>
               </div>
-              <IconBtn onClick={() => setEditState(cfg.stateName)}><Edit3 size={14} /></IconBtn>
+              <div className="flex gap-1">
+                {canManage && <IconBtn onClick={() => setEditState(cfg.stateName)}><Edit3 size={14} /></IconBtn>}
+                {canManage && <IconBtn tone="red" title="Delete config" onClick={() => tax.remove(cfg.id)}><Trash2 size={14} /></IconBtn>}
+              </div>
             </div>
             <div className="mt-3 flex gap-2">
               <Btn color="amber" className="!px-3 !py-1.5 !text-[11px]" onClick={() => setShowReport(cfg.stateName)}>Generate Report</Btn>
@@ -463,6 +472,14 @@ function TaxTab() {
           tax.replace(c.id, c);
           setEditState(null);
         }} onCancel={() => setEditState(null)} />
+      )}
+
+      {creating && canManage && (
+        <TaxConfigForm initial={null} onSave={(c) => {
+          if (tax.items.some(t => t.stateName === c.stateName)) return alert(`${c.stateName} already configured`);
+          tax.add(c);
+          setCreating(false);
+        }} onCancel={() => setCreating(false)} />
       )}
 
       {showReport && (
@@ -479,12 +496,22 @@ function TaxTab() {
         <Card className="overflow-hidden">
           <div className="p-4 border-b font-bold text-sm">Tax Reports</div>
           <div className="divide-y">
-            {reports.items.map(r => (
-              <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-2 text-sm">
-                <div className="min-w-0"><span className="font-medium">{r.stateName}</span> <span className="text-zinc-400 text-xs">• {r.periodStart} → {r.periodEnd} • {r.rate}%</span></div>
-                <div className="flex items-center gap-2"><span className="font-bold">{naira(r.taxDue)}</span><StatusChip status={r.status} /></div>
-              </div>
-            ))}
+            {reports.items.map(r => {
+              const next = r.status === 'pending' ? 'filed' : r.status === 'filed' ? 'paid' : null;
+              return (
+                <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-center justify-between gap-2 text-sm">
+                  <div className="min-w-0"><span className="font-medium">{r.stateName}</span> <span className="text-zinc-400 text-xs">• {r.periodStart} → {r.periodEnd} • {r.rate}%</span></div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{naira(r.taxDue)}</span>
+                    <StatusChip status={r.status} />
+                    {canManage && next && (
+                      <Btn color="outline" className="!px-2.5 !py-1 !text-[10px]" onClick={() => reports.update(r.id, { status: next })}>Mark {next[0].toUpperCase() + next.slice(1)}</Btn>
+                    )}
+                    {canManage && <IconBtn tone="red" title="Delete report" onClick={() => reports.remove(r.id)}><Trash2 size={13} /></IconBtn>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}
@@ -492,11 +519,14 @@ function TaxTab() {
   );
 }
 
-function TaxConfigForm({ initial, onSave, onCancel }: { initial: TaxConfigItem; onSave: (c: TaxConfigItem) => void; onCancel: () => void }) {
-  const [f, setF] = useState({ rate: String(initial.rate), appliesToOtherServices: initial.appliesToOtherServices });
+function TaxConfigForm({ initial, onSave, onCancel }: { initial: TaxConfigItem | null; onSave: (c: TaxConfigItem) => void; onCancel: () => void }) {
+  const [f, setF] = useState(initial
+    ? { stateName: initial.stateName, rate: String(initial.rate), appliesToOtherServices: initial.appliesToOtherServices }
+    : { stateName: '', rate: '7.5', appliesToOtherServices: false });
   return (
-    <FormCard title={`Edit ${initial.stateName} Tax Config`} onCancel={onCancel}>
-      <div className="grid md:grid-cols-2 gap-3">
+    <FormCard title={initial ? `Edit ${initial.stateName} Tax Config` : 'Add State Tax Config'} onCancel={onCancel}>
+      <div className="grid md:grid-cols-3 gap-3">
+        <Field label="State Name">{initial ? <div className="px-3 py-2 bg-zinc-50 rounded-xl text-sm font-medium">{initial.stateName}</div> : <TextInput value={f.stateName} onChange={e => setF({ ...f, stateName: e.target.value })} placeholder="e.g. Lagos" />}</Field>
         <Field label="Rate (%)"><NumberInput value={f.rate} onChange={e => setF({ ...f, rate: e.target.value })} placeholder="Rate" step="0.5" /></Field>
         <label className="flex items-center gap-2 text-sm cursor-pointer pt-6">
           <input type="checkbox" checked={f.appliesToOtherServices} onChange={e => setF({ ...f, appliesToOtherServices: e.target.checked })} className="accent-hom-primary w-4 h-4" />
@@ -504,7 +534,12 @@ function TaxConfigForm({ initial, onSave, onCancel }: { initial: TaxConfigItem; 
         </label>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => onSave({ ...initial, rate: Number(f.rate) || 0, appliesToOtherServices: f.appliesToOtherServices })}>Save</Btn>
+        <Btn onClick={() => {
+          if (!f.stateName.trim()) return alert('State name required');
+          onSave(initial
+            ? { ...initial, rate: Number(f.rate) || 0, appliesToOtherServices: f.appliesToOtherServices }
+            : { id: f.stateName.trim(), stateName: f.stateName.trim(), rate: Number(f.rate) || 0, appliesToOtherServices: f.appliesToOtherServices });
+        }}>{initial ? 'Save' : 'Add State'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

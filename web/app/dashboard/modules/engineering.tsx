@@ -10,6 +10,8 @@ import {
   seedGenerators, seedMaintenance, seedTankDips, seedTariffs, seedWater,
 } from '@/lib/seed';
 import { useCollection } from '@/lib/storage';
+import { useAuth } from '@/lib/auth';
+import { hasPermission, PERMISSIONS } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -367,13 +369,15 @@ function DipForm({ initial, onSave, onCancel }: { initial: TankDipLog | null; on
 // ─── Grid & Cost ─────────────────────────────────────────────────────────────
 
 function GridCostTab() {
+  const { session } = useAuth();
+  const canManage = hasPermission(session, PERMISSIONS.trackGridTariffUsage);
   const tariffs = useCollection<GridTariffConfig>('eng_tariffs', seedTariffs);
   const [editId, setEditId] = useState<string | null>(null);
 
   return (
     <div className="space-y-4">
       <SectionHeader title="Grid Tariff Configuration" sub="PHED / utility band pricing">
-        <Btn onClick={() => setEditId('new')}><Plus size={14} /> Add Band</Btn>
+        {canManage && <Btn onClick={() => setEditId('new')}><Plus size={14} /> Add Band</Btn>}
       </SectionHeader>
       <div className="grid md:grid-cols-3 gap-4">
         {tariffs.items.map(t => {
@@ -385,7 +389,10 @@ function GridCostTab() {
                   <div className="font-black uppercase text-lg">Band {t.band}</div>
                   <div className="text-xs text-zinc-500">{t.label} — {t.description}</div>
                 </div>
-                <IconBtn onClick={() => setEditId(t.id)}><Edit3 size={14} /></IconBtn>
+                <div className="flex gap-1">
+                  {canManage && <IconBtn onClick={() => setEditId(t.id)}><Edit3 size={14} /></IconBtn>}
+                  {canManage && <IconBtn tone="red" title="Delete band" onClick={() => tariffs.remove(t.id)}><Trash2 size={14} /></IconBtn>}
+                </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                 <div className="bg-zinc-50 rounded-xl p-3"><div className="font-black">{t.hoursPerDay}h</div><div className="text-[10px] text-zinc-500">Supply / Day</div></div>

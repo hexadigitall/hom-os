@@ -271,6 +271,12 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
             <div className="flex items-center gap-2">
               <span className="font-bold">{naira(it.quantity * it.unitPrice)}</span>
               <StatusChip status={it.status} />
+              {order.status !== 'paid' && order.status !== 'cancelled' && (
+                <IconBtn tone="red" title="Remove item" onClick={() => {
+                  const items = order.items.filter(x => x.id !== it.id);
+                  orders.update(order.id, { items });
+                }}><Trash2 size={13} /></IconBtn>
+              )}
             </div>
           </div>
         ))}
@@ -323,6 +329,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
         {order.status !== 'paid' && order.status !== 'cancelled' && (
           <Btn color="outline" className="!text-red-500" onClick={() => { orders.update(order.id, { status: 'cancelled' }); tables.update(order.tableId, { status: 'free' }); onClose(); }}><X size={14} /> Cancel Order</Btn>
         )}
+        <Btn color="outline" className="!text-red-500" onClick={() => { orders.remove(order.id); tables.update(order.tableId, { status: 'free' }); onClose(); }}><Trash2 size={14} /> Delete Order</Btn>
       </div>
     </FormCard>
   );
