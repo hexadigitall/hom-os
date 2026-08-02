@@ -19,5 +19,5 @@ export const metadata = {
   },
 };
 export default function RootLayout({children}: {children: React.ReactNode}) {
-  return <html lang="en"><head><link rel="icon" href="/favicon.ico" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" /></head><body className="bg-white text-zinc-900">{children}</body></html>
+  return <html lang="en"><head><link rel="icon" href="/favicon.ico" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" /></head><body className="bg-hom-background text-hom-ink">{children}</body></html>
 }

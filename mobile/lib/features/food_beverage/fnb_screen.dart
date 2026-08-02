@@ -247,78 +247,82 @@ class _TablesTabState extends State<_TablesTab> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(table == null ? 'Add Table' : 'Edit Table',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: nameCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Table Name', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: capacityCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Capacity (seats)',
-                      border: OutlineInputBorder()),
-                  keyboardType: TextInputType.number),
-              if (table != null) ...[
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(table == null ? 'Add Table' : 'Edit Table',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 16)),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<TableStatus>(
-                  initialValue: status,
-                  decoration: const InputDecoration(
-                      labelText: 'Status', border: OutlineInputBorder()),
-                  items: TableStatus.values
-                      .map((s) => DropdownMenuItem(
-                          value: s,
-                          child: Row(children: [
-                            Icon(Icons.circle, color: _tableColor(s), size: 14),
-                            const SizedBox(width: 8),
-                            Text(_tableLabel(s)),
-                          ])))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) setSheetState(() => status = v);
-                  },
-                ),
-              ],
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: RoleGate(
-                  requiredPermission: Permission.manageTableManagement,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: _primary,
-                        foregroundColor: AppColors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14)),
-                    onPressed: () {
-                      final name = nameCtl.text.trim();
-                      final capacity = int.tryParse(capacityCtl.text) ?? 4;
-                      if (name.isEmpty) return;
-                      final t = RestaurantTable(
-                        id: table?.id ?? FnbStore.genTableId(),
-                        number: name,
-                        seats: capacity,
-                        status: status,
-                      );
-                      if (table != null) {
-                        FnbStore.updateTable(table.id, t);
-                      } else {
-                        FnbStore.addTable(t);
-                      }
-                      Navigator.pop(ctx);
-                      widget.onOrderTap();
+                TextField(
+                    controller: nameCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Table Name', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: capacityCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Capacity (seats)',
+                        border: OutlineInputBorder()),
+                    keyboardType: TextInputType.number),
+                if (table != null) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<TableStatus>(
+                    initialValue: status,
+                    decoration: const InputDecoration(
+                        labelText: 'Status', border: OutlineInputBorder()),
+                    items: TableStatus.values
+                        .map((s) => DropdownMenuItem(
+                            value: s,
+                            child: Row(children: [
+                              Icon(Icons.circle,
+                                  color: _tableColor(s), size: 14),
+                              const SizedBox(width: 8),
+                              Text(_tableLabel(s)),
+                            ])))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) setSheetState(() => status = v);
                     },
-                    child: Text(table == null ? 'Add Table' : 'Update Table'),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: RoleGate(
+                    requiredPermission: Permission.manageTableManagement,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: _primary,
+                          foregroundColor: AppColors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14)),
+                      onPressed: () {
+                        final name = nameCtl.text.trim();
+                        final capacity = int.tryParse(capacityCtl.text) ?? 4;
+                        if (name.isEmpty) return;
+                        final t = RestaurantTable(
+                          id: table?.id ?? FnbStore.genTableId(),
+                          number: name,
+                          seats: capacity,
+                          status: status,
+                        );
+                        if (table != null) {
+                          FnbStore.updateTable(table.id, t);
+                        } else {
+                          FnbStore.addTable(t);
+                        }
+                        Navigator.pop(ctx);
+                        widget.onOrderTap();
+                      },
+                      child: Text(table == null ? 'Add Table' : 'Update Table'),
+                    ),
                   ),
                 ),
-              ),
-            ]),
+              ]),
+            ),
           ),
         ),
       ),
@@ -333,58 +337,60 @@ class _TablesTabState extends State<_TablesTab> {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('New Order — Table ${t.number}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 16)),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: nameCtl,
-                    decoration: const InputDecoration(
-                        labelText: 'Server Name',
-                        border: OutlineInputBorder())),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: RoleGate(
-                    requiredPermission: Permission.managePOS,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: _primary,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14)),
-                      onPressed: () {
-                        final order = Order(
-                          id: FnbStore.genOrderId(),
-                          tableId: t.id,
-                          tableNumber: t.number,
-                          serverName: nameCtl.text.trim().isEmpty
-                              ? 'Staff'
-                              : nameCtl.text.trim(),
-                        );
-                        FnbStore.addOrder(order);
-                        FnbStore.updateTable(
-                            t.id,
-                            RestaurantTable(
-                                id: t.id,
-                                number: t.number,
-                                seats: t.seats,
-                                status: TableStatus.occupied));
-                        Navigator.pop(ctx);
-                        widget.onOrderTap();
-                        _showAddItems(context, order);
-                      },
-                      child: const Text('Create & Add Items'),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New Order — Table ${t.number}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: nameCtl,
+                      decoration: const InputDecoration(
+                          labelText: 'Server Name',
+                          border: OutlineInputBorder())),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: RoleGate(
+                      requiredPermission: Permission.managePOS,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: _primary,
+                            foregroundColor: AppColors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14)),
+                        onPressed: () {
+                          final order = Order(
+                            id: FnbStore.genOrderId(),
+                            tableId: t.id,
+                            tableNumber: t.number,
+                            serverName: nameCtl.text.trim().isEmpty
+                                ? 'Staff'
+                                : nameCtl.text.trim(),
+                          );
+                          FnbStore.addOrder(order);
+                          FnbStore.updateTable(
+                              t.id,
+                              RestaurantTable(
+                                  id: t.id,
+                                  number: t.number,
+                                  seats: t.seats,
+                                  status: TableStatus.occupied));
+                          Navigator.pop(ctx);
+                          widget.onOrderTap();
+                          _showAddItems(context, order);
+                        },
+                        child: const Text('Create & Add Items'),
+                      ),
                     ),
                   ),
-                ),
-              ]),
+                ]),
+          ),
         ),
       ),
     );
@@ -398,24 +404,26 @@ class _TablesTabState extends State<_TablesTab> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (ctx, scrollController) => _MenuSelector(
-            onAdd: (item, qty, note) {
-              order.items.add(OrderItem(
-                menuItemId: item.id,
-                name: item.name,
-                quantity: qty,
-                unitPrice: item.price,
-                note: note,
-              ));
-              FnbStore.updateOrder(order.id, order);
-              (ctx as Element).markNeedsBuild();
-            },
-            scrollController: scrollController,
+        child: SafeArea(
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.85,
+            minChildSize: 0.4,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (ctx, scrollController) => _MenuSelector(
+              onAdd: (item, qty, note) {
+                order.items.add(OrderItem(
+                  menuItemId: item.id,
+                  name: item.name,
+                  quantity: qty,
+                  unitPrice: item.price,
+                  note: note,
+                ));
+                FnbStore.updateOrder(order.id, order);
+                (ctx as Element).markNeedsBuild();
+              },
+              scrollController: scrollController,
+            ),
           ),
         ),
       ),
@@ -430,107 +438,111 @@ class _TablesTabState extends State<_TablesTab> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Order — Table ${order.tableNumber}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 16)),
-                  Text('Server: ${order.serverName}  •  ${order.status.name}',
-                      style: TextStyle(color: AppColors.grey600, fontSize: 12)),
-                  const Divider(),
-                  if (order.items.isEmpty)
-                    const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text('No items yet'))
-                  else
-                    ...order.items.map((item) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(children: [
-                            Expanded(
-                                child: Text('${item.quantity}x ${item.name}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600))),
-                            Text('₦${item.total.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w700)),
-                            const SizedBox(width: 8),
-                            statusBadge(item.status),
-                          ]),
-                        )),
-                  const Divider(),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800, fontSize: 16)),
-                        Text('₦${order.total.toStringAsFixed(0)}',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: _primary)),
-                      ]),
-                  const SizedBox(height: 12),
-                  if (order.status == OrderStatus.open ||
-                      order.status == OrderStatus.preparing)
-                    Row(children: [
-                      Expanded(
-                          child: ElevatedButton(
-                        onPressed: () {
-                          _showAddItems(context, order);
-                          setSheetState(() {});
-                        },
-                        child: const Text('Add Items'),
-                      )),
-                      const SizedBox(width: 8),
-                      if (order.items.isNotEmpty)
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Order — Table ${order.tableNumber}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text('Server: ${order.serverName}  •  ${order.status.name}',
+                        style:
+                            TextStyle(color: AppColors.grey600, fontSize: 12)),
+                    const Divider(),
+                    if (order.items.isEmpty)
+                      const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text('No items yet'))
+                    else
+                      ...order.items.map((item) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(children: [
+                              Expanded(
+                                  child: Text('${item.quantity}x ${item.name}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600))),
+                              Text('₦${item.total.toStringAsFixed(0)}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700)),
+                              const SizedBox(width: 8),
+                              statusBadge(item.status),
+                            ]),
+                          )),
+                    const Divider(),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 16)),
+                          Text('₦${order.total.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color: _primary)),
+                        ]),
+                    const SizedBox(height: 12),
+                    if (order.status == OrderStatus.open ||
+                        order.status == OrderStatus.preparing)
+                      Row(children: [
                         Expanded(
                             child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.orange,
-                              foregroundColor: AppColors.white),
                           onPressed: () {
-                            for (final item in order.items) {
-                              if (item.status == 'pending')
-                                item.status = 'preparing';
-                            }
-                            order.status = OrderStatus.preparing;
-                            FnbStore.updateOrder(order.id, order);
+                            _showAddItems(context, order);
                             setSheetState(() {});
                           },
-                          child: const Text('Send to Kitchen'),
+                          child: const Text('Add Items'),
                         )),
-                    ]),
-                  if (order.allServed && order.status != OrderStatus.paid)
-                    RoleGate(
-                      requiredPermission: Permission.managePOS,
-                      child: _PaymentSection(
-                          order: order,
-                          onPaid: () {
-                            final table = FnbStore.tables
-                                .cast<RestaurantTable?>()
-                                .firstWhere((t) => t!.id == order.tableId,
-                                    orElse: () => null);
-                            if (table != null)
-                              FnbStore.updateTable(
-                                  order.tableId,
-                                  RestaurantTable(
-                                      id: table.id,
-                                      number: table.number,
-                                      seats: table.seats,
-                                      status: TableStatus.free));
-                            order.status = OrderStatus.paid;
-                            FnbStore.updateOrder(order.id, order);
-                            setSheetState(() {});
-                            widget.onOrderTap();
-                          }),
-                    ),
-                ]),
+                        const SizedBox(width: 8),
+                        if (order.items.isNotEmpty)
+                          Expanded(
+                              child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.orange,
+                                foregroundColor: AppColors.white),
+                            onPressed: () {
+                              for (final item in order.items) {
+                                if (item.status == 'pending')
+                                  item.status = 'preparing';
+                              }
+                              order.status = OrderStatus.preparing;
+                              FnbStore.updateOrder(order.id, order);
+                              setSheetState(() {});
+                            },
+                            child: const Text('Send to Kitchen'),
+                          )),
+                      ]),
+                    if (order.allServed && order.status != OrderStatus.paid)
+                      RoleGate(
+                        requiredPermission: Permission.managePOS,
+                        child: _PaymentSection(
+                            order: order,
+                            onPaid: () {
+                              final table = FnbStore.tables
+                                  .cast<RestaurantTable?>()
+                                  .firstWhere((t) => t!.id == order.tableId,
+                                      orElse: () => null);
+                              if (table != null)
+                                FnbStore.updateTable(
+                                    order.tableId,
+                                    RestaurantTable(
+                                        id: table.id,
+                                        number: table.number,
+                                        seats: table.seats,
+                                        status: TableStatus.free));
+                              order.status = OrderStatus.paid;
+                              FnbStore.updateOrder(order.id, order);
+                              setSheetState(() {});
+                              widget.onOrderTap();
+                            }),
+                      ),
+                  ]),
+            ),
           ),
         ),
       ),
@@ -755,148 +767,152 @@ class _ActiveOrders extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Order — Table ${order.tableNumber}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 16)),
-                  Text('Server: ${order.serverName}  •  ${order.status.name}',
-                      style: TextStyle(color: AppColors.grey600, fontSize: 12)),
-                  const Divider(),
-                  ...order.items.map((item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(children: [
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Order — Table ${order.tableNumber}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16)),
+                    Text('Server: ${order.serverName}  •  ${order.status.name}',
+                        style:
+                            TextStyle(color: AppColors.grey600, fontSize: 12)),
+                    const Divider(),
+                    ...order.items.map((item) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(children: [
+                            Expanded(
+                                child: Text('${item.quantity}x ${item.name}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600))),
+                            Text('₦${item.total.toStringAsFixed(0)}'),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                final next = item.status == 'pending'
+                                    ? 'preparing'
+                                    : item.status == 'preparing'
+                                        ? 'ready'
+                                        : item.status == 'ready'
+                                            ? 'served'
+                                            : 'served';
+                                item.status = next;
+                                if (order.allServed)
+                                  order.status = OrderStatus.served;
+                                FnbStore.updateOrder(order.id, order);
+                                setSheetState(() {});
+                                onChange();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: item.status == 'pending'
+                                      ? AppColors.blue50
+                                      : item.status == 'preparing'
+                                          ? AppColors.orange50
+                                          : item.status == 'ready'
+                                              ? AppColors.green50
+                                              : AppColors.grey100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(item.status,
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: item.status == 'pending'
+                                            ? AppColors.blue
+                                            : item.status == 'preparing'
+                                                ? AppColors.orange
+                                                : item.status == 'ready'
+                                                    ? AppColors.green
+                                                    : AppColors.grey500)),
+                              ),
+                            ),
+                          ]),
+                        )),
+                    const Divider(),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800, fontSize: 16)),
+                          Text('₦${order.total.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color: _primary)),
+                        ]),
+                    const SizedBox(height: 12),
+                    if (order.status != OrderStatus.paid &&
+                        order.status != OrderStatus.cancelled)
+                      Row(children: [
+                        if (!order.allServed)
                           Expanded(
-                              child: Text('${item.quantity}x ${item.name}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600))),
-                          Text('₦${item.total.toStringAsFixed(0)}'),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: () {
-                              final next = item.status == 'pending'
-                                  ? 'preparing'
-                                  : item.status == 'preparing'
-                                      ? 'ready'
-                                      : item.status == 'ready'
-                                          ? 'served'
-                                          : 'served';
-                              item.status = next;
-                              if (order.allServed)
-                                order.status = OrderStatus.served;
+                              child: ElevatedButton(
+                            onPressed: () {
+                              for (final item in order.items) {
+                                if (item.status == 'pending')
+                                  item.status = 'preparing';
+                              }
+                              order.status = OrderStatus.preparing;
                               FnbStore.updateOrder(order.id, order);
                               setSheetState(() {});
                               onChange();
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: item.status == 'pending'
-                                    ? AppColors.blue50
-                                    : item.status == 'preparing'
-                                        ? AppColors.orange50
-                                        : item.status == 'ready'
-                                            ? AppColors.green50
-                                            : AppColors.grey100,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(item.status,
-                                  style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: item.status == 'pending'
-                                          ? AppColors.blue
-                                          : item.status == 'preparing'
-                                              ? AppColors.orange
-                                              : item.status == 'ready'
-                                                  ? AppColors.green
-                                                  : AppColors.grey500)),
-                            ),
-                          ),
-                        ]),
-                      )),
-                  const Divider(),
-                  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800, fontSize: 16)),
-                        Text('₦${order.total.toStringAsFixed(0)}',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: _primary)),
-                      ]),
-                  const SizedBox(height: 12),
-                  if (order.status != OrderStatus.paid &&
-                      order.status != OrderStatus.cancelled)
-                    Row(children: [
-                      if (!order.allServed)
-                        Expanded(
+                            child: const Text('Send All to Kitchen'),
+                          )),
+                        if (order.allServed &&
+                            order.status != OrderStatus.paid) ...[
+                          Expanded(
+                              child: RoleGate(
+                            requiredPermission: Permission.managePOS,
                             child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: _primary,
+                                  foregroundColor: AppColors.white),
+                              onPressed: () {
+                                order.status = OrderStatus.paid;
+                                final table = FnbStore.tables
+                                    .where((t) => t.id == order.tableId)
+                                    .firstOrNull;
+                                if (table != null)
+                                  FnbStore.updateTable(
+                                      order.tableId,
+                                      RestaurantTable(
+                                          id: table.id,
+                                          number: table.number,
+                                          seats: table.seats,
+                                          status: TableStatus.free));
+                                FnbStore.updateOrder(order.id, order);
+                                Navigator.pop(ctx);
+                                onChange();
+                              },
+                              child: const Text('Mark Paid'),
+                            ),
+                          )),
+                        ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: TextButton(
                           onPressed: () {
-                            for (final item in order.items) {
-                              if (item.status == 'pending')
-                                item.status = 'preparing';
-                            }
-                            order.status = OrderStatus.preparing;
+                            order.status = OrderStatus.cancelled;
                             FnbStore.updateOrder(order.id, order);
-                            setSheetState(() {});
+                            Navigator.pop(ctx);
                             onChange();
                           },
-                          child: const Text('Send All to Kitchen'),
+                          child: const Text('Cancel',
+                              style: TextStyle(color: AppColors.red)),
                         )),
-                      if (order.allServed &&
-                          order.status != OrderStatus.paid) ...[
-                        Expanded(
-                            child: RoleGate(
-                          requiredPermission: Permission.managePOS,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: _primary,
-                                foregroundColor: AppColors.white),
-                            onPressed: () {
-                              order.status = OrderStatus.paid;
-                              final table = FnbStore.tables
-                                  .where((t) => t.id == order.tableId)
-                                  .firstOrNull;
-                              if (table != null)
-                                FnbStore.updateTable(
-                                    order.tableId,
-                                    RestaurantTable(
-                                        id: table.id,
-                                        number: table.number,
-                                        seats: table.seats,
-                                        status: TableStatus.free));
-                              FnbStore.updateOrder(order.id, order);
-                              Navigator.pop(ctx);
-                              onChange();
-                            },
-                            child: const Text('Mark Paid'),
-                          ),
-                        )),
-                      ],
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: TextButton(
-                        onPressed: () {
-                          order.status = OrderStatus.cancelled;
-                          FnbStore.updateOrder(order.id, order);
-                          Navigator.pop(ctx);
-                          onChange();
-                        },
-                        child: const Text('Cancel',
-                            style: TextStyle(color: AppColors.red)),
-                      )),
-                    ]),
-                ]),
+                      ]),
+                  ]),
+            ),
           ),
         ),
       ),
@@ -1109,80 +1125,84 @@ class _MenuTabState extends State<_MenuTab> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(item == null ? 'Add Menu Item' : 'Edit Menu Item',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: nameCtl,
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(item == null ? 'Add Menu Item' : 'Edit Menu Item',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: nameCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Item Name', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: descCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Description', border: OutlineInputBorder()),
+                    maxLines: 2),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: priceCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Price (₦)', border: OutlineInputBorder()),
+                    keyboardType: TextInputType.number),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<MenuCategory>(
+                  initialValue: cat,
                   decoration: const InputDecoration(
-                      labelText: 'Item Name', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: descCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Description', border: OutlineInputBorder()),
-                  maxLines: 2),
-              const SizedBox(height: 12),
-              TextField(
-                  controller: priceCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Price (₦)', border: OutlineInputBorder()),
-                  keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<MenuCategory>(
-                initialValue: cat,
-                decoration: const InputDecoration(
-                    labelText: 'Category', border: OutlineInputBorder()),
-                items: MenuCategory.values
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setSheetState(() => cat = v);
-                },
-              ),
-              SwitchListTile(
-                  value: available,
-                  onChanged: (v) => setSheetState(() => available = v),
-                  title: const Text('Available'),
-                  contentPadding: EdgeInsets.zero),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: AppColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  onPressed: () {
-                    final price = double.tryParse(priceCtl.text) ?? 0;
-                    if (nameCtl.text.isEmpty || price <= 0) return;
-                    final m = MenuItem(
-                      id: item?.id ??
-                          'm_${DateTime.now().millisecondsSinceEpoch}',
-                      name: nameCtl.text,
-                      description: descCtl.text.isEmpty ? null : descCtl.text,
-                      category: cat,
-                      price: price,
-                      available: available,
-                    );
-                    if (item != null) {
-                      FnbStore.updateMenuItem(item.id, m);
-                    } else {
-                      FnbStore.addMenuItem(m);
-                    }
-                    Navigator.pop(ctx);
-                    setState(() {});
-                    widget.onChange();
+                      labelText: 'Category', border: OutlineInputBorder()),
+                  items: MenuCategory.values
+                      .map((c) =>
+                          DropdownMenuItem(value: c, child: Text(c.name)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setSheetState(() => cat = v);
                   },
-                  child: Text(item == null ? 'Add Item' : 'Update Item'),
                 ),
-              ),
-            ]),
+                SwitchListTile(
+                    value: available,
+                    onChanged: (v) => setSheetState(() => available = v),
+                    title: const Text('Available'),
+                    contentPadding: EdgeInsets.zero),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: () {
+                      final price = double.tryParse(priceCtl.text) ?? 0;
+                      if (nameCtl.text.isEmpty || price <= 0) return;
+                      final m = MenuItem(
+                        id: item?.id ??
+                            'm_${DateTime.now().millisecondsSinceEpoch}',
+                        name: nameCtl.text,
+                        description: descCtl.text.isEmpty ? null : descCtl.text,
+                        category: cat,
+                        price: price,
+                        available: available,
+                      );
+                      if (item != null) {
+                        FnbStore.updateMenuItem(item.id, m);
+                      } else {
+                        FnbStore.addMenuItem(m);
+                      }
+                      Navigator.pop(ctx);
+                      setState(() {});
+                      widget.onChange();
+                    },
+                    child: Text(item == null ? 'Add Item' : 'Update Item'),
+                  ),
+                ),
+              ]),
+            ),
           ),
         ),
       ),

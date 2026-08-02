@@ -252,79 +252,81 @@ class _NightAuditTab extends StatelessWidget {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Start Night Audit',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: roomCtl,
-                      decoration: const InputDecoration(
-                          labelText: 'Room Revenue (₦)',
-                          border: OutlineInputBorder()),
-                      keyboardType: TextInputType.number)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: TextField(
-                      controller: fnbCtl,
-                      decoration: const InputDecoration(
-                          labelText: 'F&B Revenue (₦)',
-                          border: OutlineInputBorder()),
-                      keyboardType: TextInputType.number)),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: otherCtl,
-                      decoration: const InputDecoration(
-                          labelText: 'Other Revenue (₦)',
-                          border: OutlineInputBorder()),
-                      keyboardType: TextInputType.number)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: TextField(
-                      controller: cashCtl,
-                      decoration: const InputDecoration(
-                          labelText: 'Cash Drop Total (₦)',
-                          border: OutlineInputBorder()),
-                      keyboardType: TextInputType.number)),
-            ]),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: _primary,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
-                onPressed: () {
-                  final room = double.tryParse(roomCtl.text) ?? 0;
-                  final fnb = double.tryParse(fnbCtl.text) ?? 0;
-                  final other = double.tryParse(otherCtl.text) ?? 0;
-                  final cash = double.tryParse(cashCtl.text) ?? 0;
-                  final total = room + fnb + other;
-                  SecurityAuditStore.addNightAudit(NightAuditLog(
-                    id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
-                    businessDate: DateTime.now(),
-                    totalRevenue: total,
-                    roomRevenue: room,
-                    fnbRevenue: fnb,
-                    otherRevenue: other,
-                    cashDropTotal: cash,
-                    cashDropCount: cash > 0 ? 1 : 0,
-                  ));
-                  Navigator.pop(ctx);
-                  onChange();
-                },
-                child: const Text('Start Audit'),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Start Night Audit',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                    child: TextField(
+                        controller: roomCtl,
+                        decoration: const InputDecoration(
+                            labelText: 'Room Revenue (₦)',
+                            border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number)),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: TextField(
+                        controller: fnbCtl,
+                        decoration: const InputDecoration(
+                            labelText: 'F&B Revenue (₦)',
+                            border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(
+                    child: TextField(
+                        controller: otherCtl,
+                        decoration: const InputDecoration(
+                            labelText: 'Other Revenue (₦)',
+                            border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number)),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: TextField(
+                        controller: cashCtl,
+                        decoration: const InputDecoration(
+                            labelText: 'Cash Drop Total (₦)',
+                            border: OutlineInputBorder()),
+                        keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: _primary,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: () {
+                    final room = double.tryParse(roomCtl.text) ?? 0;
+                    final fnb = double.tryParse(fnbCtl.text) ?? 0;
+                    final other = double.tryParse(otherCtl.text) ?? 0;
+                    final cash = double.tryParse(cashCtl.text) ?? 0;
+                    final total = room + fnb + other;
+                    SecurityAuditStore.addNightAudit(NightAuditLog(
+                      id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
+                      businessDate: DateTime.now(),
+                      totalRevenue: total,
+                      roomRevenue: room,
+                      fnbRevenue: fnb,
+                      otherRevenue: other,
+                      cashDropTotal: cash,
+                      cashDropCount: cash > 0 ? 1 : 0,
+                    ));
+                    Navigator.pop(ctx);
+                    onChange();
+                  },
+                  child: const Text('Start Audit'),
+                ),
               ),
-            ),
-          ]),
+            ]),
+          ),
         ),
       ),
     );
@@ -341,64 +343,67 @@ class _NightAuditTab extends StatelessWidget {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Close & Lock Day',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 12),
-            TextField(
-                controller: nameCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Closed By', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(
-                controller: cashCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Additional Cash Drop (₦)',
-                    border: OutlineInputBorder()),
-                keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
-            TextField(
-                controller: notesCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Shift Handover Notes',
-                    border: OutlineInputBorder()),
-                maxLines: 3),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: _primary,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
-                onPressed: () {
-                  final cash = double.tryParse(cashCtl.text) ?? 0;
-                  SecurityAuditStore.updateNightAudit(
-                      audit.id,
-                      NightAuditLog(
-                        id: audit.id,
-                        businessDate: audit.businessDate,
-                        totalRevenue: audit.totalRevenue,
-                        roomRevenue: audit.roomRevenue,
-                        fnbRevenue: audit.fnbRevenue,
-                        otherRevenue: audit.otherRevenue,
-                        cashDropCount: audit.cashDropCount + (cash > 0 ? 1 : 0),
-                        cashDropTotal: audit.cashDropTotal + cash,
-                        closedBy: nameCtl.text.isEmpty ? null : nameCtl.text,
-                        notes: notesCtl.text.isEmpty ? null : notesCtl.text,
-                        closedAt: DateTime.now(),
-                        locked: true,
-                      ));
-                  Navigator.pop(ctx);
-                  onChange();
-                },
-                child: const Text('Lock Day'),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              const Text('Close & Lock Day',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              const SizedBox(height: 12),
+              TextField(
+                  controller: nameCtl,
+                  decoration: const InputDecoration(
+                      labelText: 'Closed By', border: OutlineInputBorder())),
+              const SizedBox(height: 8),
+              TextField(
+                  controller: cashCtl,
+                  decoration: const InputDecoration(
+                      labelText: 'Additional Cash Drop (₦)',
+                      border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number),
+              const SizedBox(height: 8),
+              TextField(
+                  controller: notesCtl,
+                  decoration: const InputDecoration(
+                      labelText: 'Shift Handover Notes',
+                      border: OutlineInputBorder()),
+                  maxLines: 3),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: _primary,
+                      foregroundColor: AppColors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14)),
+                  onPressed: () {
+                    final cash = double.tryParse(cashCtl.text) ?? 0;
+                    SecurityAuditStore.updateNightAudit(
+                        audit.id,
+                        NightAuditLog(
+                          id: audit.id,
+                          businessDate: audit.businessDate,
+                          totalRevenue: audit.totalRevenue,
+                          roomRevenue: audit.roomRevenue,
+                          fnbRevenue: audit.fnbRevenue,
+                          otherRevenue: audit.otherRevenue,
+                          cashDropCount:
+                              audit.cashDropCount + (cash > 0 ? 1 : 0),
+                          cashDropTotal: audit.cashDropTotal + cash,
+                          closedBy: nameCtl.text.isEmpty ? null : nameCtl.text,
+                          notes: notesCtl.text.isEmpty ? null : notesCtl.text,
+                          closedAt: DateTime.now(),
+                          locked: true,
+                        ));
+                    Navigator.pop(ctx);
+                    onChange();
+                  },
+                  child: const Text('Lock Day'),
+                ),
               ),
-            ),
-          ]),
+            ]),
+          ),
         ),
       ),
     );
@@ -610,64 +615,70 @@ class _SecurityTab extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Report Incident',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<IncidentType>(
-                initialValue: type,
-                decoration: const InputDecoration(
-                    labelText: 'Incident Type', border: OutlineInputBorder()),
-                items: IncidentType.values
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setSheet(() => type = v);
-                },
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: locCtl,
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('Report Incident',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<IncidentType>(
+                  initialValue: type,
                   decoration: const InputDecoration(
-                      labelText: 'Location', border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: descCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Description', border: OutlineInputBorder()),
-                  maxLines: 2),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: repCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Reported By', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: AppColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  onPressed: () {
-                    if (descCtl.text.isEmpty) return;
-                    SecurityAuditStore.addIncident(SecurityIncident(
-                      id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
-                      location: locCtl.text.isEmpty ? null : locCtl.text,
-                      description: descCtl.text,
-                      reportedBy: repCtl.text.isEmpty ? null : repCtl.text,
-                      type: type,
-                    ));
-                    Navigator.pop(ctx);
-                    onChange();
+                      labelText: 'Incident Type', border: OutlineInputBorder()),
+                  items: IncidentType.values
+                      .map((t) =>
+                          DropdownMenuItem(value: t, child: Text(t.name)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setSheet(() => type = v);
                   },
-                  child: const Text('Report Incident'),
                 ),
-              ),
-            ]),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: locCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Location', border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: descCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Description', border: OutlineInputBorder()),
+                    maxLines: 2),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: repCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Reported By',
+                        border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: () {
+                      if (descCtl.text.isEmpty) return;
+                      SecurityAuditStore.addIncident(SecurityIncident(
+                        id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
+                        location: locCtl.text.isEmpty ? null : locCtl.text,
+                        description: descCtl.text,
+                        reportedBy: repCtl.text.isEmpty ? null : repCtl.text,
+                        type: type,
+                      ));
+                      Navigator.pop(ctx);
+                      onChange();
+                    },
+                    child: const Text('Report Incident'),
+                  ),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
@@ -689,95 +700,103 @@ class _SecurityTab extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Edit Incident',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<IncidentType>(
-                initialValue: type,
-                decoration: const InputDecoration(
-                    labelText: 'Incident Type', border: OutlineInputBorder()),
-                items: IncidentType.values
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setSheet(() => type = v);
-                },
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: locCtl,
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('Edit Incident',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<IncidentType>(
+                  initialValue: type,
                   decoration: const InputDecoration(
-                      labelText: 'Location', border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: descCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Description', border: OutlineInputBorder()),
-                  maxLines: 2),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: repCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Reported By', border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<IncidentStatus>(
-                initialValue: status,
-                decoration: const InputDecoration(
-                    labelText: 'Status', border: OutlineInputBorder()),
-                items: IncidentStatus.values
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setSheet(() => status = v);
-                },
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: notesCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Action Taken / Notes',
-                      border: OutlineInputBorder()),
-                  maxLines: 2),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: AppColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  onPressed: () {
-                    SecurityAuditStore.updateIncident(
-                        inc.id,
-                        SecurityIncident(
-                          id: inc.id,
-                          location: locCtl.text.isEmpty ? null : locCtl.text,
-                          description:
-                              descCtl.text.isEmpty ? null : descCtl.text,
-                          reportedBy: repCtl.text.isEmpty ? null : repCtl.text,
-                          type: type,
-                          status: status,
-                          dateReported: inc.dateReported,
-                          dateResolved: status == IncidentStatus.resolved
-                              ? (inc.dateResolved ?? DateTime.now())
-                              : null,
-                          resolvedBy: status == IncidentStatus.resolved
-                              ? (inc.resolvedBy ??
-                                  (repCtl.text.isEmpty ? null : repCtl.text))
-                              : null,
-                          notes: notesCtl.text.isEmpty ? null : notesCtl.text,
-                        ));
-                    Navigator.pop(ctx);
-                    onChange();
+                      labelText: 'Incident Type', border: OutlineInputBorder()),
+                  items: IncidentType.values
+                      .map((t) =>
+                          DropdownMenuItem(value: t, child: Text(t.name)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setSheet(() => type = v);
                   },
-                  child: const Text('Save Changes'),
                 ),
-              ),
-            ]),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: locCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Location', border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: descCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Description', border: OutlineInputBorder()),
+                    maxLines: 2),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: repCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Reported By',
+                        border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<IncidentStatus>(
+                  initialValue: status,
+                  decoration: const InputDecoration(
+                      labelText: 'Status', border: OutlineInputBorder()),
+                  items: IncidentStatus.values
+                      .map((s) =>
+                          DropdownMenuItem(value: s, child: Text(s.name)))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setSheet(() => status = v);
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: notesCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Action Taken / Notes',
+                        border: OutlineInputBorder()),
+                    maxLines: 2),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: () {
+                      SecurityAuditStore.updateIncident(
+                          inc.id,
+                          SecurityIncident(
+                            id: inc.id,
+                            location: locCtl.text.isEmpty ? null : locCtl.text,
+                            description:
+                                descCtl.text.isEmpty ? null : descCtl.text,
+                            reportedBy:
+                                repCtl.text.isEmpty ? null : repCtl.text,
+                            type: type,
+                            status: status,
+                            dateReported: inc.dateReported,
+                            dateResolved: status == IncidentStatus.resolved
+                                ? (inc.dateResolved ?? DateTime.now())
+                                : null,
+                            resolvedBy: status == IncidentStatus.resolved
+                                ? (inc.resolvedBy ??
+                                    (repCtl.text.isEmpty ? null : repCtl.text))
+                                : null,
+                            notes: notesCtl.text.isEmpty ? null : notesCtl.text,
+                          ));
+                      Navigator.pop(ctx);
+                      onChange();
+                    },
+                    child: const Text('Save Changes'),
+                  ),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
@@ -976,91 +995,12 @@ class _VisitorsTab extends StatelessWidget {
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Issue Visitor Pass',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            const SizedBox(height: 12),
-            TextField(
-                controller: nameCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Visitor Name', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(
-                controller: purposeCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Purpose of Visit',
-                    border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(
-                controller: hostCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Host Name', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(
-                controller: badgeCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Badge Number', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(
-                controller: notesCtl,
-                decoration: const InputDecoration(
-                    labelText: 'Notes', border: OutlineInputBorder()),
-                maxLines: 2),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: _primary,
-                    foregroundColor: AppColors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14)),
-                onPressed: () {
-                  if (nameCtl.text.isEmpty ||
-                      purposeCtl.text.isEmpty ||
-                      hostCtl.text.isEmpty) return;
-                  SecurityAuditStore.addVisitorPass(VisitorPass(
-                    id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
-                    visitorName: nameCtl.text,
-                    purpose: purposeCtl.text,
-                    hostName: hostCtl.text,
-                    badgeNumber: badgeCtl.text.isEmpty ? null : badgeCtl.text,
-                    notes: notesCtl.text.isEmpty ? null : notesCtl.text,
-                  ));
-                  Navigator.pop(ctx);
-                  onChange();
-                },
-                child: const Text('Issue Pass'),
-              ),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  void _editVisitor(BuildContext context, VisitorPass v) {
-    final nameCtl = TextEditingController(text: v.visitorName);
-    final purposeCtl = TextEditingController(text: v.purpose);
-    final hostCtl = TextEditingController(text: v.hostName);
-    final badgeCtl = TextEditingController(text: v.badgeNumber ?? '');
-    final notesCtl = TextEditingController(text: v.notes ?? '');
-    bool active = v.active;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
           child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Edit Visitor Pass',
+              const Text('Issue Visitor Pass',
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 12),
               TextField(
@@ -1089,13 +1029,6 @@ class _VisitorsTab extends StatelessWidget {
                   decoration: const InputDecoration(
                       labelText: 'Notes', border: OutlineInputBorder()),
                   maxLines: 2),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                title: const Text('Active (On-Site)'),
-                value: active,
-                activeThumbColor: _primary,
-                onChanged: (val) => setSheet(() => active = val),
-              ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
@@ -1108,29 +1041,123 @@ class _VisitorsTab extends StatelessWidget {
                     if (nameCtl.text.isEmpty ||
                         purposeCtl.text.isEmpty ||
                         hostCtl.text.isEmpty) return;
-                    SecurityAuditStore.updateVisitorPass(
-                        v.id,
-                        VisitorPass(
-                          id: v.id,
-                          visitorName: nameCtl.text,
-                          purpose: purposeCtl.text,
-                          hostName: hostCtl.text,
-                          badgeNumber:
-                              badgeCtl.text.isEmpty ? null : badgeCtl.text,
-                          notes: notesCtl.text.isEmpty ? null : notesCtl.text,
-                          checkIn: v.checkIn,
-                          checkOut: active
-                              ? v.checkOut
-                              : (v.checkOut ?? DateTime.now()),
-                          active: active,
-                        ));
+                    SecurityAuditStore.addVisitorPass(VisitorPass(
+                      id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
+                      visitorName: nameCtl.text,
+                      purpose: purposeCtl.text,
+                      hostName: hostCtl.text,
+                      badgeNumber: badgeCtl.text.isEmpty ? null : badgeCtl.text,
+                      notes: notesCtl.text.isEmpty ? null : notesCtl.text,
+                    ));
                     Navigator.pop(ctx);
                     onChange();
                   },
-                  child: const Text('Save Changes'),
+                  child: const Text('Issue Pass'),
                 ),
               ),
             ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _editVisitor(BuildContext context, VisitorPass v) {
+    final nameCtl = TextEditingController(text: v.visitorName);
+    final purposeCtl = TextEditingController(text: v.purpose);
+    final hostCtl = TextEditingController(text: v.hostName);
+    final badgeCtl = TextEditingController(text: v.badgeNumber ?? '');
+    final notesCtl = TextEditingController(text: v.notes ?? '');
+    bool active = v.active;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('Edit Visitor Pass',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                TextField(
+                    controller: nameCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Visitor Name',
+                        border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: purposeCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Purpose of Visit',
+                        border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: hostCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Host Name', border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: badgeCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Badge Number',
+                        border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: notesCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Notes', border: OutlineInputBorder()),
+                    maxLines: 2),
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  title: const Text('Active (On-Site)'),
+                  value: active,
+                  activeThumbColor: _primary,
+                  onChanged: (val) => setSheet(() => active = val),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: () {
+                      if (nameCtl.text.isEmpty ||
+                          purposeCtl.text.isEmpty ||
+                          hostCtl.text.isEmpty) return;
+                      SecurityAuditStore.updateVisitorPass(
+                          v.id,
+                          VisitorPass(
+                            id: v.id,
+                            visitorName: nameCtl.text,
+                            purpose: purposeCtl.text,
+                            hostName: hostCtl.text,
+                            badgeNumber:
+                                badgeCtl.text.isEmpty ? null : badgeCtl.text,
+                            notes: notesCtl.text.isEmpty ? null : notesCtl.text,
+                            checkIn: v.checkIn,
+                            checkOut: active
+                                ? v.checkOut
+                                : (v.checkOut ?? DateTime.now()),
+                            active: active,
+                          ));
+                      Navigator.pop(ctx);
+                      onChange();
+                    },
+                    child: const Text('Save Changes'),
+                  ),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
@@ -1304,60 +1331,64 @@ class _ShiftTab extends StatelessWidget {
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setSheet) => Padding(
-          padding: EdgeInsets.fromLTRB(
-              20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-          child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Text('Start Shift',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<ShiftType>(
-                initialValue: shift,
-                decoration: const InputDecoration(
-                    labelText: 'Shift', border: OutlineInputBorder()),
-                items: ShiftType.values
-                    .map((t) => DropdownMenuItem(
-                        value: t, child: Text('${t.name} Shift')))
-                    .toList(),
-                onChanged: (v) {
-                  if (v != null) setSheet(() => shift = v);
-                },
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: nameCtl,
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                const Text('Start Shift',
+                    style:
+                        TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<ShiftType>(
+                  initialValue: shift,
                   decoration: const InputDecoration(
-                      labelText: 'Staff Name', border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              TextField(
-                  controller: notesCtl,
-                  decoration: const InputDecoration(
-                      labelText: 'Handover Notes',
-                      border: OutlineInputBorder()),
-                  maxLines: 2),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      foregroundColor: AppColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  onPressed: () {
-                    if (nameCtl.text.isEmpty) return;
-                    SecurityAuditStore.addShift(ShiftHandover(
-                      id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
-                      shift: shift,
-                      staffName: nameCtl.text,
-                      notes: notesCtl.text.isEmpty ? null : notesCtl.text,
-                    ));
-                    Navigator.pop(ctx);
-                    onChange();
+                      labelText: 'Shift', border: OutlineInputBorder()),
+                  items: ShiftType.values
+                      .map((t) => DropdownMenuItem(
+                          value: t, child: Text('${t.name} Shift')))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setSheet(() => shift = v);
                   },
-                  child: const Text('Start Shift'),
                 ),
-              ),
-            ]),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: nameCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Staff Name', border: OutlineInputBorder())),
+                const SizedBox(height: 8),
+                TextField(
+                    controller: notesCtl,
+                    decoration: const InputDecoration(
+                        labelText: 'Handover Notes',
+                        border: OutlineInputBorder()),
+                    maxLines: 2),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                        foregroundColor: AppColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14)),
+                    onPressed: () {
+                      if (nameCtl.text.isEmpty) return;
+                      SecurityAuditStore.addShift(ShiftHandover(
+                        id: 'sa_${DateTime.now().millisecondsSinceEpoch}',
+                        shift: shift,
+                        staffName: nameCtl.text,
+                        notes: notesCtl.text.isEmpty ? null : notesCtl.text,
+                      ));
+                      Navigator.pop(ctx);
+                      onChange();
+                    },
+                    child: const Text('Start Shift'),
+                  ),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
@@ -1372,49 +1403,51 @@ class _ShiftTab extends StatelessWidget {
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-            20, 12, 20, 20 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Close Shift',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          const SizedBox(height: 12),
-          Text('Closing ${shift.shift.name} Shift — ${shift.staffName}',
-              style: const TextStyle(fontSize: 13, color: AppColors.grey500)),
-          const SizedBox(height: 8),
-          TextField(
-              controller: notesCtl,
-              decoration: const InputDecoration(
-                  labelText: 'Shift Summary / Notes',
-                  border: OutlineInputBorder()),
-              maxLines: 3),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: _primary,
-                  foregroundColor: AppColors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14)),
-              onPressed: () {
-                SecurityAuditStore.updateShift(
-                    shift.id,
-                    ShiftHandover(
-                      id: shift.id,
-                      shift: shift.shift,
-                      staffName: shift.staffName,
-                      openedAt: shift.openedAt,
-                      closedAt: DateTime.now(),
-                      notes: notesCtl.text.isEmpty ? null : notesCtl.text,
-                      isActive: false,
-                    ));
-                Navigator.pop(ctx);
-                onChange();
-              },
-              child: const Text('Close Shift'),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(
+              bottom: 20 + MediaQuery.of(ctx).viewInsets.bottom),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Close Shift',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            const SizedBox(height: 12),
+            Text('Closing ${shift.shift.name} Shift — ${shift.staffName}',
+                style: const TextStyle(fontSize: 13, color: AppColors.grey500)),
+            const SizedBox(height: 8),
+            TextField(
+                controller: notesCtl,
+                decoration: const InputDecoration(
+                    labelText: 'Shift Summary / Notes',
+                    border: OutlineInputBorder()),
+                maxLines: 3),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: _primary,
+                    foregroundColor: AppColors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14)),
+                onPressed: () {
+                  SecurityAuditStore.updateShift(
+                      shift.id,
+                      ShiftHandover(
+                        id: shift.id,
+                        shift: shift.shift,
+                        staffName: shift.staffName,
+                        openedAt: shift.openedAt,
+                        closedAt: DateTime.now(),
+                        notes: notesCtl.text.isEmpty ? null : notesCtl.text,
+                        isActive: false,
+                      ));
+                  Navigator.pop(ctx);
+                  onChange();
+                },
+                child: const Text('Close Shift'),
+              ),
             ),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }
