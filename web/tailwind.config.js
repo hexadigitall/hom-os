@@ -10,6 +10,8 @@ module.exports = {
           ink: "#0E1A14",
           background: "#F6F7F5",
           whatsapp: "#25D366",
+          night: "#080C0A",
+          panel: "#121512",
         },
       },
     },

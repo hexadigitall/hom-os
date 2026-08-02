@@ -1,8 +1,8 @@
 import "./globals.css";
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hom-os-web.vercel.app"),
-  title: "HOM — Hospitality Operations Manager",
-  description: "HOM - Hospitality Operations Manager: Bookings, Diesel theft, Inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud, Booking.com sync. The Hotel OS Powering Nigeria. Built by Hexadigitall.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hom.com.ng"),
+  title: "HOM — The Hotel Operating System for Nigerian Hotels | Hexadigitall",
+  description: "HOM - The Hotel OS Powering Nigeria: Bookings, Diesel theft detection, Inventory, HR/Payroll PAYE 7% Pension 8%, Paystack, WhatsApp Cloud, Booking.com sync. Offline-first. Built by Hexadigitall.",
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -13,9 +13,12 @@ export const metadata = {
   },
   manifest: "/site.webmanifest",
   openGraph: {
-    title: "HOM — Hospitality Operations Manager",
-    description: "The Hotel OS Powering Nigeria — Bookings, Diesel, Inventory, HR/Payroll, Paystack, WhatsApp, Booking.com",
-    images: ["/playstore-icon-512.png"],
+    title: "HOM — The Hotel Operating System Powering Nigeria",
+    description: "One app for bookings, diesel tracking (5 fuel types), expenditure, compliance, payroll, WhatsApp and bank reconciliation. Offline-first for Nigerian hotels.",
+    images: ["/brand/logo-emerald-bg.png"],
+    url: "https://hom.com.ng",
+    siteName: "HOM Hospitality",
+    type: "website",
   },
 };
 export default function RootLayout({children}: {children: React.ReactNode}) {
