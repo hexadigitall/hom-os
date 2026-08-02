@@ -351,7 +351,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --release
+        run: flutter build web --release --base-href /flutter-web/
 
       - name: Upload Web Build
         uses: actions/upload-artifact@v4
@@ -391,3 +391,62 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # ─────────────────────────────────────────────
+  # RELEASE (publish artifacts to GitHub Releases)
+  # ─────────────────────────────────────────────
+  release:
+    needs: [build-android, build-windows, build-linux, build-macos, build-web]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage release files
+        working-directory: artifacts
+        run: |
+          set -e
+          mkdir -p ../staging
+          # Android single-file installers
+          find HOM-APK -name "*.apk" | head -1 | xargs -I{} cp {} ../staging/HOM-APK.apk
+          find HOM-AAB -name "*.aab" | head -1 | xargs -I{} cp {} ../staging/HOM-AAB.aab
+          cp HOM-Linux-Deb/*.deb ../staging/HOM-Linux-Deb.deb
+          # Split APKs → one zip
+          find HOM-Split-APKs -name "app-*-release.apk" -print0 | zip -q ../staging/HOM-Split-APKs.zip -0 -@ 2>/dev/null || true
+          # Desktop bundles (folder → single zip each)
+          zip -q -r ../staging/HOM-Windows.zip HOM-Windows
+          zip -q -r ../staging/HOM-Msix-Cert.zip HOM-Msix-Installer
+          zip -q -r ../staging/HOM-Linux.zip HOM-Linux
+          zip -q -r ../staging/HOM-macOS.zip HOM-macOS
+          zip -q -r ../staging/HOM-Web.zip HOM-Web
+          echo "--- Staged files ---"
+          ls -la ../staging
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: HOM v${{ github.run_number }}
+          body: |
+            Automated release build for HOM — the Hotel Operating System for Nigerian hotels.
+
+            Downloads
+            - Android APK (`HOM-APK.apk`)
+            - Android AAB (`HOM-AAB.aab`)
+            - Split APKs (`HOM-Split-APKs.zip`)
+            - Windows (`HOM-Windows.zip`)
+            - Windows MSIX + certificate (`HOM-Msix-Cert.zip`)
+            - Linux bundle (`HOM-Linux.zip`)
+            - Linux DEB (`HOM-Linux-Deb.deb`)
+            - macOS (`HOM-macOS.zip`)
+            - Web build (`HOM-Web.zip`)
+
+            Web app: https://app.hom.com.ng
+          files: |
+            staging/*
