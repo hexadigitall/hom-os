@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useState, ReactNode 
 import { load, save } from './storage';
 import {
   HotelUser, InviteCode, Session, Department, hashPassword, verifyPassword,
-  findRoleById, emptySession,
+  findRoleById, emptySession, DEFAULT_PREFERENCES,
 } from './rbac';
 
 const USERS_KEY = 'hom_web_users';
@@ -55,7 +55,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Cross-tab real-time sync: an admin edit in another tab updates this one.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === USERS_KEY) setUsers(loadUsers());
+      if (e.key === USERS_KEY) {
+        const nextUsers = loadUsers();
+        setUsers(nextUsers);
+        // Re-derive the live session from the refreshed user record so
+        // suspension, promotion, department transfer or profile edits made in
+        // another tab take effect immediately (zero-trust).
+        const stored = load<Session | null>(SESSION_KEY, null);
+        if (stored && stored.userId) {
+          const updated = nextUsers.find(u => u.userId === stored.userId);
+          if (!updated) {
+            save(SESSION_KEY, null);
+            setSession(emptySession());
+          } else {
+            setSession({
+              ...stored,
+              userName: updated.name,
+              email: updated.email,
+              roleIds: updated.roleIds,
+              assignedDepartments: updated.assignedDepartments,
+              customPermissions: updated.customPermissions,
+              isHeadOfDepartment: updated.isHeadOfDepartment,
+              status: updated.status,
+              photoUrl: updated.photoUrl,
+              preferences: updated.preferences ?? stored.preferences,
+            });
+          }
+        }
+      }
       if (e.key === INVITES_KEY) setInvites(loadInvites());
       if (e.key === SESSION_KEY) {
         const stored = load<Session | null>(SESSION_KEY, null);
@@ -84,6 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isHeadOfDepartment: user.isHeadOfDepartment,
       status: user.status,
       hotelId: user.hotelId,
+      photoUrl: user.photoUrl,
+      preferences: user.preferences ?? { ...DEFAULT_PREFERENCES },
     };
     persistSession(s);
     return true;
@@ -111,6 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hotelId: `hotel_${Date.now().toString(36)}`,
       hotelName: d.hotelName,
       createdAt: new Date().toISOString(),
+      photoUrl: '',
+      preferences: { ...DEFAULT_PREFERENCES },
     };
     const next = [...list, user];
     setUsers(next);
@@ -125,6 +156,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isHeadOfDepartment: user.isHeadOfDepartment,
       status: user.status,
       hotelId: user.hotelId,
+      photoUrl: user.photoUrl,
+      preferences: user.preferences,
     });
   }, [persistSession]);
 
@@ -147,6 +180,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hotelId: inv.hotelId,
       hotelName: inv.hotelName,
       createdAt: new Date().toISOString(),
+      photoUrl: '',
+      preferences: { ...DEFAULT_PREFERENCES },
     };
     const nextUsers = [...list, user];
     setUsers(nextUsers);
@@ -165,6 +200,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isHeadOfDepartment: user.isHeadOfDepartment,
       status: user.status,
       hotelId: user.hotelId,
+      photoUrl: user.photoUrl,
+      preferences: user.preferences,
     });
     return true;
   }, [persistSession]);
@@ -202,11 +239,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (stored && stored.userId === user.userId) {
       persistSession({
         ...stored,
+        userName: user.name,
+        email: user.email,
         roleIds: user.roleIds,
         assignedDepartments: user.assignedDepartments,
         customPermissions: user.customPermissions,
         isHeadOfDepartment: user.isHeadOfDepartment,
         status: user.status,
+        photoUrl: user.photoUrl,
+        preferences: user.preferences ?? stored.preferences,
       });
     }
   }, [persistSession]);

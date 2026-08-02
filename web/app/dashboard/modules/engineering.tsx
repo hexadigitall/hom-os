@@ -9,9 +9,9 @@ import {
 import {
   seedGenerators, seedMaintenance, seedTankDips, seedTariffs, seedWater,
 } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
 import { useAuth } from '@/lib/auth';
-import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -54,7 +54,8 @@ export function EngineeringModule() {
 const DIESEL_PRICE = 1200;
 
 function EngDashboard() {
-  const gens = useCollection<Generator>('eng_generators', seedGenerators);
+  const { session } = useAuth();
+  const gens = useScopedCollection<Generator>('eng_generators', seedGenerators, session);
 
   const running = gens.items.filter(g => g.status === 'running');
   const faults = gens.items.filter(g => g.status === 'fault');
@@ -99,9 +100,11 @@ function EngDashboard() {
 // ─── Generators ──────────────────────────────────────────────────────────────
 
 function GeneratorsTab() {
-  const gens = useCollection<Generator>('eng_generators', seedGenerators);
+  const { session } = useAuth();
+  const gens = useScopedCollection<Generator>('eng_generators', seedGenerators, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Generator | null>(null);
+  const depts = tagFor(session, 'engineering');
 
   return (
     <div className="space-y-4">
@@ -137,7 +140,7 @@ function GeneratorsTab() {
         {gens.items.length === 0 && <div className="md:col-span-2"><EmptyState text="No generators" /></div>}
       </div>
       {showForm && (
-        <GeneratorForm initial={editItem} onSave={(g) => {
+        <GeneratorForm initial={editItem} depts={depts} onSave={(g) => {
           if (editItem) gens.replace(g.id, g); else gens.add(g);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -146,7 +149,7 @@ function GeneratorsTab() {
   );
 }
 
-function GeneratorForm({ initial, onSave, onCancel }: { initial: Generator | null; onSave: (g: Generator) => void; onCancel: () => void }) {
+function GeneratorForm({ initial, depts, onSave, onCancel }: { initial: Generator | null; depts: Department[]; onSave: (g: Generator) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { name: initial.name, model: initial.model, capacityKva: String(initial.capacityKva), currentRunHours: String(initial.currentRunHours), currentLoadKva: String(initial.currentLoadKva), status: initial.status, lastServiceDate: initial.lastServiceDate || '' }
     : { name: '', model: '', capacityKva: '', currentRunHours: '0', currentLoadKva: '0', status: 'idle' as GeneratorStatus, lastServiceDate: '' });
@@ -166,7 +169,7 @@ function GeneratorForm({ initial, onSave, onCancel }: { initial: Generator | nul
         </Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name || !f.capacityKva) return alert('Name and capacity required'); onSave({ id: initial?.id || uid('eng'), ...f, capacityKva: Number(f.capacityKva), currentRunHours: Number(f.currentRunHours) || 0, currentLoadKva: Number(f.currentLoadKva) || 0, lastServiceDate: f.lastServiceDate || undefined }); }}>{initial ? 'Update' : 'Add Generator'}</Btn>
+        <Btn onClick={() => { if (!f.name || !f.capacityKva) return alert('Name and capacity required'); onSave({ id: initial?.id || uid('eng'), ...f, capacityKva: Number(f.capacityKva), currentRunHours: Number(f.currentRunHours) || 0, currentLoadKva: Number(f.currentLoadKva) || 0, lastServiceDate: f.lastServiceDate || undefined, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Generator'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -181,10 +184,12 @@ const PRIORITY_COLOR: Record<MaintenancePriority, string> = {
 };
 
 function MaintenanceTab() {
-  const tasks = useCollection<MaintenanceTask>('eng_maintenance', seedMaintenance);
+  const { session } = useAuth();
+  const tasks = useScopedCollection<MaintenanceTask>('eng_maintenance', seedMaintenance, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MaintenanceTask | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const depts = tagFor(session, 'engineering');
 
   const t = today();
   const pending = tasks.items.filter(x => !x.completed);
@@ -207,7 +212,7 @@ function MaintenanceTab() {
         <MetricCard label="Urgent / Critical" value={urgent.length} sub="High priority" color="bg-amber-50 text-amber-700" />
       </div>
       {showForm && (
-        <TaskForm initial={editItem} onSave={(task) => {
+        <TaskForm initial={editItem} depts={depts} onSave={(task) => {
           if (editItem) tasks.replace(task.id, task); else tasks.add(task);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -245,7 +250,7 @@ function MaintenanceTab() {
   );
 }
 
-function TaskForm({ initial, onSave, onCancel }: { initial: MaintenanceTask | null; onSave: (t: MaintenanceTask) => void; onCancel: () => void }) {
+function TaskForm({ initial, depts, onSave, onCancel }: { initial: MaintenanceTask | null; depts: Department[]; onSave: (t: MaintenanceTask) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { equipmentName: initial.equipmentName, description: initial.description || '', assignedTo: initial.assignedTo, equipmentType: initial.equipmentType, priority: initial.priority, scheduledDate: initial.scheduledDate, notes: initial.notes || '' }
     : { equipmentName: '', description: '', assignedTo: '', equipmentType: 'generator' as EquipmentType, priority: 'routine' as MaintenancePriority, scheduledDate: today(), notes: '' });
@@ -269,7 +274,7 @@ function TaskForm({ initial, onSave, onCancel }: { initial: MaintenanceTask | nu
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.equipmentName || !f.assignedTo) return alert('Equipment and assignee required'); onSave({ id: initial?.id || uid('eng'), ...f, completed: initial?.completed || false, scheduledDate: f.scheduledDate || today() }); }}>{initial ? 'Update' : 'Create Task'}</Btn>
+        <Btn onClick={() => { if (!f.equipmentName || !f.assignedTo) return alert('Equipment and assignee required'); onSave({ id: initial?.id || uid('eng'), ...f, completed: initial?.completed || false, scheduledDate: f.scheduledDate || today(), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Create Task'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -279,9 +284,11 @@ function TaskForm({ initial, onSave, onCancel }: { initial: MaintenanceTask | nu
 // ─── Fuel & Tanks ────────────────────────────────────────────────────────────
 
 function FuelTanksTab() {
-  const dips = useCollection<TankDipLog>('eng_tank_dips', seedTankDips);
+  const { session } = useAuth();
+  const dips = useScopedCollection<TankDipLog>('eng_tank_dips', seedTankDips, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<TankDipLog | null>(null);
+  const depts = tagFor(session, 'engineering');
 
   const thefts = dips.items.filter(d => d.expectedVolumeL != null && Math.abs(d.calculatedVolumeL - d.expectedVolumeL) > d.tankCapacityL * 0.05);
   const dieselCost = dips.items[dips.items.length - 1] ? Math.round((dips.items[dips.items.length - 1].calculatedVolumeL * DIESEL_PRICE) / 1000) * 1000 : 0;
@@ -303,7 +310,7 @@ function FuelTanksTab() {
         </div>
       )}
       {showForm && (
-        <DipForm initial={editItem} onSave={(d) => {
+        <DipForm initial={editItem} depts={depts} onSave={(d) => {
           if (editItem) dips.replace(d.id, d); else dips.add(d);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -337,7 +344,7 @@ function FuelTanksTab() {
   );
 }
 
-function DipForm({ initial, onSave, onCancel }: { initial: TankDipLog | null; onSave: (d: TankDipLog) => void; onCancel: () => void }) {
+function DipForm({ initial, depts, onSave, onCancel }: { initial: TankDipLog | null; depts: Department[]; onSave: (d: TankDipLog) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, tankName: initial.tankName, dipReadingCm: String(initial.dipReadingCm), tankCapacityL: String(initial.tankCapacityL), calculatedVolumeL: String(initial.calculatedVolumeL), expectedVolumeL: initial.expectedVolumeL != null ? String(initial.expectedVolumeL) : '', performedBy: initial.performedBy, notes: initial.notes || '' }
     : { date: today(), tankName: 'Main Diesel Tank', dipReadingCm: '', tankCapacityL: '5000', calculatedVolumeL: '', expectedVolumeL: '', performedBy: '', notes: '' });
@@ -359,7 +366,7 @@ function DipForm({ initial, onSave, onCancel }: { initial: TankDipLog | null; on
         <Field label="Notes"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.tankName || !f.dipReadingCm) return alert('Tank name and reading required'); onSave({ id: initial?.id || uid('eng'), ...f, dipReadingCm: Number(f.dipReadingCm), tankCapacityL: Number(f.tankCapacityL) || 0, calculatedVolumeL: Number(f.calculatedVolumeL) || autoCalc(), expectedVolumeL: f.expectedVolumeL ? Number(f.expectedVolumeL) : undefined }); }}>{initial ? 'Update' : 'Record'}</Btn>
+        <Btn onClick={() => { if (!f.tankName || !f.dipReadingCm) return alert('Tank name and reading required'); onSave({ id: initial?.id || uid('eng'), ...f, dipReadingCm: Number(f.dipReadingCm), tankCapacityL: Number(f.tankCapacityL) || 0, calculatedVolumeL: Number(f.calculatedVolumeL) || autoCalc(), expectedVolumeL: f.expectedVolumeL ? Number(f.expectedVolumeL) : undefined, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Record'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -371,8 +378,9 @@ function DipForm({ initial, onSave, onCancel }: { initial: TankDipLog | null; on
 function GridCostTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.trackGridTariffUsage);
-  const tariffs = useCollection<GridTariffConfig>('eng_tariffs', seedTariffs);
+  const tariffs = useScopedCollection<GridTariffConfig>('eng_tariffs', seedTariffs, session);
   const [editId, setEditId] = useState<string | null>(null);
+  const depts = tagFor(session, 'engineering');
 
   return (
     <div className="space-y-4">
@@ -405,7 +413,7 @@ function GridCostTab() {
         {tariffs.items.length === 0 && <div className="md:col-span-3"><EmptyState text="No tariff bands configured" /></div>}
       </div>
       {editId && (
-        <TariffForm initial={tariffs.items.find(t => t.id === editId) || null} onSave={(t) => {
+        <TariffForm initial={tariffs.items.find(t => t.id === editId) || null} depts={depts} onSave={(t) => {
           if (editId === 'new') tariffs.add(t); else tariffs.replace(t.id, t);
           setEditId(null);
         }} onCancel={() => setEditId(null)} />
@@ -414,7 +422,7 @@ function GridCostTab() {
   );
 }
 
-function TariffForm({ initial, onSave, onCancel }: { initial: GridTariffConfig | null; onSave: (t: GridTariffConfig) => void; onCancel: () => void }) {
+function TariffForm({ initial, depts, onSave, onCancel }: { initial: GridTariffConfig | null; depts: Department[]; onSave: (t: GridTariffConfig) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { band: initial.band, hoursPerDay: String(initial.hoursPerDay), costPerKwh: String(initial.costPerKwh), label: initial.label, description: initial.description }
     : { band: 'a' as GridBand, hoursPerDay: '20', costPerKwh: '', label: '', description: '' });
@@ -432,7 +440,7 @@ function TariffForm({ initial, onSave, onCancel }: { initial: GridTariffConfig |
         <Field label="Description" className="md:col-span-2"><TextInput value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="e.g. Band A — 20h supply" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.costPerKwh) return alert('Cost required'); onSave({ id: initial?.id || uid('eng'), band: f.band, hoursPerDay: Number(f.hoursPerDay) || 0, costPerKwh: Number(f.costPerKwh), label: f.label, description: f.description }); }}>{initial ? 'Update' : 'Add Band'}</Btn>
+        <Btn onClick={() => { if (!f.costPerKwh) return alert('Cost required'); onSave({ id: initial?.id || uid('eng'), band: f.band, hoursPerDay: Number(f.hoursPerDay) || 0, costPerKwh: Number(f.costPerKwh), label: f.label, description: f.description, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Band'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -442,9 +450,11 @@ function TariffForm({ initial, onSave, onCancel }: { initial: GridTariffConfig |
 // ─── Water Treatment ─────────────────────────────────────────────────────────
 
 function WaterTab() {
-  const logs = useCollection<WaterTreatmentLog>('eng_water', seedWater);
+  const { session } = useAuth();
+  const logs = useScopedCollection<WaterTreatmentLog>('eng_water', seedWater, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<WaterTreatmentLog | null>(null);
+  const depts = tagFor(session, 'engineering');
 
   const outOfRange = logs.items.filter(l => l.phLevel < 6.5 || l.phLevel > 8.5);
 
@@ -460,7 +470,7 @@ function WaterTab() {
         <MetricCard label="Due Next" value={logs.items.filter(l => l.nextScheduledDate && l.nextScheduledDate <= addDays(today(), 3)).length} sub="Within 3 days" color="bg-amber-50 text-amber-700" />
       </div>
       {showForm && (
-        <WaterForm initial={editItem} onSave={(l) => {
+        <WaterForm initial={editItem} depts={depts} onSave={(l) => {
           if (editItem) logs.replace(l.id, l); else logs.add(l);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -497,7 +507,7 @@ function WaterTab() {
   );
 }
 
-function WaterForm({ initial, onSave, onCancel }: { initial: WaterTreatmentLog | null; onSave: (l: WaterTreatmentLog) => void; onCancel: () => void }) {
+function WaterForm({ initial, depts, onSave, onCancel }: { initial: WaterTreatmentLog | null; depts: Department[]; onSave: (l: WaterTreatmentLog) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, source: initial.source, treatmentAction: initial.treatmentAction, phLevel: String(initial.phLevel), chlorineLevel: initial.chlorineLevel != null ? String(initial.chlorineLevel) : '', tdsLevel: initial.tdsLevel != null ? String(initial.tdsLevel) : '', chemicalUsed: initial.chemicalUsed || '', chemicalDosageMl: initial.chemicalDosageMl != null ? String(initial.chemicalDosageMl) : '', nextScheduledDate: initial.nextScheduledDate || '', performedBy: initial.performedBy || '', notes: initial.notes || '' }
     : { date: today(), source: 'RO Plant', treatmentAction: '', phLevel: '7.0', chlorineLevel: '', tdsLevel: '', chemicalUsed: '', chemicalDosageMl: '', nextScheduledDate: '', performedBy: '', notes: '' });
@@ -517,7 +527,7 @@ function WaterForm({ initial, onSave, onCancel }: { initial: WaterTreatmentLog |
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.source) return alert('Source required'); onSave({ id: initial?.id || uid('eng'), ...f, phLevel: Number(f.phLevel) || 0, chlorineLevel: f.chlorineLevel ? Number(f.chlorineLevel) : undefined, tdsLevel: f.tdsLevel ? Number(f.tdsLevel) : undefined, chemicalDosageMl: f.chemicalDosageMl ? Number(f.chemicalDosageMl) : undefined, nextScheduledDate: f.nextScheduledDate || undefined }); }}>{initial ? 'Update' : 'Add Log'}</Btn>
+        <Btn onClick={() => { if (!f.source) return alert('Source required'); onSave({ id: initial?.id || uid('eng'), ...f, phLevel: Number(f.phLevel) || 0, chlorineLevel: f.chlorineLevel ? Number(f.chlorineLevel) : undefined, tdsLevel: f.tdsLevel ? Number(f.tdsLevel) : undefined, chemicalDosageMl: f.chemicalDosageMl ? Number(f.chemicalDosageMl) : undefined, nextScheduledDate: f.nextScheduledDate || undefined, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Log'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

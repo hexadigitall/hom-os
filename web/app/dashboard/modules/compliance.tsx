@@ -10,9 +10,9 @@ import {
 } from '@/lib/types';
 import { SCUML_THRESHOLD } from '@/lib/types';
 import { seedScuml, seedCash, seedTaxConfigs, seedTaxReports, seedFireCerts, seedNaptip, seedLga } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
 import { useAuth } from '@/lib/auth';
-import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -54,12 +54,13 @@ export function ComplianceModule() {
 }
 
 function ComplianceHub({ onOpen }: { onOpen: (t: SubTab) => void }) {
-  const scuml = useCollection<ScumlTransaction>('cmp_scuml', seedScuml);
-  const cash = useCollection<CashTransaction>('cmp_cash', seedCash);
-  const tax = useCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed);
-  const naptip = useCollection<NaptipAlert>('cmp_naptip', seedNaptip);
-  const lga = useCollection<LgaInspection>('cmp_lga', seedLga);
-  const fire = useCollection<FireServiceCert>('cmp_fire_certs', seedFireCerts);
+  const { session } = useAuth();
+  const scuml = useScopedCollection<ScumlTransaction>('cmp_scuml', seedScuml, session);
+  const cash = useScopedCollection<CashTransaction>('cmp_cash', seedCash, session);
+  const tax = useScopedCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed, session);
+  const naptip = useScopedCollection<NaptipAlert>('cmp_naptip', seedNaptip, session);
+  const lga = useScopedCollection<LgaInspection>('cmp_lga', seedLga, session);
+  const fire = useScopedCollection<FireServiceCert>('cmp_fire_certs', seedFireCerts, session);
 
   const thresholdAlerts = cash.items.filter(c => c.amount >= SCUML_THRESHOLD).length;
   const latestInspection = lga.items[0];
@@ -88,9 +89,11 @@ function ComplianceHub({ onOpen }: { onOpen: (t: SubTab) => void }) {
 // ─── Cash Transactions ───────────────────────────────────────────────────────
 
 function CashTab() {
-  const cash = useCollection<CashTransaction>('cmp_cash', seedCash);
+  const { session } = useAuth();
+  const cash = useScopedCollection<CashTransaction>('cmp_cash', seedCash, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<CashTransaction | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   return (
     <div className="space-y-4">
@@ -103,7 +106,7 @@ function CashTab() {
         <MetricCard label="Flagged" value={cash.items.filter(c => c.flagged).length} sub="Manually flagged" color="bg-amber-50 text-amber-700" />
       </div>
       {showForm && (
-        <CashForm initial={editItem} onSave={(c) => {
+        <CashForm initial={editItem} depts={depts} onSave={(c) => {
           if (editItem) cash.replace(c.id, c); else cash.add(c);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -143,7 +146,7 @@ function CashTab() {
   );
 }
 
-function CashForm({ initial, onSave, onCancel }: { initial: CashTransaction | null; onSave: (c: CashTransaction) => void; onCancel: () => void }) {
+function CashForm({ initial, depts, onSave, onCancel }: { initial: CashTransaction | null; depts: Department[]; onSave: (c: CashTransaction) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, guestName: initial.guestName, receiptNumber: initial.receiptNumber, paymentMethod: initial.paymentMethod, amount: String(initial.amount), purpose: initial.purpose, flagged: initial.flagged }
     : { date: today(), guestName: '', receiptNumber: '', paymentMethod: 'cash', amount: '', purpose: '', flagged: false });
@@ -166,7 +169,7 @@ function CashForm({ initial, onSave, onCancel }: { initial: CashTransaction | nu
         Flag for SCUML reporting
       </label>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.guestName || !f.amount) return alert('Guest name and amount required'); onSave({ id: initial?.id || uid('cmp'), createdAt: initial ? initial.createdAt : new Date().toISOString(), ...f, amount: Number(f.amount), paymentMethod: f.paymentMethod as CashTransaction['paymentMethod'] }); }}>{initial ? 'Update' : 'Record'}</Btn>
+        <Btn onClick={() => { if (!f.guestName || !f.amount) return alert('Guest name and amount required'); onSave({ id: initial?.id || uid('cmp'), createdAt: initial ? initial.createdAt : new Date().toISOString(), ...f, amount: Number(f.amount), paymentMethod: f.paymentMethod as CashTransaction['paymentMethod'], departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Record'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -176,9 +179,11 @@ function CashForm({ initial, onSave, onCancel }: { initial: CashTransaction | nu
 // ─── SCUML ───────────────────────────────────────────────────────────────────
 
 function ScumlTab() {
-  const scuml = useCollection<ScumlTransaction>('cmp_scuml', seedScuml);
+  const { session } = useAuth();
+  const scuml = useScopedCollection<ScumlTransaction>('cmp_scuml', seedScuml, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ScumlTransaction | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   const exportCsv = () => {
     const rows = [
@@ -204,7 +209,7 @@ function ScumlTab() {
         <MetricCard label="Pending Filing" value={scuml.items.filter(s => !s.submittedToScuml).length} sub="Not yet submitted" color="bg-amber-50 text-amber-700" />
       </div>
       {showForm && (
-        <ScumlForm initial={editItem} onSave={(s) => {
+        <ScumlForm initial={editItem} depts={depts} onSave={(s) => {
           if (editItem) scuml.replace(s.id, s); else scuml.add(s);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -232,7 +237,7 @@ function ScumlTab() {
   );
 }
 
-function ScumlForm({ initial, onSave, onCancel }: { initial: ScumlTransaction | null; onSave: (s: ScumlTransaction) => void; onCancel: () => void }) {
+function ScumlForm({ initial, depts, onSave, onCancel }: { initial: ScumlTransaction | null; depts: Department[]; onSave: (s: ScumlTransaction) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, guestName: initial.guestName, address: initial.address, idType: initial.idType, idNumber: initial.idNumber, amount: String(initial.amount), purpose: initial.purpose }
     : { date: today(), guestName: '', address: '', idType: 'National ID', idNumber: '', amount: '', purpose: '' });
@@ -251,7 +256,7 @@ function ScumlForm({ initial, onSave, onCancel }: { initial: ScumlTransaction | 
         <Field label="Purpose"><TextInput value={f.purpose} onChange={e => setF({ ...f, purpose: e.target.value })} placeholder="Purpose" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.guestName || !f.amount) return alert('Guest name and amount required'); onSave({ id: initial?.id || uid('cmp'), createdAt: initial ? initial.createdAt : new Date().toISOString(), submittedToScuml: initial?.submittedToScuml || false, ...f, amount: Number(f.amount) }); }}>{initial ? 'Update' : 'Add'}</Btn>
+        <Btn onClick={() => { if (!f.guestName || !f.amount) return alert('Guest name and amount required'); onSave({ id: initial?.id || uid('cmp'), createdAt: initial ? initial.createdAt : new Date().toISOString(), submittedToScuml: initial?.submittedToScuml || false, ...f, amount: Number(f.amount), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -269,9 +274,11 @@ const NAPTIP_TYPES: { id: NaptipIncidentType; label: string }[] = [
 ];
 
 function NaptipTab() {
-  const naptip = useCollection<NaptipAlert>('cmp_naptip', seedNaptip);
+  const { session } = useAuth();
+  const naptip = useScopedCollection<NaptipAlert>('cmp_naptip', seedNaptip, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<NaptipAlert | null>(null);
+  const depts = tagFor(session, 'humanResources');
 
   return (
     <div className="space-y-4">
@@ -284,7 +291,7 @@ function NaptipTab() {
         <MetricCard label="Resolved" value={naptip.items.filter(n => n.status === 'resolved').length} sub="Closed out" color="bg-green-50 text-green-700" />
       </div>
       {showForm && (
-        <NaptipForm initial={editItem} onSave={(n) => {
+        <NaptipForm initial={editItem} depts={depts} onSave={(n) => {
           if (editItem) naptip.replace(n.id, n); else naptip.add(n);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -317,7 +324,7 @@ function NaptipTab() {
   );
 }
 
-function NaptipForm({ initial, onSave, onCancel }: { initial: NaptipAlert | null; onSave: (n: NaptipAlert) => void; onCancel: () => void }) {
+function NaptipForm({ initial, depts, onSave, onCancel }: { initial: NaptipAlert | null; depts: Department[]; onSave: (n: NaptipAlert) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, type: initial.type, description: initial.description, actionTaken: initial.actionTaken, reportedTo: initial.reportedTo }
     : { date: today(), type: 'other' as NaptipIncidentType, description: '', actionTaken: '', reportedTo: '' });
@@ -335,7 +342,7 @@ function NaptipForm({ initial, onSave, onCancel }: { initial: NaptipAlert | null
         <Field label="Action Taken" className="md:col-span-2"><TextInput value={f.actionTaken} onChange={e => setF({ ...f, actionTaken: e.target.value })} placeholder="Action taken" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.description) return alert('Description required'); onSave({ id: initial?.id || uid('cmp'), status: initial?.status || 'pending', ...f }); }}>{initial ? 'Update' : 'Add'}</Btn>
+        <Btn onClick={() => { if (!f.description) return alert('Description required'); onSave({ id: initial?.id || uid('cmp'), status: initial?.status || 'pending', ...f, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -345,9 +352,11 @@ function NaptipForm({ initial, onSave, onCancel }: { initial: NaptipAlert | null
 // ─── LGA H&S ─────────────────────────────────────────────────────────────────
 
 function LgaTab() {
-  const lga = useCollection<LgaInspection>('cmp_lga', seedLga);
+  const { session } = useAuth();
+  const lga = useScopedCollection<LgaInspection>('cmp_lga', seedLga, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LgaInspection | null>(null);
+  const depts = tagFor(session, 'healthSafety');
 
   return (
     <div className="space-y-4">
@@ -355,7 +364,7 @@ function LgaTab() {
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Inspection</Btn>
       </SectionHeader>
       {showForm && (
-        <LgaForm initial={editItem} onSave={(i) => {
+        <LgaForm initial={editItem} depts={depts} onSave={(i) => {
           if (editItem) lga.replace(i.id, i); else lga.add(i);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -389,7 +398,7 @@ function LgaTab() {
   );
 }
 
-function LgaForm({ initial, onSave, onCancel }: { initial: LgaInspection | null; onSave: (i: LgaInspection) => void; onCancel: () => void }) {
+function LgaForm({ initial, depts, onSave, onCancel }: { initial: LgaInspection | null; depts: Department[]; onSave: (i: LgaInspection) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { inspectionDate: initial.inspectionDate, inspector: initial.inspector, agency: initial.agency, certificateNumber: initial.certificateNumber, expiryDate: initial.expiryDate || '', score: String(initial.score), status: initial.status, passedItems: initial.passedItems.join(', '), failedItems: initial.failedItems.join(', ') }
     : { inspectionDate: today(), inspector: '', agency: '', certificateNumber: '', expiryDate: '', score: '0', status: 'passed', passedItems: '', failedItems: '' });
@@ -411,7 +420,7 @@ function LgaForm({ initial, onSave, onCancel }: { initial: LgaInspection | null;
         <Field label="Failed Items" className="md:col-span-2"><TextInput value={f.failedItems} onChange={e => setF({ ...f, failedItems: e.target.value })} placeholder="Comma-separated" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.agency) return alert('Agency required'); onSave({ id: initial?.id || uid('cmp'), ...f, score: Number(f.score) || 0, passedItems: f.passedItems ? f.passedItems.split(',').map(s => s.trim()).filter(Boolean) : [], failedItems: f.failedItems ? f.failedItems.split(',').map(s => s.trim()).filter(Boolean) : [] }); }}>{initial ? 'Update' : 'Add'}</Btn>
+        <Btn onClick={() => { if (!f.agency) return alert('Agency required'); onSave({ id: initial?.id || uid('cmp'), ...f, score: Number(f.score) || 0, passedItems: f.passedItems ? f.passedItems.split(',').map(s => s.trim()).filter(Boolean) : [], failedItems: f.failedItems ? f.failedItems.split(',').map(s => s.trim()).filter(Boolean) : [], departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -423,11 +432,12 @@ function LgaForm({ initial, onSave, onCancel }: { initial: LgaInspection | null;
 function TaxTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.manageTaxConfig);
-  const tax = useCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed);
-  const reports = useCollection<StateTaxReport>('cmp_tax_reports', seedTaxReports);
+  const tax = useScopedCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed, session);
+  const reports = useScopedCollection<StateTaxReport>('cmp_tax_reports', seedTaxReports, session);
   const [editState, setEditState] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [showReport, setShowReport] = useState<string | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   const generateReport = (stateName: string) => {
     const cfg = tax.items.find(t => t.stateName === stateName);
@@ -436,7 +446,7 @@ function TaxTab() {
     const taxDue = totalSales * (cfg.rate / 100);
     const start = new Date(); start.setDate(1);
     const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
-    reports.add({ id: uid('cmp'), stateName, rate: cfg.rate, totalSales, taxDue, periodStart: start.toISOString().slice(0, 10), periodEnd: end.toISOString().slice(0, 10), status: 'pending' });
+    reports.add({ id: uid('cmp'), stateName, rate: cfg.rate, totalSales, taxDue, periodStart: start.toISOString().slice(0, 10), periodEnd: end.toISOString().slice(0, 10), status: 'pending', departments: depts });
     setShowReport(null);
   };
 
@@ -468,14 +478,14 @@ function TaxTab() {
       </div>
 
       {editState && (
-        <TaxConfigForm initial={tax.items.find(t => t.stateName === editState)!} onSave={(c) => {
+        <TaxConfigForm initial={tax.items.find(t => t.stateName === editState)!} depts={depts} onSave={(c) => {
           tax.replace(c.id, c);
           setEditState(null);
         }} onCancel={() => setEditState(null)} />
       )}
 
       {creating && canManage && (
-        <TaxConfigForm initial={null} onSave={(c) => {
+        <TaxConfigForm initial={null} depts={depts} onSave={(c) => {
           if (tax.items.some(t => t.stateName === c.stateName)) return alert(`${c.stateName} already configured`);
           tax.add(c);
           setCreating(false);
@@ -519,7 +529,7 @@ function TaxTab() {
   );
 }
 
-function TaxConfigForm({ initial, onSave, onCancel }: { initial: TaxConfigItem | null; onSave: (c: TaxConfigItem) => void; onCancel: () => void }) {
+function TaxConfigForm({ initial, depts, onSave, onCancel }: { initial: TaxConfigItem | null; depts: Department[]; onSave: (c: TaxConfigItem) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { stateName: initial.stateName, rate: String(initial.rate), appliesToOtherServices: initial.appliesToOtherServices }
     : { stateName: '', rate: '7.5', appliesToOtherServices: false });
@@ -538,7 +548,7 @@ function TaxConfigForm({ initial, onSave, onCancel }: { initial: TaxConfigItem |
           if (!f.stateName.trim()) return alert('State name required');
           onSave(initial
             ? { ...initial, rate: Number(f.rate) || 0, appliesToOtherServices: f.appliesToOtherServices }
-            : { id: f.stateName.trim(), stateName: f.stateName.trim(), rate: Number(f.rate) || 0, appliesToOtherServices: f.appliesToOtherServices });
+            : { id: f.stateName.trim(), stateName: f.stateName.trim(), rate: Number(f.rate) || 0, appliesToOtherServices: f.appliesToOtherServices, departments: depts });
         }}>{initial ? 'Save' : 'Add State'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
@@ -549,9 +559,11 @@ function TaxConfigForm({ initial, onSave, onCancel }: { initial: TaxConfigItem |
 // ─── Fire Certificates ───────────────────────────────────────────────────────
 
 function FireTab() {
-  const fire = useCollection<FireServiceCert>('cmp_fire_certs', seedFireCerts);
+  const { session } = useAuth();
+  const fire = useScopedCollection<FireServiceCert>('cmp_fire_certs', seedFireCerts, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<FireServiceCert | null>(null);
+  const depts = tagFor(session, 'healthSafety');
 
   const statusOf = (c: FireServiceCert) => {
     if (c.expiryDate < today()) return 'expired';
@@ -570,7 +582,7 @@ function FireTab() {
         <MetricCard label="Expired" value={fire.items.filter(c => statusOf(c) === 'expired').length} sub="Needs immediate action" color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <FireForm initial={editItem} onSave={(c) => {
+        <FireForm initial={editItem} depts={depts} onSave={(c) => {
           if (editItem) fire.replace(c.id, c); else fire.add(c);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -600,7 +612,7 @@ function FireTab() {
   );
 }
 
-function FireForm({ initial, onSave, onCancel }: { initial: FireServiceCert | null; onSave: (c: FireServiceCert) => void; onCancel: () => void }) {
+function FireForm({ initial, depts, onSave, onCancel }: { initial: FireServiceCert | null; depts: Department[]; onSave: (c: FireServiceCert) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { certificateNumber: initial.certificateNumber, issueDate: initial.issueDate, expiryDate: initial.expiryDate, fireServiceOffice: initial.fireServiceOffice, status: initial.status, inspectionScore: initial.inspectionScore != null ? String(initial.inspectionScore) : '' }
     : { certificateNumber: '', issueDate: today(), expiryDate: addDays(today(), 365), fireServiceOffice: '', status: 'pending-renewal', inspectionScore: '' });
@@ -619,7 +631,7 @@ function FireForm({ initial, onSave, onCancel }: { initial: FireServiceCert | nu
         <Field label="Inspection Score"><NumberInput value={f.inspectionScore} onChange={e => setF({ ...f, inspectionScore: e.target.value })} placeholder="Score (optional)" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.certificateNumber) return alert('Certificate number required'); onSave({ id: initial?.id || uid('cmp'), ...f, inspectionScore: f.inspectionScore ? Number(f.inspectionScore) : undefined } as FireServiceCert); }}>{initial ? 'Update' : 'Add'}</Btn>
+        <Btn onClick={() => { if (!f.certificateNumber) return alert('Certificate number required'); onSave({ id: initial?.id || uid('cmp'), ...f, inspectionScore: f.inspectionScore ? Number(f.inspectionScore) : undefined, departments: initial?.departments || depts } as FireServiceCert); }}>{initial ? 'Update' : 'Add'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

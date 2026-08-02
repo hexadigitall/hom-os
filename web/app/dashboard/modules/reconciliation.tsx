@@ -9,9 +9,9 @@ import {
 import {
   seedBankTransactions, seedMatches, seedVirtualAccounts, seedPosTerminals, seedPosSettlements, seedBookings, seedExpenditure,
 } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
 import { useAuth } from '@/lib/auth';
-import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { parseBankCsv } from '@/lib/bankparser';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
@@ -45,11 +45,11 @@ export function ReconciliationModule() {
 
 function BankTab() {
   const { session } = useAuth();
-  const txns = useCollection<BankTransaction>('rec_bank_txns', seedBankTransactions);
-  const matches = useCollection<ReconciliationMatch>('rec_matches', seedMatches);
-  const splits = useCollection<SplitPayment>('rec_split_payments', () => []);
-  const bookings = useCollection<Booking>('hom_bookings', seedBookings);
-  const exp = useCollection<ExpenditureRecord>('expenditure_records', seedExpenditure);
+  const txns = useScopedCollection<BankTransaction>('rec_bank_txns', seedBankTransactions, session);
+  const matches = useScopedCollection<ReconciliationMatch>('rec_matches', seedMatches, session);
+  const splits = useScopedCollection<SplitPayment>('rec_split_payments', () => [], session);
+  const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
+  const exp = useScopedCollection<ExpenditureRecord>('expenditure_records', seedExpenditure, session);
   const [filter, setFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
   const [search, setSearch] = useState('');
   const [matchTxn, setMatchTxn] = useState<BankTransaction | null>(null);
@@ -59,6 +59,7 @@ function BankTab() {
   const [importMsg, setImportMsg] = useState('');
   const [addTxn, setAddTxn] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const depts = tagFor(session, 'accounts');
 
   const canManage = hasPermission(session, PERMISSIONS.manageReconciliation);
   const canParse = hasPermission(session, PERMISSIONS.parseBankCSV);
@@ -84,7 +85,7 @@ function BankTab() {
     if (!matchTxn) return;
     matches.add({
       id: uid('rec'), bankTransactionId: matchTxn.id, entityType: entity.type, entityId: entity.id,
-      entityLabel: entity.label, entityAmount: entity.amount, matchedAmount: amt, confidence: 1, isManual: true, matchedAt: nowISO(),
+      entityLabel: entity.label, entityAmount: entity.amount, matchedAmount: amt, confidence: 1, isManual: true, matchedAt: nowISO(), departments: depts,
     });
     setMatchTxn(null);
   };
@@ -95,7 +96,7 @@ function BankTab() {
       const raw = String(reader.result || '');
       const parsed = parseBankCsv(raw, file.name);
       if (parsed.transactions.length > 0) {
-        parsed.transactions.forEach(t => txns.add(t));
+        parsed.transactions.forEach(t => txns.add({ ...t, departments: depts }));
       }
       setImportMsg(`${parsed.parsedCount} transactions parsed (${parsed.skippedCount} skipped)${parsed.errors.length ? ' — see console for errors' : ''}`);
       if (parsed.errors.length) console.warn('Bank CSV parse errors:', parsed.errors);
@@ -207,7 +208,7 @@ function BankTab() {
       )}
 
       {(addTxn || (editTxn && canManage)) && (
-        <TxnForm initial={editTxn} onSave={(t) => {
+        <TxnForm initial={editTxn} depts={depts} onSave={(t) => {
           if (editTxn) txns.replace(t.id, t); else txns.add(t);
           setEditTxn(null); setAddTxn(false);
         }} onCancel={() => { setEditTxn(null); setAddTxn(false); }} />
@@ -222,12 +223,12 @@ function BankTab() {
       })()}
 
       {splitTxn && canSplit && (
-        <SplitForm txn={splitTxn} entities={matchEntities} onSave={(allocs) => {
+        <SplitForm txn={splitTxn} entities={matchEntities} depts={depts} onSave={(allocs) => {
           allocs.forEach(a => matches.add({
             id: uid('rec'), bankTransactionId: splitTxn.id, entityType: a.entityType, entityId: a.entityId,
-            entityLabel: a.entityLabel, entityAmount: a.amount, matchedAmount: a.amount, confidence: 1, isManual: true, matchedAt: nowISO(),
+            entityLabel: a.entityLabel, entityAmount: a.amount, matchedAmount: a.amount, confidence: 1, isManual: true, matchedAt: nowISO(), departments: depts,
           }));
-          splits.add({ id: uid('rec'), bankTransactionId: splitTxn.id, allocations: allocs });
+          splits.add({ id: uid('rec'), bankTransactionId: splitTxn.id, allocations: allocs, departments: depts });
           setSplitTxn(null);
         }} onCancel={() => setSplitTxn(null)} />
       )}
@@ -259,7 +260,7 @@ function BankTab() {
   );
 }
 
-function TxnForm({ initial, onSave, onCancel }: { initial: BankTransaction | null; onSave: (t: BankTransaction) => void; onCancel: () => void }) {
+function TxnForm({ initial, depts, onSave, onCancel }: { initial: BankTransaction | null; depts: Department[]; onSave: (t: BankTransaction) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? {
         date: initial.date, description: initial.description, amount: String(initial.amount),
@@ -283,7 +284,7 @@ function TxnForm({ initial, onSave, onCancel }: { initial: BankTransaction | nul
         <Field label="Source"><TextInput value={f.source} onChange={e => setF({ ...f, source: e.target.value })} placeholder="Source (bank)" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.date || !f.amount) return alert('Date and amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), reference: f.reference || undefined, source: f.source || undefined }); }}>{initial ? 'Save Changes' : 'Add Transaction'}</Btn>
+        <Btn onClick={() => { if (!f.date || !f.amount) return alert('Date and amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), reference: f.reference || undefined, source: f.source || undefined, departments: initial?.departments || depts }); }}>{initial ? 'Save Changes' : 'Add Transaction'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -324,9 +325,10 @@ function MatchEditForm({ txn, match, entities, onSave, onCancel }: {
   );
 }
 
-function SplitForm({ txn, entities, onSave, onCancel }: {
+function SplitForm({ txn, entities, depts, onSave, onCancel }: {
   txn: BankTransaction;
   entities: { type: MatchEntityType; id: string; label: string; amount: number }[];
+  depts: Department[];
   onSave: (allocs: { entityType: MatchEntityType; entityId: string; entityLabel: string; amount: number }[]) => void;
   onCancel: () => void;
 }) {
@@ -380,9 +382,10 @@ function SplitForm({ txn, entities, onSave, onCancel }: {
 function VirtualAccountsTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.manageVirtualAccounts);
-  const vas = useCollection<VirtualAccount>('rec_vas', seedVirtualAccounts);
+  const vas = useScopedCollection<VirtualAccount>('rec_vas', seedVirtualAccounts, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<VirtualAccount | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   const t = today();
   const active = vas.items.filter(v => v.status === 'active').length;
@@ -408,7 +411,7 @@ function VirtualAccountsTab() {
         <MetricCard label="Outstanding" value={naira(unmatachedValue)} sub="Awaiting payment" color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <VaForm initial={editItem} onSave={(v) => {
+        <VaForm initial={editItem} depts={depts} onSave={(v) => {
           if (editItem) vas.replace(v.id, v); else vas.add(v);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -440,7 +443,7 @@ function VirtualAccountsTab() {
   );
 }
 
-function VaForm({ initial, onSave, onCancel }: { initial: VirtualAccount | null; onSave: (v: VirtualAccount) => void; onCancel: () => void }) {
+function VaForm({ initial, depts, onSave, onCancel }: { initial: VirtualAccount | null; depts: Department[]; onSave: (v: VirtualAccount) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { bookingId: initial.bookingId, guestName: initial.guestName, bankName: initial.bankName, accountNumber: initial.accountNumber, accountName: initial.accountName, amount: String(initial.amount) }
     : { bookingId: '', guestName: '', bankName: 'Wema', accountNumber: '', accountName: '', amount: '' });
@@ -459,7 +462,7 @@ function VaForm({ initial, onSave, onCancel }: { initial: VirtualAccount | null;
         <Field label="Amount (₦)"><NumberInput value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} placeholder="Amount" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.guestName || !f.accountNumber || !f.amount) return alert('Guest, account number, and amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), status: initial?.status || 'pending', createdAt: initial?.createdAt || nowISO(), expiresAt: initial?.expiresAt || addDays(today(), 7) }); }}>{initial ? 'Update' : 'Create VA'}</Btn>
+        <Btn onClick={() => { if (!f.guestName || !f.accountNumber || !f.amount) return alert('Guest, account number, and amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), status: initial?.status || 'pending', createdAt: initial?.createdAt || nowISO(), expiresAt: initial?.expiresAt || addDays(today(), 7), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Create VA'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -471,12 +474,13 @@ function VaForm({ initial, onSave, onCancel }: { initial: VirtualAccount | null;
 function PosTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.trackPOSTerminals);
-  const terminals = useCollection<PosTerminal>('rec_pos_terminals', seedPosTerminals);
-  const settlements = useCollection<PosSettlement>('rec_pos_settlements', seedPosSettlements);
+  const terminals = useScopedCollection<PosTerminal>('rec_pos_terminals', seedPosTerminals, session);
+  const settlements = useScopedCollection<PosSettlement>('rec_pos_settlements', seedPosSettlements, session);
   const [showTerminal, setShowTerminal] = useState(false);
   const [showSettlement, setShowSettlement] = useState(false);
   const [editTerminal, setEditTerminal] = useState<PosTerminal | null>(null);
   const [editSettlement, setEditSettlement] = useState<PosSettlement | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   const pending = settlements.items.filter(s => s.status === 'pending');
   const settled = settlements.items.filter(s => s.status === 'settled');
@@ -496,13 +500,13 @@ function PosTab() {
         <MetricCard label="Flagged" value={flagged.length} sub="Needs attention" color="bg-red-50 text-red-700" />
       </div>
       {showTerminal && (
-        <TerminalForm initial={editTerminal} onSave={(t) => {
+        <TerminalForm initial={editTerminal} depts={depts} onSave={(t) => {
           if (editTerminal) terminals.replace(t.id, t); else terminals.add(t);
           setShowTerminal(false); setEditTerminal(null);
         }} onCancel={() => { setShowTerminal(false); setEditTerminal(null); }} />
       )}
       {showSettlement && (
-        <SettlementForm initial={editSettlement} terminals={terminals.items} onSave={(s) => {
+        <SettlementForm initial={editSettlement} terminals={terminals.items} depts={depts} onSave={(s) => {
           if (editSettlement) settlements.replace(s.id, s); else settlements.add(s);
           setShowSettlement(false); setEditSettlement(null);
         }} onCancel={() => { setShowSettlement(false); setEditSettlement(null); }} />
@@ -561,7 +565,7 @@ function PosTab() {
   );
 }
 
-function TerminalForm({ initial, onSave, onCancel }: { initial: PosTerminal | null; onSave: (t: PosTerminal) => void; onCancel: () => void }) {
+function TerminalForm({ initial, depts, onSave, onCancel }: { initial: PosTerminal | null; depts: Department[]; onSave: (t: PosTerminal) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { terminalId: initial.terminalId, bankName: initial.bankName, merchantCode: initial.merchantCode }
     : { terminalId: '', bankName: 'GTBank', merchantCode: '' });
@@ -577,14 +581,14 @@ function TerminalForm({ initial, onSave, onCancel }: { initial: PosTerminal | nu
         <Field label="Merchant Code"><TextInput value={f.merchantCode} onChange={e => setF({ ...f, merchantCode: e.target.value })} placeholder="Merchant code" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.terminalId) return alert('Terminal ID required'); onSave({ id: initial?.id || uid('rec'), ...f, status: initial?.status || 'active', addedAt: initial?.addedAt || nowISO() }); }}>{initial ? 'Update' : 'Add Terminal'}</Btn>
+        <Btn onClick={() => { if (!f.terminalId) return alert('Terminal ID required'); onSave({ id: initial?.id || uid('rec'), ...f, status: initial?.status || 'active', addedAt: initial?.addedAt || nowISO(), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Terminal'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
   );
 }
 
-function SettlementForm({ initial, terminals, onSave, onCancel }: { initial: PosSettlement | null; terminals: PosTerminal[]; onSave: (s: PosSettlement) => void; onCancel: () => void }) {
+function SettlementForm({ initial, terminals, depts, onSave, onCancel }: { initial: PosSettlement | null; terminals: PosTerminal[]; depts: Department[]; onSave: (s: PosSettlement) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { terminalId: initial.terminalId, terminalRef: initial.terminalRef, amount: String(initial.amount), date: initial.date, note: initial.note || '' }
     : { terminalId: terminals[0]?.terminalId || '', terminalRef: '', amount: '', date: today(), note: '' });
@@ -602,7 +606,7 @@ function SettlementForm({ initial, terminals, onSave, onCancel }: { initial: Pos
         <Field label="Note"><TextInput value={f.note} onChange={e => setF({ ...f, note: e.target.value })} placeholder="Optional note" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.amount) return alert('Amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), note: f.note || undefined, status: initial?.status || 'pending' }); }}>{initial ? 'Update Settlement' : 'Log Settlement'}</Btn>
+        <Btn onClick={() => { if (!f.amount) return alert('Amount required'); onSave({ id: initial?.id || uid('rec'), ...f, amount: Number(f.amount), note: f.note || undefined, status: initial?.status || 'pending', departments: initial?.departments || depts }); }}>{initial ? 'Update Settlement' : 'Log Settlement'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

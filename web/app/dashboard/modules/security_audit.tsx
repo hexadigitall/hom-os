@@ -7,7 +7,9 @@ import {
   IncidentType, IncidentStatus, ShiftType,
 } from '@/lib/types';
 import { seedNightAudits, seedIncidents, seedVisitors, seedShifts } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
+import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -46,9 +48,11 @@ export function SecurityAuditModule() {
 // ─── Night Audit ─────────────────────────────────────────────────────────────
 
 function NightAuditTab() {
-  const audits = useCollection<NightAuditLog>('sa_nightaudits', seedNightAudits);
+  const { session } = useAuth();
+  const audits = useScopedCollection<NightAuditLog>('sa_nightaudits', seedNightAudits, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<NightAuditLog | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   const last = audits.items[0];
   const closed = audits.items.filter(a => a.locked).length;
@@ -65,7 +69,7 @@ function NightAuditTab() {
         <MetricCard label="Closed Audits" value={closed} sub="Locked days" color="bg-zinc-50 text-zinc-700" />
       </div>
       {showForm && (
-        <NightAuditForm initial={editItem} onSave={(a) => {
+        <NightAuditForm initial={editItem} depts={depts} onSave={(a) => {
           if (editItem) audits.replace(a.id, a); else audits.add(a);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -99,7 +103,7 @@ function NightAuditTab() {
   );
 }
 
-function NightAuditForm({ initial, onSave, onCancel }: { initial: NightAuditLog | null; onSave: (a: NightAuditLog) => void; onCancel: () => void }) {
+function NightAuditForm({ initial, depts, onSave, onCancel }: { initial: NightAuditLog | null; depts: Department[]; onSave: (a: NightAuditLog) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { businessDate: initial.businessDate, roomRevenue: String(initial.roomRevenue), fnbRevenue: String(initial.fnbRevenue), otherRevenue: String(initial.otherRevenue), cashDropCount: String(initial.cashDropCount), cashDropTotal: String(initial.cashDropTotal), closedBy: initial.closedBy || '' }
     : { businessDate: today(), roomRevenue: '0', fnbRevenue: '0', otherRevenue: '0', cashDropCount: '0', cashDropTotal: '0', closedBy: '' });
@@ -119,7 +123,7 @@ function NightAuditForm({ initial, onSave, onCancel }: { initial: NightAuditLog 
         <Field label="Total Revenue (auto)"><div className="border rounded-xl px-4 py-2.5 text-sm font-bold bg-zinc-50">{naira(total)}</div></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { onSave({ id: initial?.id || uid('sa'), ...f, roomRevenue: Number(f.roomRevenue) || 0, fnbRevenue: Number(f.fnbRevenue) || 0, otherRevenue: Number(f.otherRevenue) || 0, cashDropCount: Number(f.cashDropCount) || 0, cashDropTotal: Number(f.cashDropTotal) || 0, totalRevenue: total, locked: initial?.locked || false }); }}>{initial ? 'Update' : 'Save Audit'}</Btn>
+        <Btn onClick={() => { onSave({ id: initial?.id || uid('sa'), ...f, roomRevenue: Number(f.roomRevenue) || 0, fnbRevenue: Number(f.fnbRevenue) || 0, otherRevenue: Number(f.otherRevenue) || 0, cashDropCount: Number(f.cashDropCount) || 0, cashDropTotal: Number(f.cashDropTotal) || 0, totalRevenue: total, locked: initial?.locked || false, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Save Audit'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -133,9 +137,11 @@ const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
 };
 
 function SecurityTab() {
-  const incidents = useCollection<SecurityIncident>('sa_incidents', seedIncidents);
+  const { session } = useAuth();
+  const incidents = useScopedCollection<SecurityIncident>('sa_incidents', seedIncidents, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<SecurityIncident | null>(null);
+  const depts = tagFor(session, 'security');
 
   const open = incidents.items.filter(x => x.status === 'open').length;
   const investigating = incidents.items.filter(x => x.status === 'investigating').length;
@@ -155,7 +161,7 @@ function SecurityTab() {
         <MetricCard label="Theft" value={incidents.items.filter(x => x.type === 'theft').length} sub="Type count" color="bg-zinc-50 text-zinc-700" />
       </div>
       {showForm && (
-        <IncidentForm initial={editItem} onSave={(i) => {
+        <IncidentForm initial={editItem} depts={depts} onSave={(i) => {
           if (editItem) incidents.replace(i.id, i); else incidents.add(i);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -187,7 +193,7 @@ function SecurityTab() {
   );
 }
 
-function IncidentForm({ initial, onSave, onCancel }: { initial: SecurityIncident | null; onSave: (i: SecurityIncident) => void; onCancel: () => void }) {
+function IncidentForm({ initial, depts, onSave, onCancel }: { initial: SecurityIncident | null; depts: Department[]; onSave: (i: SecurityIncident) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { type: initial.type, location: initial.location, description: initial.description, reportedBy: initial.reportedBy, notes: initial.notes || '' }
     : { type: 'theft' as IncidentType, location: '', description: '', reportedBy: '', notes: '' });
@@ -205,7 +211,7 @@ function IncidentForm({ initial, onSave, onCancel }: { initial: SecurityIncident
         <Field label="Notes"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.location || !f.description) return alert('Location and description required'); onSave({ id: initial?.id || uid('sa'), ...f, status: initial?.status || 'open' }); }}>{initial ? 'Update' : 'Log Incident'}</Btn>
+        <Btn onClick={() => { if (!f.location || !f.description) return alert('Location and description required'); onSave({ id: initial?.id || uid('sa'), ...f, status: initial?.status || 'open', departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Log Incident'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -215,9 +221,11 @@ function IncidentForm({ initial, onSave, onCancel }: { initial: SecurityIncident
 // ─── Visitors ────────────────────────────────────────────────────────────────
 
 function VisitorsTab() {
-  const visitors = useCollection<VisitorPass>('sa_visitors', seedVisitors);
+  const { session } = useAuth();
+  const visitors = useScopedCollection<VisitorPass>('sa_visitors', seedVisitors, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<VisitorPass | null>(null);
+  const depts = tagFor(session, 'security');
 
   const inside = visitors.items.filter(v => !v.checkOut).length;
   const checkedOut = visitors.items.filter(v => v.checkOut).length;
@@ -234,7 +242,7 @@ function VisitorsTab() {
         <MetricCard label="Hosted By" value={new Set(visitors.items.map(v => v.hostName)).size} sub="Unique hosts" color="bg-amber-50 text-amber-700" />
       </div>
       {showForm && (
-        <VisitorForm initial={editItem} onSave={(v) => {
+        <VisitorForm initial={editItem} depts={depts} onSave={(v) => {
           if (editItem) visitors.replace(v.id, v); else visitors.add(v);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -263,7 +271,7 @@ function VisitorsTab() {
   );
 }
 
-function VisitorForm({ initial, onSave, onCancel }: { initial: VisitorPass | null; onSave: (v: VisitorPass) => void; onCancel: () => void }) {
+function VisitorForm({ initial, depts, onSave, onCancel }: { initial: VisitorPass | null; depts: Department[]; onSave: (v: VisitorPass) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { visitorName: initial.visitorName, purpose: initial.purpose, hostName: initial.hostName, badgeNumber: initial.badgeNumber, checkIn: initial.checkIn?.slice(0, 16) || '' }
     : { visitorName: '', purpose: '', hostName: '', badgeNumber: '', checkIn: '' });
@@ -279,7 +287,7 @@ function VisitorForm({ initial, onSave, onCancel }: { initial: VisitorPass | nul
         <Field label="Check-In Time"><input type="datetime-local" className="border rounded-xl px-4 py-2.5 text-sm w-full" value={f.checkIn} onChange={e => setF({ ...f, checkIn: e.target.value })} /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.visitorName || !f.hostName) return alert('Visitor and host required'); onSave({ id: initial?.id || uid('sa'), ...f, checkIn: f.checkIn ? f.checkIn + ':00' : defaultCheckIn, checkOut: initial?.checkOut }); }}>{initial ? 'Update' : 'Issue Pass'}</Btn>
+        <Btn onClick={() => { if (!f.visitorName || !f.hostName) return alert('Visitor and host required'); onSave({ id: initial?.id || uid('sa'), ...f, checkIn: f.checkIn ? f.checkIn + ':00' : defaultCheckIn, checkOut: initial?.checkOut, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Issue Pass'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -293,9 +301,11 @@ const SHIFT_LABEL: Record<ShiftType, string> = {
 };
 
 function ShiftsTab() {
-  const shifts = useCollection<ShiftHandover>('sa_shifts', seedShifts);
+  const { session } = useAuth();
+  const shifts = useScopedCollection<ShiftHandover>('sa_shifts', seedShifts, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ShiftHandover | null>(null);
+  const depts = tagFor(session, 'security');
 
   const open = shifts.items.filter(s => !s.closedAt).length;
   const closed = shifts.items.filter(s => s.closedAt).length;
@@ -312,7 +322,7 @@ function ShiftsTab() {
         <MetricCard label="Night Shifts" value={shifts.items.filter(s => s.shiftType === 'night').length} sub="Total" color="bg-amber-50 text-amber-700" />
       </div>
       {showForm && (
-        <ShiftForm initial={editItem} onSave={(s) => {
+        <ShiftForm initial={editItem} depts={depts} onSave={(s) => {
           if (editItem) shifts.replace(s.id, s); else shifts.add(s);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -342,7 +352,7 @@ function ShiftsTab() {
   );
 }
 
-function ShiftForm({ initial, onSave, onCancel }: { initial: ShiftHandover | null; onSave: (s: ShiftHandover) => void; onCancel: () => void }) {
+function ShiftForm({ initial, depts, onSave, onCancel }: { initial: ShiftHandover | null; depts: Department[]; onSave: (s: ShiftHandover) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { shiftType: initial.shiftType, openedBy: initial.openedBy, notes: initial.notes || '' }
     : { shiftType: 'morning' as ShiftType, openedBy: '', notes: '' });
@@ -358,7 +368,7 @@ function ShiftForm({ initial, onSave, onCancel }: { initial: ShiftHandover | nul
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Handover notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.openedBy) return alert('Opened by required'); onSave({ id: initial?.id || uid('sa'), ...f, openedAt: initial?.openedAt || nowISO() }); }}>{initial ? 'Update' : 'Open Shift'}</Btn>
+        <Btn onClick={() => { if (!f.openedBy) return alert('Opened by required'); onSave({ id: initial?.id || uid('sa'), ...f, openedAt: initial?.openedAt || nowISO(), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Open Shift'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

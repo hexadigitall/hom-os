@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { Download } from 'lucide-react';
 import { ExpenditureRecord, ExpenditureCategory, EXPENSE_CATEGORIES } from '@/lib/types';
 import { seedExpenditure } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
 import { today, naira, fmtDate } from '@/lib/format';
 import { Card, MetricCard, SectionHeader, Btn, Select, EmptyState } from '../ui';
 
@@ -46,7 +47,8 @@ function buildPeriods(g: Granularity): Period[] {
 }
 
 export function ReportsModule() {
-  const exp = useCollection<ExpenditureRecord>('expenditure_records', seedExpenditure);
+  const { session } = useAuth();
+  const exp = useScopedCollection<ExpenditureRecord>('expenditure_records', seedExpenditure, session);
   const [gran, setGran] = useState<Granularity>('monthly');
   const [periodIdx, setPeriodIdx] = useState(0);
   const [catFilter, setCatFilter] = useState('');

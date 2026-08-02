@@ -289,6 +289,8 @@ export interface Session {
   isHeadOfDepartment: Record<string, boolean>;
   status: AccountStatus;
   hotelId?: string;
+  photoUrl?: string;
+  preferences?: UserPreferences;
 }
 
 export const emptySession = (): Session => ({
@@ -300,7 +302,29 @@ export const emptySession = (): Session => ({
   customPermissions: [],
   isHeadOfDepartment: {},
   status: 'pending',
+  preferences: { ...DEFAULT_PREFERENCES },
 });
+
+export interface UserPreferences {
+  notificationsEnabled: boolean;
+  compactMode: boolean;
+  language: string;
+}
+
+export const DEFAULT_PREFERENCES: UserPreferences = {
+  notificationsEnabled: true,
+  compactMode: false,
+  language: 'en',
+};
+
+export const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'French' },
+  { code: 'es', label: 'Spanish' },
+  { code: 'ha', label: 'Hausa' },
+  { code: 'yo', label: 'Yoruba' },
+  { code: 'ig', label: 'Igbo' },
+];
 
 export const hasIdentity = (s: Session) => s.userId.length > 0;
 export const isAccountActive = (s: Session) => hasIdentity(s) && s.status === 'active';
@@ -369,6 +393,36 @@ export const departmentScope = (s: Session): Department[] => {
   return scope;
 };
 
+/** Departments the user may create records for. Unrestricted when scope is empty. */
+export const scopeOptions = (s: Session): Department[] => {
+  const scope = departmentScope(s);
+  return scope.length === 0 ? [...DEPARTMENTS] : scope;
+};
+
+/**
+ * Departments a new record in a fixed-department module should be tagged with.
+ * Keeps the record inside the creator's scope so they never lose visibility.
+ */
+export const tagFor = (s: Session, dept: Department): Department[] => {
+  const scope = scopeOptions(s);
+  return scope.length === 0 || scope.includes(dept) ? [dept] : scope;
+};
+
+/**
+ * Filters records by the user's department scope. Management / unrestricted
+ * sessions see everything. Untagged records are visible to all scoped users.
+ */
+export const scopedRecords = <T extends { departments?: Department[] }>(
+  list: T[],
+  s: Session,
+): T[] => {
+  const scope = departmentScope(s);
+  if (scope.length === 0) return list;
+  return list.filter(r =>
+    !r.departments || r.departments.length === 0 ||
+    r.departments.some(d => scope.includes(d)));
+};
+
 // ──────────────────────────────────────────────────────────────
 // APP ACCOUNTS (mirrors HotelUser + InviteCode on mobile)
 // ──────────────────────────────────────────────────────────────
@@ -388,6 +442,8 @@ export interface HotelUser {
   hotelId: string;
   hotelName: string;
   createdAt: string;
+  photoUrl?: string;
+  preferences?: UserPreferences;
 }
 
 export interface InviteCode {

@@ -11,9 +11,10 @@ import {
 import {
   seedRooms, seedBookings, seedDiesel, seedInventory, seedStaff, seedVendors, seedPOs,
 } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+
+import { useScopedCollection } from '@/lib/scoped';
 import { useAuth } from '@/lib/auth';
-import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate, daysBetween } from '@/lib/format';
 import { sendWhatsApp, bookingConfirmationTemplate, payslipTemplate } from '@/lib/whatsapp';
 import { appendWhatsAppLog } from '@/lib/whatsapplog';
@@ -23,10 +24,11 @@ import {
 } from '../ui';
 
 export function OverviewModule() {
-  const rooms = useCollection<Room>('hom_rooms', seedRooms);
-  const bookings = useCollection<Booking>('hom_bookings', seedBookings);
-  const diesel = useCollection<Diesel>('hom_diesel', seedDiesel);
-  const inventory = useCollection<InventoryItem>('hom_inventory', seedInventory);
+  const { session } = useAuth();
+  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
+  const diesel = useScopedCollection<Diesel>('hom_diesel', seedDiesel, session);
+  const inventory = useScopedCollection<InventoryItem>('hom_inventory', seedInventory, session);
 
   const t = today();
   const dieselToday = diesel.items.filter(d => d.date === t).reduce((a, d) => a + d.liters, 0);
@@ -73,8 +75,10 @@ export function OverviewModule() {
 // ─── Bookings ────────────────────────────────────────────────────────────────
 
 export function BookingsModule() {
-  const bookings = useCollection<Booking>('hom_bookings', seedBookings);
-  const rooms = useCollection<Room>('hom_rooms', seedRooms);
+  const { session } = useAuth();
+  const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
+  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Booking | null>(null);
   const [search, setSearch] = useState('');
@@ -86,7 +90,7 @@ export function BookingsModule() {
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> New Booking</Btn>
       </SectionHeader>
       {showForm && (
-        <BookingForm rooms={rooms.items} initial={editItem}
+        <BookingForm rooms={rooms.items} initial={editItem} depts={depts}
           onSave={(b) => {
             if (editItem) bookings.replace(b.id, b);
             else { bookings.add(b); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'occupied' }); }
@@ -124,7 +128,7 @@ export function BookingsModule() {
   );
 }
 
-function BookingForm({ rooms, initial, onSave, onCancel }: { rooms: Room[]; initial: Booking | null; onSave: (b: Booking) => void; onCancel: () => void }) {
+function BookingForm({ rooms, initial, depts, onSave, onCancel }: { rooms: Room[]; initial: Booking | null; depts: Department[]; onSave: (b: Booking) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { guest: initial.guest, phone: initial.phone, room: initial.room, checkin: initial.checkin, checkout: initial.checkout }
     : { guest: '', phone: '', room: rooms.find(r => r.status === 'available')?.number || '', checkin: today(), checkout: addDays(today(), 1) });
   const available = initial ? rooms.filter(r => r.status === 'available' || r.number === initial.room) : rooms.filter(r => r.status === 'available');
@@ -151,6 +155,7 @@ function BookingForm({ rooms, initial, onSave, onCancel }: { rooms: Room[]; init
             id: initial?.id || uid('b'), ...f,
             status: initial?.status || 'confirmed',
             amount: room.price * Math.max(1, daysBetween(f.checkin, f.checkout) || 1),
+            departments: initial?.departments || depts,
           });
         }}>{initial ? 'Update' : 'Create Booking'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
@@ -162,7 +167,9 @@ function BookingForm({ rooms, initial, onSave, onCancel }: { rooms: Room[]; init
 // ─── Rooms ───────────────────────────────────────────────────────────────────
 
 export function RoomsModule() {
-  const rooms = useCollection<Room>('hom_rooms', seedRooms);
+  const { session } = useAuth();
+  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Room | null>(null);
 
@@ -172,7 +179,7 @@ export function RoomsModule() {
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Room</Btn>
       </SectionHeader>
       {showForm && (
-        <RoomForm initial={editItem} onSave={(r) => {
+        <RoomForm initial={editItem} depts={depts} onSave={(r) => {
           if (editItem) rooms.replace(r.id, r); else rooms.add(r);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -204,7 +211,7 @@ export function RoomsModule() {
   );
 }
 
-function RoomForm({ initial, onSave, onCancel }: { initial: Room | null; onSave: (r: Room) => void; onCancel: () => void }) {
+function RoomForm({ initial, depts, onSave, onCancel }: { initial: Room | null; depts: Department[]; onSave: (r: Room) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { number: initial.number, type: initial.type, price: String(initial.price) } : { number: '', type: 'Deluxe', price: '' });
   return (
     <FormCard title={initial ? 'Edit Room' : 'Add Room'} onCancel={onCancel}>
@@ -218,7 +225,7 @@ function RoomForm({ initial, onSave, onCancel }: { initial: Room | null; onSave:
         <Field label="Price per night"><NumberInput value={f.price} onChange={e => setF({ ...f, price: e.target.value })} placeholder="Price per night" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.number || !f.price) return alert('All fields required'); onSave({ id: initial?.id || uid('r'), number: f.number, type: f.type, status: initial?.status || 'available', price: Number(f.price) }); }}>{initial ? 'Update' : 'Add Room'}</Btn>
+        <Btn onClick={() => { if (!f.number || !f.price) return alert('All fields required'); onSave({ id: initial?.id || uid('r'), number: f.number, type: f.type, status: initial?.status || 'available', price: Number(f.price), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Room'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -228,7 +235,9 @@ function RoomForm({ initial, onSave, onCancel }: { initial: Room | null; onSave:
 // ─── Diesel / Fuel ───────────────────────────────────────────────────────────
 
 export function DieselModule() {
-  const diesel = useCollection<Diesel>('hom_diesel', seedDiesel);
+  const { session } = useAuth();
+  const diesel = useScopedCollection<Diesel>('hom_diesel', seedDiesel, session);
+  const depts = tagFor(session, 'engineering');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Diesel | null>(null);
 
@@ -238,7 +247,7 @@ export function DieselModule() {
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Log Diesel</Btn>
       </SectionHeader>
       {showForm && (
-        <DieselForm initial={editItem} onSave={(d) => {
+        <DieselForm initial={editItem} depts={depts} onSave={(d) => {
           if (d.genHours > 0 && d.liters / d.genHours < 8) alert(`THEFT ALERT: ${(d.liters / d.genHours).toFixed(1)} L/hr — below 8L/hr threshold!`);
           if (editItem) diesel.replace(d.id, d); else diesel.add(d);
           setShowForm(false); setEditItem(null);
@@ -269,7 +278,7 @@ export function DieselModule() {
   );
 }
 
-function DieselForm({ initial, onSave, onCancel }: { initial: Diesel | null; onSave: (d: Diesel) => void; onCancel: () => void }) {
+function DieselForm({ initial, depts, onSave, onCancel }: { initial: Diesel | null; depts: Department[]; onSave: (d: Diesel) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { liters: String(initial.liters), cost: String(initial.cost), supplier: initial.supplier, genHours: String(initial.genHours), note: initial.note }
     : { liters: '', cost: '', supplier: '', genHours: '', note: '' });
   return (
@@ -282,7 +291,7 @@ function DieselForm({ initial, onSave, onCancel }: { initial: Diesel | null; onS
         <Field label="Note"><TextInput value={f.note} onChange={e => setF({ ...f, note: e.target.value })} placeholder="Note" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.liters || !f.cost || !f.supplier) return alert('Liters, cost, and supplier required'); onSave({ id: initial?.id || uid('d'), date: initial?.date || today(), liters: Number(f.liters), cost: Number(f.cost), supplier: f.supplier, genHours: Number(f.genHours) || 0, note: f.note }); }}>{initial ? 'Update' : 'Add Log'}</Btn>
+        <Btn onClick={() => { if (!f.liters || !f.cost || !f.supplier) return alert('Liters, cost, and supplier required'); onSave({ id: initial?.id || uid('d'), date: initial?.date || today(), liters: Number(f.liters), cost: Number(f.cost), supplier: f.supplier, genHours: Number(f.genHours) || 0, note: f.note, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Log'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -292,7 +301,9 @@ function DieselForm({ initial, onSave, onCancel }: { initial: Diesel | null; onS
 // ─── Inventory ───────────────────────────────────────────────────────────────
 
 export function InventoryModule() {
-  const inventory = useCollection<InventoryItem>('hom_inventory', seedInventory);
+  const { session } = useAuth();
+  const inventory = useScopedCollection<InventoryItem>('hom_inventory', seedInventory, session);
+  const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
   const [search, setSearch] = useState('');
@@ -304,7 +315,7 @@ export function InventoryModule() {
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Item</Btn>
       </SectionHeader>
       {showForm && (
-        <InventoryForm initial={editItem} onSave={(item) => {
+        <InventoryForm initial={editItem} depts={depts} onSave={(item) => {
           if (editItem) inventory.replace(item.id, item); else inventory.add(item);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -333,7 +344,7 @@ export function InventoryModule() {
   );
 }
 
-function InventoryForm({ initial, onSave, onCancel }: { initial: InventoryItem | null; onSave: (i: InventoryItem) => void; onCancel: () => void }) {
+function InventoryForm({ initial, depts, onSave, onCancel }: { initial: InventoryItem | null; depts: Department[]; onSave: (i: InventoryItem) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { name: initial.name, qty: String(initial.qty), low: String(initial.low), cost: String(initial.cost) } : { name: '', qty: '', low: '', cost: '' });
   return (
     <FormCard title={initial ? 'Edit Item' : 'Add Item'} onCancel={onCancel}>
@@ -344,7 +355,7 @@ function InventoryForm({ initial, onSave, onCancel }: { initial: InventoryItem |
         <Field label="Unit cost (₦)"><NumberInput value={f.cost} onChange={e => setF({ ...f, cost: e.target.value })} placeholder="Unit cost (₦)" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name || !f.qty) return alert('Name and quantity required'); onSave({ id: initial?.id || uid('i'), name: f.name, qty: Number(f.qty), low: Number(f.low) || 5, cost: Number(f.cost) || 0 }); }}>{initial ? 'Update' : 'Add Item'}</Btn>
+        <Btn onClick={() => { if (!f.name || !f.qty) return alert('Name and quantity required'); onSave({ id: initial?.id || uid('i'), name: f.name, qty: Number(f.qty), low: Number(f.low) || 5, cost: Number(f.cost) || 0, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Item'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -354,7 +365,9 @@ function InventoryForm({ initial, onSave, onCancel }: { initial: InventoryItem |
 // ─── Staff / HR Payroll ──────────────────────────────────────────────────────
 
 export function StaffModule() {
-  const staff = useCollection<Staff>('hom_staff', seedStaff);
+  const { session } = useAuth();
+  const staff = useScopedCollection<Staff>('hom_staff', seedStaff, session);
+  const depts = tagFor(session, 'humanResources');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
 
@@ -364,7 +377,7 @@ export function StaffModule() {
         <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Staff</Btn>
       </SectionHeader>
       {showForm && (
-        <StaffForm initial={editItem} onSave={(s) => {
+        <StaffForm initial={editItem} depts={depts} onSave={(s) => {
           if (editItem) staff.replace(s.id, s); else staff.add(s);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -406,7 +419,7 @@ export function StaffModule() {
   );
 }
 
-function StaffForm({ initial, onSave, onCancel }: { initial: Staff | null; onSave: (s: Staff) => void; onCancel: () => void }) {
+function StaffForm({ initial, depts, onSave, onCancel }: { initial: Staff | null; depts: Department[]; onSave: (s: Staff) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { name: initial.name, role: initial.role, salary: String(initial.salary) } : { name: '', role: '', salary: '' });
   return (
     <FormCard title={initial ? 'Edit Staff' : 'Add Staff'} onCancel={onCancel}>
@@ -416,7 +429,7 @@ function StaffForm({ initial, onSave, onCancel }: { initial: Staff | null; onSav
         <Field label="Monthly salary (₦)"><NumberInput value={f.salary} onChange={e => setF({ ...f, salary: e.target.value })} placeholder="Monthly salary (₦)" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name || !f.role || !f.salary) return alert('All fields required'); onSave({ id: initial?.id || uid('s'), name: f.name, role: f.role, salary: Number(f.salary) }); }}>{initial ? 'Update' : 'Add Staff'}</Btn>
+        <Btn onClick={() => { if (!f.name || !f.role || !f.salary) return alert('All fields required'); onSave({ id: initial?.id || uid('s'), name: f.name, role: f.role, salary: Number(f.salary), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Staff'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -429,8 +442,9 @@ export function VendorsModule() {
   const { session } = useAuth();
   const canManageVendors = hasPermission(session, PERMISSIONS.manageVendors);
   const canManagePOs = hasPermission(session, PERMISSIONS.managePurchaseOrders);
-  const vendors = useCollection<Vendor>('hom_vendors', seedVendors);
-  const pos = useCollection<PurchaseOrder>('hom_purchase_orders', seedPOs);
+  const depts = tagFor(session, 'procurement');
+  const vendors = useScopedCollection<Vendor>('hom_vendors', seedVendors, session);
+  const pos = useScopedCollection<PurchaseOrder>('hom_purchase_orders', seedPOs, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
 
@@ -441,13 +455,13 @@ export function VendorsModule() {
         {canManagePOs && <Btn color="amber" onClick={() => { setShowForm(true); setEditItem({ _type: 'po' }); }}><Plus size={14} /> New PO</Btn>}
       </SectionHeader>
       {showForm && editItem?._type === 'vendor' && (
-        <VendorForm initial={editItem.id ? editItem : null} onSave={(v) => {
+        <VendorForm initial={editItem.id ? editItem : null} depts={depts} onSave={(v) => {
           if (editItem.id) vendors.replace(v.id, v); else vendors.add(v);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}
       {showForm && editItem?._type === 'po' && (
-        <POForm vendors={vendors.items} initial={editItem.id ? editItem : null} onSave={(po) => {
+        <POForm vendors={vendors.items} initial={editItem.id ? editItem : null} depts={depts} onSave={(po) => {
           if (editItem.id) pos.replace(po.id, po); else pos.add(po);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -494,7 +508,7 @@ export function VendorsModule() {
   );
 }
 
-function VendorForm({ initial, onSave, onCancel }: { initial: Vendor | null; onSave: (v: Vendor) => void; onCancel: () => void }) {
+function VendorForm({ initial, depts, onSave, onCancel }: { initial: Vendor | null; depts: Department[]; onSave: (v: Vendor) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { name: initial.name, contact: initial.contact, category: initial.category } : { name: '', contact: '', category: '' });
   return (
     <FormCard title={initial ? 'Edit Vendor' : 'Add Vendor'} onCancel={onCancel}>
@@ -504,14 +518,14 @@ function VendorForm({ initial, onSave, onCancel }: { initial: Vendor | null; onS
         <Field label="Category"><TextInput value={f.category} onChange={e => setF({ ...f, category: e.target.value })} placeholder="Category (Fuel, Cleaning...)" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name) return alert('Vendor name required'); onSave({ id: initial?.id || uid('v'), name: f.name, contact: f.contact, category: f.category }); }}>{initial ? 'Update' : 'Add Vendor'}</Btn>
+        <Btn onClick={() => { if (!f.name) return alert('Vendor name required'); onSave({ id: initial?.id || uid('v'), name: f.name, contact: f.contact, category: f.category, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Vendor'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
   );
 }
 
-function POForm({ vendors, initial, onSave, onCancel }: { vendors: Vendor[]; initial: PurchaseOrder | null; onSave: (po: PurchaseOrder) => void; onCancel: () => void }) {
+function POForm({ vendors, initial, depts, onSave, onCancel }: { vendors: Vendor[]; initial: PurchaseOrder | null; depts: Department[]; onSave: (po: PurchaseOrder) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial ? { vendorId: initial.vendorId, items: initial.items, amount: String(initial.amount) } : { vendorId: vendors[0]?.id || '', items: '', amount: '' });
   return (
     <FormCard title={initial ? 'Edit Purchase Order' : 'New Purchase Order'} onCancel={onCancel}>
@@ -525,7 +539,7 @@ function POForm({ vendors, initial, onSave, onCancel }: { vendors: Vendor[]; ini
         <Field label="Amount (₦)"><NumberInput value={f.amount} onChange={e => setF({ ...f, amount: e.target.value })} placeholder="Amount (₦)" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn color="amber" onClick={() => { if (!f.items || !f.amount) return alert('Items and amount required'); onSave({ id: initial?.id || uid('po'), vendorId: f.vendorId, items: f.items, amount: Number(f.amount), date: today(), status: initial?.status || 'pending' }); }}>{initial ? 'Update' : 'Create PO'}</Btn>
+        <Btn color="amber" onClick={() => { if (!f.items || !f.amount) return alert('Items and amount required'); onSave({ id: initial?.id || uid('po'), vendorId: f.vendorId, items: f.items, amount: Number(f.amount), date: today(), status: initial?.status || 'pending', departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Create PO'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

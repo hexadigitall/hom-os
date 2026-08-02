@@ -7,7 +7,10 @@ import {
   ProcurementStatus,
 } from '@/lib/types';
 import { seedProcurements, seedPayrolls, seedTaxConfig } from '@/lib/seed';
-import { useCollection, useKeyValue } from '@/lib/storage';
+import { useKeyValue } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
+import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, monthStart, monthEnd } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState, paye, pension, netPay } from '../ui';
 
@@ -49,9 +52,11 @@ const PROC_NEXT: Record<ProcurementStatus, ProcurementStatus | null> = {
 const PROC_ORDER: ProcurementStatus[] = ['draft', 'approved', 'ordered', 'delivered'];
 
 function ProcurementTab() {
-  const orders = useCollection<ProcurementOrder>('bo_procurement', seedProcurements);
+  const { session } = useAuth();
+  const orders = useScopedCollection<ProcurementOrder>('bo_procurement', seedProcurements, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ProcurementOrder | null>(null);
+  const depts = tagFor(session, 'procurement');
 
   const totalValue = orders.items.reduce((a, o) => a + o.amount, 0);
   const inFlight = orders.items.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length;
@@ -69,7 +74,7 @@ function ProcurementTab() {
         <MetricCard label="Cancelled" value={orders.items.filter(o => o.status === 'cancelled').length} sub="Orders" color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <OrderForm initial={editItem} onSave={(o) => {
+        <OrderForm initial={editItem} depts={depts} onSave={(o) => {
           if (editItem) orders.replace(o.id, o); else orders.add(o);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -115,7 +120,7 @@ function ProcurementTab() {
   );
 }
 
-function OrderForm({ initial, onSave, onCancel }: { initial: ProcurementOrder | null; onSave: (o: ProcurementOrder) => void; onCancel: () => void }) {
+function OrderForm({ initial, depts, onSave, onCancel }: { initial: ProcurementOrder | null; depts: Department[]; onSave: (o: ProcurementOrder) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { vendorName: initial.vendorName, items: initial.items, amount: String(initial.amount), orderDate: initial.orderDate, deliveryDate: initial.deliveryDate || '', notes: initial.notes || '' }
     : { vendorName: '', items: '', amount: '', orderDate: today(), deliveryDate: '', notes: '' });
@@ -130,7 +135,7 @@ function OrderForm({ initial, onSave, onCancel }: { initial: ProcurementOrder | 
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.vendorName || !f.items) return alert('Vendor and items required'); onSave({ id: initial?.id || uid('bo'), ...f, amount: Number(f.amount) || 0, status: initial?.status || 'draft' }); }}>{initial ? 'Update' : 'Create Order'}</Btn>
+        <Btn onClick={() => { if (!f.vendorName || !f.items) return alert('Vendor and items required'); onSave({ id: initial?.id || uid('bo'), ...f, amount: Number(f.amount) || 0, status: initial?.status || 'draft', departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Create Order'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -140,9 +145,11 @@ function OrderForm({ initial, onSave, onCancel }: { initial: ProcurementOrder | 
 // ─── Payroll ─────────────────────────────────────────────────────────────────
 
 function PayrollTab() {
-  const payroll = useCollection<PayrollRecord>('bo_payroll', seedPayrolls);
+  const { session } = useAuth();
+  const payroll = useScopedCollection<PayrollRecord>('bo_payroll', seedPayrolls, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<PayrollRecord | null>(null);
+  const depts = tagFor(session, 'accounts');
 
   const totalNet = payroll.items.reduce((a, p) => a + p.netPay, 0);
   const totalPaye = payroll.items.reduce((a, p) => a + p.payeTax, 0);
@@ -161,7 +168,7 @@ function PayrollTab() {
         <MetricCard label="Unpaid" value={pendingCount} sub="Awaiting payment" color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <PayrollForm initial={editItem} onSave={(p) => {
+        <PayrollForm initial={editItem} depts={depts} onSave={(p) => {
           if (editItem) payroll.replace(p.id, p); else payroll.add(p);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -196,7 +203,7 @@ function PayrollTab() {
   );
 }
 
-function PayrollForm({ initial, onSave, onCancel }: { initial: PayrollRecord | null; onSave: (p: PayrollRecord) => void; onCancel: () => void }) {
+function PayrollForm({ initial, depts, onSave, onCancel }: { initial: PayrollRecord | null; depts: Department[]; onSave: (p: PayrollRecord) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { staffName: initial.staffName, department: initial.department, basicSalary: String(initial.basicSalary), allowances: String(initial.allowances), deductions: String(initial.deductions), periodStart: initial.periodStart, periodEnd: initial.periodEnd }
     : { staffName: '', department: '', basicSalary: '', allowances: '0', deductions: '0', periodStart: monthStart(), periodEnd: monthEnd() });
@@ -219,7 +226,7 @@ function PayrollForm({ initial, onSave, onCancel }: { initial: PayrollRecord | n
       </FieldGrid>
       <div className="mt-4 text-xs text-zinc-500">PAYE {naira(payeV)} • Pension {naira(pensV)} • Net {naira(netPay(gross))}</div>
       <div className="mt-2 flex gap-2">
-        <Btn onClick={() => { if (!f.staffName) return alert('Staff name required'); const g = gross; onSave({ id: initial?.id || uid('bo'), ...f, basicSalary: Number(f.basicSalary) || 0, allowances: Number(f.allowances) || 0, deductions: Number(f.deductions) || 0, payeTax: paye(g), pensionContribution: pension(g), netPay: netPay(g), paidDate: initial?.paidDate }); }}>{initial ? 'Update' : 'Add Record'}</Btn>
+        <Btn onClick={() => { if (!f.staffName) return alert('Staff name required'); const g = gross; onSave({ id: initial?.id || uid('bo'), ...f, basicSalary: Number(f.basicSalary) || 0, allowances: Number(f.allowances) || 0, deductions: Number(f.deductions) || 0, payeTax: paye(g), pensionContribution: pension(g), netPay: netPay(g), paidDate: initial?.paidDate, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Record'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

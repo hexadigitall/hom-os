@@ -1,3 +1,5 @@
+import type { Department } from './rbac';
+
 export type WhatsAppTemplateEntity =
   | 'booking'
   | 'staff'
@@ -11,6 +13,7 @@ export interface WhatsAppTemplate {
   name: string;
   entityType: WhatsAppTemplateEntity;
   message: string;
+  departments?: Department[];
 }
 
 export function seedWhatsAppTemplates(): WhatsAppTemplate[] {

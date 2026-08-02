@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit3, TrendingUp, MoonStar, PackageX, AlertTriangle } from 'lucide-react';
 import { DailyRevenue, CashDrop, HousekeepingLoss, TOTAL_ROOMS, ShiftName } from '@/lib/types';
 import { seedRevenues, seedCashDrops, seedLosses } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
+import { tagFor, type Department } from '@/lib/rbac';
 import { today, uid, naira, fmtDate, addDays, monthStart } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -41,7 +43,9 @@ export function OperationsModule() {
 // ─── RevPAR ──────────────────────────────────────────────────────────────────
 
 function RevParTab() {
-  const revs = useCollection<DailyRevenue>('ops_revenues', seedRevenues);
+  const { session } = useAuth();
+  const revs = useScopedCollection<DailyRevenue>('ops_revenues', seedRevenues, session);
+  const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<DailyRevenue | null>(null);
 
@@ -70,7 +74,7 @@ function RevParTab() {
         <MetricCard label="7-Day Revenue" value={naira(rev7)} sub={`${sold7} room-nights sold`} color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <RevenueForm initial={editItem} onSave={(r) => {
+        <RevenueForm initial={editItem} depts={depts} onSave={(r) => {
           if (editItem) revs.replace(r.id, r); else revs.add(r);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -119,7 +123,7 @@ function RevParTab() {
   );
 }
 
-function RevenueForm({ initial, onSave, onCancel }: { initial: DailyRevenue | null; onSave: (r: DailyRevenue) => void; onCancel: () => void }) {
+function RevenueForm({ initial, depts, onSave, onCancel }: { initial: DailyRevenue | null; depts: Department[]; onSave: (r: DailyRevenue) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, roomsSold: String(initial.roomsSold), walkIns: String(initial.walkIns), totalRevenue: String(initial.totalRevenue) }
     : { date: today(), roomsSold: '', walkIns: '0', totalRevenue: '' });
@@ -132,7 +136,7 @@ function RevenueForm({ initial, onSave, onCancel }: { initial: DailyRevenue | nu
         <Field label="Total Revenue (₦)"><NumberInput value={f.totalRevenue} onChange={e => setF({ ...f, totalRevenue: e.target.value })} placeholder="Total revenue" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.roomsSold || !f.totalRevenue) return alert('Rooms sold and revenue required'); onSave({ id: initial?.id || uid('ops'), date: f.date, roomsSold: Number(f.roomsSold), walkIns: Number(f.walkIns) || 0, totalRevenue: Number(f.totalRevenue) }); }}>{initial ? 'Update' : 'Add'}</Btn>
+        <Btn onClick={() => { if (!f.roomsSold || !f.totalRevenue) return alert('Rooms sold and revenue required'); onSave({ id: initial?.id || uid('ops'), date: f.date, roomsSold: Number(f.roomsSold), walkIns: Number(f.walkIns) || 0, totalRevenue: Number(f.totalRevenue), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -142,7 +146,9 @@ function RevenueForm({ initial, onSave, onCancel }: { initial: DailyRevenue | nu
 // ─── Night Audit (Cash Drops) ────────────────────────────────────────────────
 
 function NightAuditTab() {
-  const drops = useCollection<CashDrop>('ops_cash_drops', seedCashDrops);
+  const { session } = useAuth();
+  const drops = useScopedCollection<CashDrop>('ops_cash_drops', seedCashDrops, session);
+  const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<CashDrop | null>(null);
 
@@ -170,7 +176,7 @@ function NightAuditTab() {
         </div>
       )}
       {showForm && (
-        <DropForm initial={editItem} onSave={(c) => {
+        <DropForm initial={editItem} depts={depts} onSave={(c) => {
           if (editItem) drops.replace(c.id, c); else drops.add(c);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -202,7 +208,7 @@ function NightAuditTab() {
   );
 }
 
-function DropForm({ initial, onSave, onCancel }: { initial: CashDrop | null; onSave: (c: CashDrop) => void; onCancel: () => void }) {
+function DropForm({ initial, depts, onSave, onCancel }: { initial: CashDrop | null; depts: Department[]; onSave: (c: CashDrop) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, shift: initial.shift, expectedAmount: String(initial.expectedAmount), actualAmount: String(initial.actualAmount), notes: initial.notes || '' }
     : { date: today(), shift: 'Morning' as ShiftName, expectedAmount: '', actualAmount: '', notes: '' });
@@ -220,7 +226,7 @@ function DropForm({ initial, onSave, onCancel }: { initial: CashDrop | null; onS
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Variance notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.expectedAmount) return alert('Expected amount required'); const exp = Number(f.expectedAmount), act = Number(f.actualAmount) || exp; onSave({ id: initial?.id || uid('ops'), date: f.date, shift: f.shift, expectedAmount: exp, actualAmount: act, status: act === exp ? 'matched' : 'mismatched', notes: f.notes }); }}>{initial ? 'Update' : 'Log Drop'}</Btn>
+        <Btn onClick={() => { if (!f.expectedAmount) return alert('Expected amount required'); const exp = Number(f.expectedAmount), act = Number(f.actualAmount) || exp; onSave({ id: initial?.id || uid('ops'), date: f.date, shift: f.shift, expectedAmount: exp, actualAmount: act, status: act === exp ? 'matched' : 'mismatched', notes: f.notes, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Log Drop'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -234,7 +240,9 @@ const LOSS_COLORS: Record<string, string> = {
 };
 
 function LossesTab() {
-  const losses = useCollection<HousekeepingLoss>('ops_losses', seedLosses);
+  const { session } = useAuth();
+  const losses = useScopedCollection<HousekeepingLoss>('ops_losses', seedLosses, session);
+  const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<HousekeepingLoss | null>(null);
 
@@ -267,7 +275,7 @@ function LossesTab() {
         <MetricCard label="Items Lost" value={losses.items.length} sub="Records logged" color="bg-blue-50 text-blue-700" />
       </div>
       {showForm && (
-        <LossForm initial={editItem} onSave={(l) => {
+        <LossForm initial={editItem} depts={depts} onSave={(l) => {
           if (editItem) losses.replace(l.id, l); else losses.add(l);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -329,7 +337,7 @@ function LossesTab() {
 
 const LOSS_CATS = ['Linen', 'Amenity', 'Furniture', 'Maintenance'];
 
-function LossForm({ initial, onSave, onCancel }: { initial: HousekeepingLoss | null; onSave: (l: HousekeepingLoss) => void; onCancel: () => void }) {
+function LossForm({ initial, depts, onSave, onCancel }: { initial: HousekeepingLoss | null; depts: Department[]; onSave: (l: HousekeepingLoss) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { date: initial.date, item: initial.item, category: initial.category, quantity: String(initial.quantity), unitCost: String(initial.unitCost), roomNumber: initial.roomNumber }
     : { date: today(), item: '', category: 'Linen', quantity: '1', unitCost: '', roomNumber: '' });
@@ -348,7 +356,7 @@ function LossForm({ initial, onSave, onCancel }: { initial: HousekeepingLoss | n
         <Field label="Date"><DateInput value={f.date} onChange={e => setF({ ...f, date: e.target.value })} /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.item || !f.unitCost) return alert('Item and unit cost required'); onSave({ id: initial?.id || uid('ops'), date: f.date, item: f.item, category: f.category, quantity: Number(f.quantity) || 1, unitCost: Number(f.unitCost), roomNumber: f.roomNumber }); }}>{initial ? 'Update' : 'Log Loss'}</Btn>
+        <Btn onClick={() => { if (!f.item || !f.unitCost) return alert('Item and unit cost required'); onSave({ id: initial?.id || uid('ops'), date: f.date, item: f.item, category: f.category, quantity: Number(f.quantity) || 1, unitCost: Number(f.unitCost), roomNumber: f.roomNumber, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Log Loss'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

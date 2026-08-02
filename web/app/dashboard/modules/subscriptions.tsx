@@ -4,16 +4,20 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit3 } from 'lucide-react';
 import { Subscription, BillingCycle } from '@/lib/types';
 import { seedSubscriptions } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
+import { tagFor, type Department } from '@/lib/rbac';
 import { today, uid, naira, fmtDate, addMonths, daysBetween } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 const CATEGORIES = ['TV & Entertainment', 'Internet', 'Software / SaaS', 'License & Permits', 'Security Monitoring', 'Cleaning', 'Other'];
 
 export function SubscriptionsModule() {
-  const subs = useCollection<Subscription>('hom_subscriptions', seedSubscriptions);
+  const { session } = useAuth();
+  const subs = useScopedCollection<Subscription>('hom_subscriptions', seedSubscriptions, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Subscription | null>(null);
+  const depts = tagFor(session, 'management');
 
   const monthlyTotal = subs.items.reduce((a, s) => a + (s.billingCycle === 'monthly' ? s.amount : s.billingCycle === 'quarterly' ? s.amount / 3 : s.amount / 12), 0);
 
@@ -35,7 +39,7 @@ export function SubscriptionsModule() {
         <MetricCard label="Monthly Total" value={naira(monthlyTotal)} sub="Annualized / 12" color="bg-blue-50 text-blue-700" />
       </div>
       {showForm && (
-        <SubForm initial={editItem} onSave={(s) => {
+        <SubForm initial={editItem} depts={depts} onSave={(s) => {
           if (editItem) subs.replace(s.id, s); else subs.add(s);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -71,7 +75,7 @@ export function SubscriptionsModule() {
   );
 }
 
-function SubForm({ initial, onSave, onCancel }: { initial: Subscription | null; onSave: (s: Subscription) => void; onCancel: () => void }) {
+function SubForm({ initial, depts, onSave, onCancel }: { initial: Subscription | null; depts: Department[]; onSave: (s: Subscription) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { name: initial.name, provider: initial.provider, category: initial.category, amount: String(initial.amount), billingCycle: initial.billingCycle, startDate: initial.startDate, contactInfo: initial.contactInfo || '', notes: initial.notes || '', autoLogExpenditure: initial.autoLogExpenditure }
     : { name: '', provider: '', category: CATEGORIES[0], amount: '', billingCycle: 'monthly' as BillingCycle, startDate: today(), contactInfo: '', notes: '', autoLogExpenditure: true });
@@ -101,7 +105,7 @@ function SubForm({ initial, onSave, onCancel }: { initial: Subscription | null; 
         Auto-log to Expenditure
       </label>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name || !f.amount) return alert('Name and amount required'); onSave({ id: initial?.id || uid('sub'), ...f, amount: Number(f.amount), status: initial?.status || 'active' }); }}>{initial ? 'Update' : 'Add Subscription'}</Btn>
+        <Btn onClick={() => { if (!f.name || !f.amount) return alert('Name and amount required'); onSave({ id: initial?.id || uid('sub'), ...f, amount: Number(f.amount), status: initial?.status || 'active', departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Subscription'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

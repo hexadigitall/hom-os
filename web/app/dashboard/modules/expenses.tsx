@@ -6,14 +6,16 @@ import {
   ExpenditureRecord, ExpenditureCategory, PaymentMethod, EXPENSE_CATEGORIES,
 } from '@/lib/types';
 import { seedExpenditure } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { DEPARTMENT_LABEL, scopeOptions, type Department } from '@/lib/rbac';
+import { useAuth } from '@/lib/auth';
 import { today, uid, naira, fmtDate } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
-const DEPARTMENTS = ['Management', 'Reception', 'Housekeeping', 'Engineering', 'Kitchen', 'Restaurants', 'Procurement', 'Accounts', 'Security'];
-
 export function ExpensesModule() {
-  const exp = useCollection<ExpenditureRecord>('expenditure_records', seedExpenditure);
+  const { session } = useAuth();
+  const exp = useScopedCollection<ExpenditureRecord>('expenditure_records', seedExpenditure, session);
+  const depts = scopeOptions(session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ExpenditureRecord | null>(null);
   const [search, setSearch] = useState('');
@@ -48,6 +50,7 @@ export function ExpensesModule() {
           subcategory: subcategory || '', description: description || '', amount: amt,
           vendor: cols[5] || '', paymentMethod: (cols[6] as PaymentMethod) || 'Cash',
           receiptRef: cols[7] || '', notes: cols[8] || '', createdAt: new Date().toISOString(),
+          departments: depts,
         });
         added++;
       }
@@ -82,7 +85,7 @@ export function ExpensesModule() {
         <MetricCard label="Cash Spent" value={naira(exp.items.filter(e => e.paymentMethod === 'Cash').reduce((a, e) => a + e.amount, 0))} sub="Cash payments" color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <ExpenseForm initial={editItem} onSave={(e) => {
+        <ExpenseForm initial={editItem} depts={depts} onSave={(e) => {
           if (editItem) exp.replace(e.id, e); else exp.add(e);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -93,7 +96,7 @@ export function ExpensesModule() {
             <div key={e.id} className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
                 <div className="font-bold flex items-center gap-2 flex-wrap">{e.description} <span className="text-zinc-400 font-normal text-sm">{naira(e.amount)}</span></div>
-                <div className="text-xs text-zinc-500 mt-0.5">{fmtDate(e.date)} • {e.category}{e.subcategory ? ` / ${e.subcategory}` : ''} • {e.vendor || '—'} • {e.paymentMethod} • {e.receiptRef && `Ref ${e.receiptRef}`} • {e.department || '—'}</div>
+                <div className="text-xs text-zinc-500 mt-0.5">{fmtDate(e.date)} • {e.category}{e.subcategory ? ` / ${e.subcategory}` : ''} • {e.vendor || '—'} • {e.paymentMethod} • {e.receiptRef && `Ref ${e.receiptRef}`} • {e.departments?.[0] ? DEPARTMENT_LABEL[e.departments[0]] : '—'}</div>
               </div>
               <div className="flex items-center gap-2">
                 <StatusChip status={e.paymentMethod} label={e.paymentMethod} />
@@ -109,9 +112,9 @@ export function ExpensesModule() {
   );
 }
 
-function ExpenseForm({ initial, onSave, onCancel }: { initial: ExpenditureRecord | null; onSave: (e: ExpenditureRecord) => void; onCancel: () => void }) {
+function ExpenseForm({ initial, onSave, onCancel, depts }: { initial: ExpenditureRecord | null; onSave: (e: ExpenditureRecord) => void; onCancel: () => void; depts: Department[] }) {
   const [f, setF] = useState(initial
-    ? { date: initial.date, category: initial.category, subcategory: initial.subcategory, description: initial.description, amount: String(initial.amount), vendor: initial.vendor, paymentMethod: initial.paymentMethod, receiptRef: initial.receiptRef, notes: initial.notes, department: initial.department || '' }
+    ? { date: initial.date, category: initial.category, subcategory: initial.subcategory, description: initial.description, amount: String(initial.amount), vendor: initial.vendor, paymentMethod: initial.paymentMethod, receiptRef: initial.receiptRef, notes: initial.notes, department: initial.departments?.[0] || '' }
     : { date: today(), category: 'F&B' as ExpenditureCategory, subcategory: '', description: '', amount: '', vendor: '', paymentMethod: 'Cash' as PaymentMethod, receiptRef: '', notes: '', department: '' });
 
   return (
@@ -136,13 +139,13 @@ function ExpenseForm({ initial, onSave, onCancel }: { initial: ExpenditureRecord
         <Field label="Department">
           <Select value={f.department} onChange={e => setF({ ...f, department: e.target.value })}>
             <option value="">None</option>
-            {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+            {depts.map(d => <option key={d} value={d}>{DEPARTMENT_LABEL[d]}</option>)}
           </Select>
         </Field>
         <Field label="Notes"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.description || !f.amount) return alert('Description and amount required'); onSave({ id: initial?.id || uid('exp'), createdAt: initial?.createdAt || new Date().toISOString(), ...f, amount: Number(f.amount) }); }}>{initial ? 'Update' : 'Add Expense'}</Btn>
+        <Btn onClick={() => { if (!f.description || !f.amount) return alert('Description and amount required'); onSave({ id: initial?.id || uid('exp'), createdAt: initial?.createdAt || new Date().toISOString(), ...f, departments: f.department ? [f.department as Department] : undefined, amount: Number(f.amount) }); }}>{initial ? 'Update' : 'Add Expense'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

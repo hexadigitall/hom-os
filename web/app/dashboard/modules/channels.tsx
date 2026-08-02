@@ -4,11 +4,12 @@ import { useState, useEffect } from 'react';
 import Script from 'next/script';
 import { CreditCard, MessageCircle, Globe, AlertTriangle, Trash2, Plus, Edit3, Check, X } from 'lucide-react';
 import { Card, MetricCard, SectionHeader, Btn, IconBtn, Field, TextInput, Select, TextArea, FieldGrid, EmptyState } from '../ui';
-import { useCollection, load } from '@/lib/storage';
+import { load } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
 import { Room } from '@/lib/types';
 import { seedRooms } from '@/lib/seed';
 import { useAuth } from '@/lib/auth';
-import { hasPermission, PERMISSIONS } from '@/lib/rbac';
+import { hasPermission, PERMISSIONS, tagFor } from '@/lib/rbac';
 import { uid } from '@/lib/format';
 import { sendWhatsApp } from '@/lib/whatsapp';
 import { seedWhatsAppTemplates, WhatsAppTemplate, WhatsAppTemplateEntity } from '@/lib/whatsapptemplates';
@@ -48,11 +49,12 @@ export function WhatsAppModule() {
   const { session } = useAuth();
   const [log, setLog] = useState<WhatsAppLogEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const templates = useCollection<WhatsAppTemplate>('hom_whatsapp_templates', seedWhatsAppTemplates);
+  const templates = useScopedCollection<WhatsAppTemplate>('hom_whatsapp_templates', seedWhatsAppTemplates, session);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', entityType: 'other' as WhatsAppTemplateEntity, message: '' });
 
   const canManage = hasPermission(session, PERMISSIONS.manageWhatsApp);
+  const depts = tagFor(session, 'management');
 
   useEffect(() => {
     setLog(load<WhatsAppLogEntry[]>('hom_whatsapp_log', []));
@@ -71,9 +73,9 @@ export function WhatsAppModule() {
   const saveTemplate = () => {
     if (!form.name.trim() || !form.message.trim()) return;
     if (editId === 'new') {
-      templates.add({ id: uid('tmp'), name: form.name.trim(), entityType: form.entityType, message: form.message });
+      templates.add({ id: uid('tmp'), name: form.name.trim(), entityType: form.entityType, message: form.message, departments: depts });
     } else if (editId) {
-      templates.replace(editId, { id: editId, name: form.name.trim(), entityType: form.entityType, message: form.message });
+      templates.replace(editId, { id: editId, name: form.name.trim(), entityType: form.entityType, message: form.message, departments: depts });
     }
     setEditId(null);
   };
@@ -168,7 +170,8 @@ export function WhatsAppModule() {
 // ─── Booking.com ─────────────────────────────────────────────────────────────
 
 export function BookingComModule() {
-  const rooms = useCollection<Room>('hom_rooms', seedRooms);
+  const { session } = useAuth();
+  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
   const [external, setExternal] = useState<ExternalBooking[]>([]);
 
   useEffect(() => {

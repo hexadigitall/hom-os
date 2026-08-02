@@ -7,7 +7,9 @@ import {
   HousekeepingPriority, LaundryType, LaundryStatus, LostFoundCategory, LinenCategory, LinenCondition,
 } from '@/lib/types';
 import { seedHkTasks, seedLaundry, seedLostFound, seedLinen } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
+import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -50,7 +52,9 @@ const HK_PRIORITY_LABEL: Record<HousekeepingPriority, string> = {
 };
 
 function TasksTab() {
-  const tasks = useCollection<HousekeepingTask>('hk_tasks', seedHkTasks);
+  const { session } = useAuth();
+  const tasks = useScopedCollection<HousekeepingTask>('hk_tasks', seedHkTasks, session);
+  const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<HousekeepingTask | null>(null);
   const [showDone, setShowDone] = useState(false);
@@ -75,7 +79,7 @@ function TasksTab() {
         <MetricCard label="Completed Today" value={doneToday} sub="Closed out" color="bg-green-50 text-green-700" />
       </div>
       {showForm && (
-        <TaskForm initial={editItem} onSave={(task) => {
+        <TaskForm initial={editItem} depts={depts} onSave={(task) => {
           if (editItem) tasks.replace(task.id, task); else tasks.add(task);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -111,7 +115,7 @@ function TasksTab() {
   );
 }
 
-function TaskForm({ initial, onSave, onCancel }: { initial: HousekeepingTask | null; onSave: (t: HousekeepingTask) => void; onCancel: () => void }) {
+function TaskForm({ initial, depts, onSave, onCancel }: { initial: HousekeepingTask | null; depts: Department[]; onSave: (t: HousekeepingTask) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { roomNumber: initial.roomNumber, assignedTo: initial.assignedTo, priority: initial.priority, scheduledDate: initial.scheduledDate, notes: initial.notes || '' }
     : { roomNumber: '', assignedTo: '', priority: 'routine' as HousekeepingPriority, scheduledDate: today(), notes: '' });
@@ -129,7 +133,7 @@ function TaskForm({ initial, onSave, onCancel }: { initial: HousekeepingTask | n
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.roomNumber || !f.assignedTo) return alert('Room and assignee required'); onSave({ id: initial?.id || uid('hk'), ...f, completed: initial?.completed || false }); }}>{initial ? 'Update' : 'Create Task'}</Btn>
+        <Btn onClick={() => { if (!f.roomNumber || !f.assignedTo) return alert('Room and assignee required'); onSave({ id: initial?.id || uid('hk'), ...f, completed: initial?.completed || false, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Create Task'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -146,7 +150,9 @@ const LAUNDRY_NEXT: Record<LaundryStatus, LaundryStatus | null> = {
 };
 
 function LaundryTab() {
-  const laundry = useCollection<LaundryItem>('hk_laundry', seedLaundry);
+  const { session } = useAuth();
+  const laundry = useScopedCollection<LaundryItem>('hk_laundry', seedLaundry, session);
+  const depts = tagFor(session, 'laundry');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LaundryItem | null>(null);
 
@@ -167,7 +173,7 @@ function LaundryTab() {
         <MetricCard label="Outstanding" value={naira(outstandingRevenue)} sub="Undelivered charges" color="bg-red-50 text-red-700" />
       </div>
       {showForm && (
-        <LaundryForm initial={editItem} onSave={(l) => {
+        <LaundryForm initial={editItem} depts={depts} onSave={(l) => {
           if (editItem) laundry.replace(l.id, l); else laundry.add(l);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -199,7 +205,7 @@ function LaundryTab() {
   );
 }
 
-function LaundryForm({ initial, onSave, onCancel }: { initial: LaundryItem | null; onSave: (l: LaundryItem) => void; onCancel: () => void }) {
+function LaundryForm({ initial, depts, onSave, onCancel }: { initial: LaundryItem | null; depts: Department[]; onSave: (l: LaundryItem) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { guestName: initial.guestName, roomNumber: initial.roomNumber, itemDescription: initial.itemDescription, type: initial.type, chargeAmount: String(initial.chargeAmount), receivedDate: initial.receivedDate || '' }
     : { guestName: '', roomNumber: '', itemDescription: '', type: 'washIron' as LaundryType, chargeAmount: '0', receivedDate: today() });
@@ -218,7 +224,7 @@ function LaundryForm({ initial, onSave, onCancel }: { initial: LaundryItem | nul
         <Field label="Received Date"><DateInput value={f.receivedDate} onChange={e => setF({ ...f, receivedDate: e.target.value })} /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.guestName || !f.itemDescription) return alert('Guest and item required'); onSave({ id: initial?.id || uid('hk'), ...f, chargeAmount: Number(f.chargeAmount) || 0, status: initial?.status || 'received', receivedDate: f.receivedDate || today() }); }}>{initial ? 'Update' : 'Add Laundry'}</Btn>
+        <Btn onClick={() => { if (!f.guestName || !f.itemDescription) return alert('Guest and item required'); onSave({ id: initial?.id || uid('hk'), ...f, chargeAmount: Number(f.chargeAmount) || 0, status: initial?.status || 'received', receivedDate: f.receivedDate || today(), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Laundry'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -232,7 +238,9 @@ const LF_CATEGORY_LABEL: Record<LostFoundCategory, string> = {
 };
 
 function LostFoundTab() {
-  const items = useCollection<LostFoundItem>('hk_lostfound', seedLostFound);
+  const { session } = useAuth();
+  const items = useScopedCollection<LostFoundItem>('hk_lostfound', seedLostFound, session);
+  const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LostFoundItem | null>(null);
 
@@ -251,7 +259,7 @@ function LostFoundTab() {
         <MetricCard label="Categories" value={new Set(items.items.map(x => x.category)).size} sub="Types found" color="bg-zinc-50 text-zinc-700" />
       </div>
       {showForm && (
-        <LostFoundForm initial={editItem} onSave={(l) => {
+        <LostFoundForm initial={editItem} depts={depts} onSave={(l) => {
           if (editItem) items.replace(l.id, l); else items.add(l);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -284,7 +292,7 @@ function LostFoundTab() {
 
 const daysHeld = (l: LostFoundItem) => l.returnedAt ? Math.round((new Date().getTime() - new Date(l.returnedAt).getTime()) / 86400000) : 0;
 
-function LostFoundForm({ initial, onSave, onCancel }: { initial: LostFoundItem | null; onSave: (l: LostFoundItem) => void; onCancel: () => void }) {
+function LostFoundForm({ initial, depts, onSave, onCancel }: { initial: LostFoundItem | null; depts: Department[]; onSave: (l: LostFoundItem) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { itemName: initial.itemName, foundBy: initial.foundBy, locationFound: initial.locationFound, category: initial.category, guestName: initial.guestName || '', notes: initial.notes || '' }
     : { itemName: '', foundBy: '', locationFound: '', category: 'other' as LostFoundCategory, guestName: '', notes: '' });
@@ -303,7 +311,7 @@ function LostFoundForm({ initial, onSave, onCancel }: { initial: LostFoundItem |
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.itemName || !f.foundBy) return alert('Item and finder required'); onSave({ id: initial?.id || uid('hk'), ...f, returned: initial?.returned || false }); }}>{initial ? 'Update' : 'Log Item'}</Btn>
+        <Btn onClick={() => { if (!f.itemName || !f.foundBy) return alert('Item and finder required'); onSave({ id: initial?.id || uid('hk'), ...f, returned: initial?.returned || false, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Log Item'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -320,7 +328,9 @@ const LINEN_CONDITION_LABEL: Record<LinenCondition, string> = {
 };
 
 function LinenTab() {
-  const linen = useCollection<LinenDamage>('hk_linen', seedLinen);
+  const { session } = useAuth();
+  const linen = useScopedCollection<LinenDamage>('hk_linen', seedLinen, session);
+  const depts = tagFor(session, 'laundry');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LinenDamage | null>(null);
 
@@ -339,7 +349,7 @@ function LinenTab() {
         <MetricCard label="Units Damaged" value={linen.items.reduce((a, l) => a + l.quantity, 0)} sub="Total pieces" color="bg-zinc-50 text-zinc-700" />
       </div>
       {showForm && (
-        <LinenForm initial={editItem} onSave={(l) => {
+        <LinenForm initial={editItem} depts={depts} onSave={(l) => {
           if (editItem) linen.replace(l.id, l); else linen.add(l);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -367,7 +377,7 @@ function LinenTab() {
   );
 }
 
-function LinenForm({ initial, onSave, onCancel }: { initial: LinenDamage | null; onSave: (l: LinenDamage) => void; onCancel: () => void }) {
+function LinenForm({ initial, depts, onSave, onCancel }: { initial: LinenDamage | null; depts: Department[]; onSave: (l: LinenDamage) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { itemName: initial.itemName, roomNumber: initial.roomNumber, category: initial.category, condition: initial.condition, quantity: String(initial.quantity), replacementCost: initial.replacementCost != null ? String(initial.replacementCost) : '', notes: initial.notes || '' }
     : { itemName: '', roomNumber: '', category: 'bedsheet' as LinenCategory, condition: 'stained' as LinenCondition, quantity: '1', replacementCost: '', notes: '' });
@@ -391,7 +401,7 @@ function LinenForm({ initial, onSave, onCancel }: { initial: LinenDamage | null;
         <Field label="Notes" className="md:col-span-2"><TextInput value={f.notes} onChange={e => setF({ ...f, notes: e.target.value })} placeholder="Notes" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.itemName) return alert('Item name required'); onSave({ id: initial?.id || uid('hk'), ...f, quantity: Number(f.quantity) || 1, replacementCost: f.replacementCost ? Number(f.replacementCost) : undefined }); }}>{initial ? 'Update' : 'Log Damage'}</Btn>
+        <Btn onClick={() => { if (!f.itemName) return alert('Item name required'); onSave({ id: initial?.id || uid('hk'), ...f, quantity: Number(f.quantity) || 1, replacementCost: f.replacementCost ? Number(f.replacementCost) : undefined, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Log Damage'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

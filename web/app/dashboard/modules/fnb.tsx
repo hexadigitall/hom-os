@@ -6,7 +6,9 @@ import {
   MenuItem, RestaurantTable, Order, OrderItem, TableStatus, MenuCategory, OrderItemStatus,
 } from '@/lib/types';
 import { seedMenu, seedTables, seedOrders } from '@/lib/seed';
-import { useCollection } from '@/lib/storage';
+import { useScopedCollection } from '@/lib/scoped';
+import { useAuth } from '@/lib/auth';
+import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira } from '@/lib/format';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
@@ -53,8 +55,10 @@ export function FnbModule() {
 // ─── Tables ──────────────────────────────────────────────────────────────────
 
 function TablesTab() {
-  const tables = useCollection<RestaurantTable>('fnb_tables', seedTables);
-  const orders = useCollection<Order>('fnb_orders', seedOrders);
+  const { session } = useAuth();
+  const tables = useScopedCollection<RestaurantTable>('fnb_tables', seedTables, session);
+  const orders = useScopedCollection<Order>('fnb_orders', seedOrders, session);
+  const depts = tagFor(session, 'restaurants');
   const [showForm, setShowForm] = useState(false);
   const [editTable, setEditTable] = useState<RestaurantTable | null>(null);
   const [createFor, setCreateFor] = useState<RestaurantTable | null>(null);
@@ -68,7 +72,7 @@ function TablesTab() {
         <Btn onClick={() => { setShowForm(true); setEditTable(null); }}><Plus size={14} /> Add Table</Btn>
       </SectionHeader>
       {showForm && (
-        <TableForm initial={editTable} onSave={(t) => {
+        <TableForm initial={editTable} depts={depts} onSave={(t) => {
           if (editTable) tables.replace(t.id, t); else tables.add(t);
           setShowForm(false); setEditTable(null);
         }} onCancel={() => { setShowForm(false); setEditTable(null); }} />
@@ -103,7 +107,7 @@ function TablesTab() {
 
       {createFor && (
         <NewOrderForm table={createFor} menu={[]} onSave={(name) => {
-          const order: Order = { id: uid('fnb'), tableId: createFor.id, items: [], status: 'open', openedAt: nowISO(), servedBy: name };
+          const order: Order = { id: uid('fnb'), tableId: createFor.id, items: [], status: 'open', openedAt: nowISO(), servedBy: name, departments: depts };
           orders.add(order);
           tables.update(createFor.id, { status: 'occupied' });
           setViewOrder(order);
@@ -139,8 +143,9 @@ function NewOrderForm({ table, menu, onSave, onCancel }: { table: RestaurantTabl
 // ─── Orders ──────────────────────────────────────────────────────────────────
 
 function OrdersTab() {
-  const orders = useCollection<Order>('fnb_orders', seedOrders);
-  const tables = useCollection<RestaurantTable>('fnb_tables', seedTables);
+  const { session } = useAuth();
+  const orders = useScopedCollection<Order>('fnb_orders', seedOrders, session);
+  const tables = useScopedCollection<RestaurantTable>('fnb_tables', seedTables, session);
   const [view, setView] = useState<Order | null>(null);
   const [kds, setKds] = useState(false);
 
@@ -246,7 +251,8 @@ function advanceItem(orders: any, order: Order, item: OrderItem) {
 }
 
 function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; tables: any; orders: any; menu: Record<string, never>; onClose: () => void }) {
-  const menuItems = useCollection<MenuItem>('fnb_menu', seedMenu);
+  const { session } = useAuth();
+  const menuItems = useScopedCollection<MenuItem>('fnb_menu', seedMenu, session);
   const [adding, setAdding] = useState(false);
   const [payMethod, setPayMethod] = useState('cash');
 
@@ -340,7 +346,9 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
 const CAT_LABEL: Record<MenuCategory, string> = { food: 'Food', drink: 'Drinks', bar: 'Bar', wine: 'Wine', special: 'Specials' };
 
 function MenuTab() {
-  const menu = useCollection<MenuItem>('fnb_menu', seedMenu);
+  const { session } = useAuth();
+  const menu = useScopedCollection<MenuItem>('fnb_menu', seedMenu, session);
+  const depts = tagFor(session, 'restaurants');
   const [cat, setCat] = useState<MenuCategory>('food');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
@@ -357,7 +365,7 @@ function MenuTab() {
         ))}
       </div>
       {showForm && (
-        <MenuForm initial={editItem} onSave={(m) => {
+        <MenuForm initial={editItem} depts={depts} onSave={(m) => {
           if (editItem) menu.replace(m.id, m); else menu.add(m);
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -386,7 +394,7 @@ function MenuTab() {
   );
 }
 
-function MenuForm({ initial, onSave, onCancel }: { initial: MenuItem | null; onSave: (m: MenuItem) => void; onCancel: () => void }) {
+function MenuForm({ initial, depts, onSave, onCancel }: { initial: MenuItem | null; depts: Department[]; onSave: (m: MenuItem) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { name: initial.name, category: initial.category, price: String(initial.price), description: initial.description || '' }
     : { name: '', category: 'food' as MenuCategory, price: '', description: '' });
@@ -403,14 +411,14 @@ function MenuForm({ initial, onSave, onCancel }: { initial: MenuItem | null; onS
         <Field label="Description"><TextInput value={f.description} onChange={e => setF({ ...f, description: e.target.value })} placeholder="Description" /></Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name || !f.price) return alert('Name and price required'); onSave({ id: initial?.id || uid('fnb'), ...f, price: Number(f.price), available: initial?.available ?? true }); }}>{initial ? 'Update' : 'Add Item'}</Btn>
+        <Btn onClick={() => { if (!f.name || !f.price) return alert('Name and price required'); onSave({ id: initial?.id || uid('fnb'), ...f, price: Number(f.price), available: initial?.available ?? true, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Item'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
   );
 }
 
-function TableForm({ initial, onSave, onCancel }: { initial: RestaurantTable | null; onSave: (t: RestaurantTable) => void; onCancel: () => void }) {
+function TableForm({ initial, depts, onSave, onCancel }: { initial: RestaurantTable | null; depts: Department[]; onSave: (t: RestaurantTable) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
     ? { number: initial.number, seats: String(initial.seats), status: initial.status }
     : { number: '', seats: '4', status: 'free' as TableStatus });
@@ -426,7 +434,7 @@ function TableForm({ initial, onSave, onCancel }: { initial: RestaurantTable | n
         </Field>
       </FieldGrid>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.number) return alert('Table name required'); onSave({ id: initial?.id || uid('fnb'), number: f.number, seats: Number(f.seats) || 4, status: f.status }); }}>{initial ? 'Update' : 'Add Table'}</Btn>
+        <Btn onClick={() => { if (!f.number) return alert('Table name required'); onSave({ id: initial?.id || uid('fnb'), number: f.number, seats: Number(f.seats) || 4, status: f.status, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Table'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>

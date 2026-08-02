@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, Search, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog } from 'lucide-react';
+import { Menu, X, Search, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle } from 'lucide-react';
 import { OverviewModule, BookingsModule, RoomsModule, DieselModule, InventoryModule, StaffModule, VendorsModule } from './modules/core';
 import { ExpensesModule } from './modules/expenses';
 import { SubscriptionsModule } from './modules/subscriptions';
@@ -16,11 +16,12 @@ import { ReportsModule } from './modules/reports';
 import { ComplianceModule } from './modules/compliance';
 import { PaystackModule, WhatsAppModule, BookingComModule } from './modules/channels';
 import { AccountsModule } from './modules/accounts';
+import { AccountModule } from './modules/account';
 import { AuthProvider, useAuth } from '../../lib/auth';
 import { AuthGate } from './auth';
 import { Permission, PERMISSIONS, hasPermission, primaryRole, hasIdentity } from '../../lib/rbac';
 
-const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; perm: Permission }[] = [
+const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; perm: Permission; always?: boolean }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, module: OverviewModule, perm: PERMISSIONS.viewReports },
   { id: 'bookings', label: 'Bookings', icon: CalendarCheck, module: BookingsModule, perm: PERMISSIONS.viewBookings },
   { id: 'rooms', label: 'Rooms', icon: BedDouble, module: RoomsModule, perm: PERMISSIONS.viewRooms },
@@ -43,6 +44,7 @@ const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; pe
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, module: WhatsAppModule, perm: PERMISSIONS.manageWhatsApp },
   { id: 'bookingcom', label: 'Booking.com', icon: Globe, module: BookingComModule, perm: PERMISSIONS.manageChannelManager },
   { id: 'accounts', label: 'App Accounts', icon: UserCog, module: AccountsModule, perm: PERMISSIONS.manageUsers },
+  { id: 'account', label: 'My Account', icon: UserCircle, module: AccountModule, perm: PERMISSIONS.viewReports, always: true },
 ];
 
 function Brand() {
@@ -56,7 +58,7 @@ function Brand() {
 
 function DashboardInner() {
   const { session, logout } = useAuth();
-  const visible = NAV.filter(n => hasPermission(session, n.perm));
+  const visible = NAV.filter(n => n.always || hasPermission(session, n.perm));
   const [tab, setTab] = useState('');
   const [search, setSearch] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -103,11 +105,13 @@ function DashboardInner() {
             <span className="hidden sm:inline-flex text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0">HOM LIVE</span>
             {hasIdentity(session) && (
               <div className="hidden sm:flex items-center gap-2 pl-2 border-l">
-                <div className="h-8 w-8 rounded-full bg-hom-primary text-white flex items-center justify-center text-xs font-black shrink-0">{initials}</div>
-                <div className="hidden lg:block leading-tight min-w-0">
-                  <div className="text-xs font-bold truncate max-w-[120px]">{session.userName}</div>
-                  <div className="text-[9px] text-zinc-500 truncate max-w-[120px]">{roleName || 'Unassigned'}</div>
-                </div>
+                <button onClick={() => goTab('account')} title="My Account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                  <div className="h-8 w-8 rounded-full bg-hom-primary text-white flex items-center justify-center text-xs font-black shrink-0">{initials}</div>
+                  <div className="hidden lg:block leading-tight min-w-0 text-left">
+                    <div className="text-xs font-bold truncate max-w-[120px]">{session.userName}</div>
+                    <div className="text-[9px] text-zinc-500 truncate max-w-[120px]">{roleName || 'Unassigned'}</div>
+                  </div>
+                </button>
                 <button onClick={logout} title="Sign out" className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-500">
                   <LogOut size={15} />
                 </button>
