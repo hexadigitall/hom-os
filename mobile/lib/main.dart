@@ -43,6 +43,7 @@ import 'data/payment_store.dart';
 import 'utils/theme.dart';
 import 'data/profile_store.dart';
 import 'data/role_store.dart';
+import 'data/update_service.dart';
 import 'data/firestore_role_service.dart';
 import 'models/role.dart';
 import 'models/hotel_user.dart';
@@ -162,6 +163,7 @@ void main() async {
   await WhatsAppStore.init();
   _trace('WhatsAppStore ok');
   _trace('RUNNING APP');
+  UpdateService.check();
   runApp(const HOMApp());
 }
 
@@ -671,41 +673,49 @@ class _HomeShellState extends State<HomeShell> {
           ]),
         ),
       ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      body: Column(
         children: [
-          if (isWide && hasAnyNav)
-            NavigationRail(
-              selectedIndex: navSel >= 0 ? navSel : navCount,
-              onDestinationSelected: (i) {
-                if (i < navCount) {
-                  _goToTab(navIndices[i]);
-                } else {
-                  _showMoreSheet();
-                }
-              },
-              // Icon+text where it fits; icons-only where it would be squeezed.
-              extended: size.width >= 900,
-              labelType: size.width >= 900 ? null : NavigationRailLabelType.all,
-              groupAlignment: -0.95,
-              backgroundColor: AppColors.grey50,
-              selectedIconTheme: IconThemeData(color: primaryGreen),
-              unselectedIconTheme:
-                  const IconThemeData(color: AppColors.grey600),
-              selectedLabelTextStyle: const TextStyle(
-                  fontWeight: FontWeight.w700, color: primaryGreen),
-              unselectedLabelTextStyle:
-                  const TextStyle(color: AppColors.grey600),
-              destinations: [
-                for (final t in navTabs)
-                  NavigationRailDestination(
-                      icon: Icon(t.icon), label: Text(t.label)),
-                if (_moreTabs.isNotEmpty)
-                  const NavigationRailDestination(
-                      icon: Icon(Icons.grid_view_rounded), label: Text('More')),
+          if (!kIsWeb) const _UpdateBanner(),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (isWide && hasAnyNav)
+                  NavigationRail(
+                    selectedIndex: navSel >= 0 ? navSel : navCount,
+                    onDestinationSelected: (i) {
+                      if (i < navCount) {
+                        _goToTab(navIndices[i]);
+                      } else {
+                        _showMoreSheet();
+                      }
+                    },
+                    // Icon+text where it fits; icons-only where it would be squeezed.
+                    extended: size.width >= 900,
+                    labelType: size.width >= 900 ? null : NavigationRailLabelType.all,
+                    groupAlignment: -0.95,
+                    backgroundColor: AppColors.grey50,
+                    selectedIconTheme: IconThemeData(color: primaryGreen),
+                    unselectedIconTheme:
+                        const IconThemeData(color: AppColors.grey600),
+                    selectedLabelTextStyle: const TextStyle(
+                        fontWeight: FontWeight.w700, color: primaryGreen),
+                    unselectedLabelTextStyle:
+                        const TextStyle(color: AppColors.grey600),
+                    destinations: [
+                      for (final t in navTabs)
+                        NavigationRailDestination(
+                            icon: Icon(t.icon), label: Text(t.label)),
+                      if (_moreTabs.isNotEmpty)
+                        const NavigationRailDestination(
+                            icon: Icon(Icons.grid_view_rounded),
+                            label: Text('More')),
+                    ],
+                  ),
+                Expanded(child: content),
               ],
             ),
-          Expanded(child: content),
+          ),
         ],
       ),
       bottomNavigationBar: !isWide && hasAnyNav
@@ -732,6 +742,60 @@ class _HomeShellState extends State<HomeShell> {
               ],
             )
           : null,
+    );
+  }
+}
+
+class _UpdateBanner extends StatelessWidget {
+  const _UpdateBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<UpdateInfo?>(
+      valueListenable: UpdateService.status,
+      builder: (context, info, _) {
+        if (info == null) return const SizedBox.shrink();
+        return Material(
+          color: AppColors.primary,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              child: Row(
+                children: [
+                  const Icon(Icons.system_update_alt_rounded,
+                      color: AppColors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'HOM ${info.latestTag} is available',
+                      style: const TextStyle(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () => launchUrl(
+                      Uri.parse(info.downloadUrl),
+                      mode: LaunchMode.externalApplication,
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.white,
+                      backgroundColor: AppColors.white.withValues(alpha: 0.15),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    ),
+                    child: const Text('Update'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
