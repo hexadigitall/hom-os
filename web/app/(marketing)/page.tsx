@@ -17,8 +17,8 @@ const STATS = [
 ]
 
 const STEPS = [
-  { icon: '📲', title: 'Install on any device', desc: 'APK on Android, MSIX on Windows, DEB on Linux, or just open the web app. Your data stays on the property.' },
-  { icon: '👤', title: 'Set up roles & staff', desc: 'First boot registers the owner, then invite your team with role-based access. Departments scope what each person can see and do.' },
+  { icon: '📲', title: 'Create your hotel account', desc: 'Open the web app on any phone or laptop and register as the owner in under two minutes — no card, no install required.' },
+  { icon: '👤', title: 'Install & invite staff', desc: 'Grab the APK, MSIX or DEB for your devices, then send each staff member a WhatsApp invite link — one tap opens a pre-filled sign-up.' },
   { icon: '🏨', title: 'Run the whole property', desc: 'Bookings, diesel, expenditure, compliance, payroll, vendors and reconciliation — every department on one OS.' },
 ]
 
@@ -57,7 +57,11 @@ export default function HomePage() {
               One app for bookings, diesel tracking (5 fuel types), expenditure management, compliance automation, staff payroll, vendors, WhatsApp integration and bank reconciliation. Built offline-first for Nigerian hotels.
             </p>
             <div className="flex flex-wrap gap-3">
-              <Link href="/download" className="px-6 py-3 rounded-xl bg-hom-primary text-black font-bold">Download HOM</Link>
+              <Link href="https://app.hom.com.ng/#/register" className="px-6 py-3 rounded-xl bg-hom-primary text-black font-bold inline-flex items-center gap-2 group">
+                Create your hotel account
+                <span className="transition-transform group-hover:translate-x-0.5">→</span>
+              </Link>
+              <Link href="/download" className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-hom-primary/40 transition-colors">Download HOM</Link>
               <Link href="https://app.hom.com.ng" className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-hom-primary/40 transition-colors">Open Web App</Link>
             </div>
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 text-xs text-white/30">
@@ -178,7 +182,8 @@ export default function HomePage() {
         <h2 className="text-3xl md:text-4xl font-black tracking-tight mb-4">From ₦15,000/month</h2>
         <p className="text-white/50 mb-8 max-w-xl mx-auto">Start with the basics, grow with the hotel. No credit card required to try.</p>
         <div className="flex flex-wrap justify-center gap-3">
-          <Link href="/pricing" className="inline-block px-8 py-3 rounded-xl bg-hom-primary text-black font-bold">See Pricing</Link>
+          <Link href="https://app.hom.com.ng/#/register" className="inline-block px-8 py-3 rounded-xl bg-hom-primary text-black font-bold">Create your hotel account</Link>
+          <Link href="/pricing" className="inline-block px-8 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-hom-primary/40 transition-colors">See Pricing</Link>
           <Link href="/download" className="inline-block px-8 py-3 rounded-xl bg-white/5 border border-white/10 hover:border-hom-primary/40 transition-colors">Download HOM</Link>
         </div>
       </section>

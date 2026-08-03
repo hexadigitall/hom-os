@@ -3,6 +3,7 @@ import 'package:hive/hive.dart';
 import '../models/hotel_user.dart';
 import '../models/invite_code.dart';
 import '../models/role.dart';
+import 'firestore_invite_service.dart';
 
 class UserStore {
   static Box<String>? _box;
@@ -111,12 +112,23 @@ class UserStore {
     required String phone,
     required String password,
   }) async {
-    final invites = _loadInvites();
+    final normalized = inviteCode.trim().toUpperCase();
+    var invites = _loadInvites();
     InviteCode? invite;
     for (final i in invites) {
-      if (i.code == inviteCode && i.isValid) {
+      if (i.code.toUpperCase() == normalized && i.isValid) {
         invite = i;
         break;
+      }
+    }
+    if (invite == null) {
+      // Not issued on this device — the owner may have generated the code on
+      // another phone, the desktop app or the web dashboard. Fall back to the
+      // shared cloud store so staff can redeem from any device.
+      final cloud = await FirestoreInviteService.readInvite(normalized);
+      if (cloud != null && cloud.isValid) {
+        invites = [...invites, cloud];
+        invite = cloud;
       }
     }
     if (invite == null) return null;
@@ -147,6 +159,9 @@ class UserStore {
     invite.usedByUserId = userId;
     invite.usedAt = DateTime.now();
     await _saveInvites(invites);
+
+    // Consume the cloud copy so the code cannot be used on another device.
+    FirestoreInviteService.markUsed(invite.code, userId);
 
     return user;
   }
@@ -179,6 +194,9 @@ class UserStore {
     );
     invites.add(invite);
     _saveInvites(invites);
+    // Publish to the cloud store so staff can redeem this code from any
+    // device (web, phone, desktop). Best-effort — offline-first never blocks.
+    FirestoreInviteService.writeInvite(invite);
     return code;
   }
 
@@ -212,5 +230,6 @@ class UserStore {
     final invites = _loadInvites();
     invites.removeWhere((inv) => inv.code == code);
     await _saveInvites(invites);
+    FirestoreInviteService.deleteInvite(code);
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/role.dart';
 import '../../data/user_store.dart';
 import '../../data/role_store.dart';
@@ -65,12 +67,34 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
     );
   }
 
-  void _shareWhatsApp() {
+  void _copyLink() {
     if (_generatedCode == null) return;
-    Clipboard.setData(ClipboardData(text: _generatedCode!));
+    Clipboard.setData(ClipboardData(text: _inviteLink));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Code copied! Paste it into your WhatsApp message.')),
+      const SnackBar(content: Text('Invite link copied!')),
     );
+  }
+
+  String get _inviteLink =>
+      'https://app.hom.com.ng/#/staff-register?code=$_generatedCode';
+
+  String get _inviteMessage => _generatedCode == null
+      ? ''
+      : 'You have been invited to join your hotel on HOM.\n\n'
+          'Invite code: $_generatedCode\n\n'
+          'Open this link to sign up (the code is already filled in):\n'
+          '$_inviteLink';
+
+  Future<void> _shareWhatsApp() async {
+    if (_generatedCode == null) return;
+    final uri = Uri.https('wa.me', '/', {'text': _inviteMessage});
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) throw Exception('launch failed');
+    } catch (_) {
+      // Fall back to the native share sheet (WhatsApp, SMS, etc.).
+      await Share.share(_inviteMessage);
+    }
   }
 
   @override
@@ -165,6 +189,8 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
                 const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   TextButton.icon(onPressed: _copy, icon: const Icon(Icons.copy_rounded, size: 16), label: const Text('Copy')),
+                  const SizedBox(width: 12),
+                  TextButton.icon(onPressed: _copyLink, icon: const Icon(Icons.link_rounded, size: 16), label: const Text('Copy link')),
                   const SizedBox(width: 12),
                   TextButton.icon(onPressed: _shareWhatsApp, icon: const Icon(Icons.chat_rounded, size: 16, color: AppColors.whatsapp), label: const Text('Share', style: TextStyle(color: AppColors.whatsapp))),
                 ]),

@@ -3,7 +3,12 @@ import '../../data/auth_service.dart';
 import 'package:hom_mobile/utils/theme.dart';
 
 class StaffRegistrationScreen extends StatefulWidget {
-  const StaffRegistrationScreen({super.key});
+  const StaffRegistrationScreen({super.key, this.initialCode});
+
+  /// Invite code pre-filled from a WhatsApp invite link, e.g.
+  /// `app.hom.com.ng/#/staff-register?code=XXXX`.
+  final String? initialCode;
+
   @override
   State<StaffRegistrationScreen> createState() => _StaffRegistrationScreenState();
 }
@@ -17,6 +22,15 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
   final _confirmCtrl = TextEditingController();
   bool _loading = false;
   bool _obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.initialCode?.trim() ?? '';
+    if (code.isNotEmpty) {
+      _codeCtrl.text = code.toUpperCase();
+    }
+  }
 
   @override
   void dispose() {
@@ -97,7 +111,12 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
                     : null,
               ),
               textCapitalization: TextCapitalization.characters,
-              onChanged: (_) => setState(() {}),
+              onChanged: (v) => setState(() {
+                _codeCtrl.value = _codeCtrl.value.copyWith(
+                  text: v.toUpperCase(),
+                  selection: TextSelection.collapsed(offset: v.length),
+                );
+              }),
             ),
             const SizedBox(height: 24),
             TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_rounded))),

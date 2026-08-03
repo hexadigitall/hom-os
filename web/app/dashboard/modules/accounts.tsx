@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Edit3, Trash2, Copy } from 'lucide-react';
+import { Plus, Edit3, Trash2, Copy, Link2, MessageCircle } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
 import {
   HotelUser, InviteCode, Department, AccountStatus, Permission, PERMISSIONS,
@@ -141,6 +141,14 @@ function InviteForm({ onClose }: { onClose: () => void }) {
     await navigator.clipboard.writeText(code);
   };
 
+  const inviteLink = `https://app.hom.com.ng/#/staff-register?code=${encodeURIComponent(code)}`;
+  const waMessage = `You've been invited to join your hotel on HOM.\n\nInvite code: ${code}\n\nOpen this link to sign up (the code is already filled in):\n${inviteLink}`;
+  const waHref = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(inviteLink);
+  };
+
   return (
     <FormCard title="Invite Staff" onCancel={onClose}>
       <div className="grid md:grid-cols-3 gap-3 mb-3">
@@ -182,6 +190,16 @@ function InviteForm({ onClose }: { onClose: () => void }) {
             {isHead ? ' • Department Head' : ''}
           </div>
           <Btn color="green" className="mt-3 !py-1.5 !text-xs" onClick={copy}><Copy size={12} /> Copy Code</Btn>
+          <Btn color="outline" className="mt-3 !py-1.5 !text-xs" onClick={copyLink}><Link2 size={12} /> Copy Invite Link</Btn>
+          <a
+            href={waHref}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex items-center gap-1.5 !py-1.5 !text-xs bg-green-600/10 text-green-700 border border-green-600/20 rounded-lg px-3 font-bold hover:bg-green-600/20 transition-colors"
+          >
+            <MessageCircle size={12} /> Share on WhatsApp
+          </a>
+          <p className="text-[10px] text-zinc-400 mt-2">Staff tap the link and land on a pre-filled sign-up with this code.</p>
         </Card>
       )}
     </FormCard>

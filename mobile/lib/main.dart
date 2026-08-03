@@ -180,17 +180,63 @@ void _onNotificationTap(NotificationResponse response) {
 
 void _initDeepLinks() {
   final appLinks = AppLinks();
-  appLinks.uriLinkStream.listen((uri) {
-    final path = uri.path.replaceAll(RegExp(r'^/'), '');
-    if (path.isNotEmpty) {
-      final query = uri.queryParameters;
-      navigatorKey.currentState?.pushNamed('/$path', arguments: query);
-    }
+  // Cold start: capture the link before the navigator exists and route once
+  // the first frame is up. On web the hash strategy already lands the app on
+  // the right route, so this is the fallback for native app links + warm links.
+  appLinks.getInitialLink().then((uri) {
+    if (uri != null) _handleDeepLink(uri);
+  }).catchError((_) {});
+  appLinks.uriLinkStream.listen(_handleDeepLink);
+}
+
+({String route, Map<String, String> query})? _parseAppLink(Uri uri) {
+  // Web uses hash routing:  app.hom.com.ng/#/staff-register?code=XXX
+  // Native custom scheme:   hom://staff-register?code=XXX
+  var raw = uri.fragment.isNotEmpty ? uri.fragment : uri.path;
+  if (raw.startsWith('/')) raw = raw.substring(1);
+  if (raw.isEmpty) return null;
+  final idx = raw.indexOf('?');
+  final path = idx >= 0 ? raw.substring(0, idx) : raw;
+  final query = idx >= 0
+      ? Uri.splitQueryString(raw.substring(idx + 1))
+      : <String, String>{};
+  if (path.isEmpty) return null;
+  return (route: '/$path', query: query);
+}
+
+void _handleDeepLink(Uri uri) {
+  final target = _parseAppLink(uri);
+  if (target == null) return;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    navigatorKey.currentState?.pushNamed(target.route, arguments: target.query);
   });
 }
 
 class HOMApp extends StatelessWidget {
   const HOMApp({super.key});
+
+  /// Deep-link URLs arrive with the query in the route name (web hash routing
+  /// produces `/staff-register?code=XXX`). The named `routes` map can't match
+  /// those, so we parse them here and hand the invite code to the screen.
+  static Route<dynamic>? _deepLinkRoute(RouteSettings settings) {
+    final name = settings.name;
+    if (name == null || !name.contains('?')) return null;
+    final uri = Uri.tryParse(name);
+    if (uri == null) return null;
+    switch (uri.path) {
+      case '/staff-register':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => StaffRegistrationScreen(initialCode: uri.queryParameters['code']),
+        );
+      case '/register':
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const OwnerRegistrationScreen(),
+        );
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -203,11 +249,23 @@ class HOMApp extends StatelessWidget {
         '/home': (context) => const HomeShell(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const OwnerRegistrationScreen(),
-        '/staff-register': (context) => const StaffRegistrationScreen(),
+        '/staff-register': (context) => StaffRegistrationScreen(
+          initialCode: _inviteCodeArg(ModalRoute.of(context)?.settings.arguments),
+        ),
         '/profile': (context) => const ProfileScreen(),
       },
+      onGenerateRoute: _deepLinkRoute,
       theme: AppTheme.light,
     );
+  }
+
+  static String? _inviteCodeArg(Object? args) {
+    if (args == null) return null;
+    if (args is Map) {
+      final value = args['code'];
+      return value is String ? value : null;
+    }
+    return null;
   }
 }
 

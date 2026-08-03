@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '../../lib/auth';
 import { hasIdentity } from '../../lib/rbac';
 import { Card, Field, TextInput, Btn } from './ui';
@@ -60,7 +60,7 @@ export function SuspendedScreen() {
   );
 }
 
-function OwnerRegisterScreen({ onSwitch }: { onSwitch?: () => void }) {
+function OwnerRegisterScreen({ onSignIn, onStaff }: { onSignIn?: () => void; onStaff?: () => void }) {
   const { registerOwner } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -80,7 +80,7 @@ function OwnerRegisterScreen({ onSwitch }: { onSwitch?: () => void }) {
   return (
     <Shell>
       <Card className="p-6">
-        <h1 className="text-lg font-black">Welcome to HOM</h1>
+        <h1 className="text-lg font-black">Create your hotel account</h1>
         <p className="text-xs text-zinc-500 mt-1 mb-5">Set up your hotel to get started. As owner you get full access.</p>
         <div className="space-y-3">
           <Field label="Your full name"><TextInput value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Amina Yusuf" /></Field>
@@ -91,8 +91,11 @@ function OwnerRegisterScreen({ onSwitch }: { onSwitch?: () => void }) {
           <Field label="Confirm password"><TextInput type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Repeat password" /></Field>
           {err && <p className="text-xs text-red-600">{err}</p>}
           <Btn onClick={submit} className="w-full justify-center">Create Account</Btn>
-          {onSwitch && (
-            <button onClick={onSwitch} className="w-full text-center text-xs font-bold text-hom-primary mt-1">Already registered? Sign in</button>
+          {onStaff && (
+            <button onClick={onStaff} className="w-full text-center text-xs font-bold text-hom-primary mt-1">New staff? Join with an invite code</button>
+          )}
+          {onSignIn && (
+            <button onClick={onSignIn} className="w-full text-center text-xs font-bold text-hom-primary">Already registered? Sign in</button>
           )}
         </div>
       </Card>
@@ -100,9 +103,9 @@ function OwnerRegisterScreen({ onSwitch }: { onSwitch?: () => void }) {
   );
 }
 
-function StaffRegisterScreen({ onBack }: { onBack: () => void }) {
+function StaffRegisterScreen({ initialCode, onBack, onOwner }: { initialCode?: string; onBack?: () => void; onOwner?: () => void }) {
   const { registerStaff } = useAuth();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(initialCode?.toUpperCase() || '');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -122,7 +125,9 @@ function StaffRegisterScreen({ onBack }: { onBack: () => void }) {
     <Shell>
       <Card className="p-6">
         <h1 className="text-lg font-black">Join your hotel</h1>
-        <p className="text-xs text-zinc-500 mt-1 mb-5">Enter the invite code your administrator gave you.</p>
+        <p className="text-xs text-zinc-500 mt-1 mb-5">
+          {initialCode ? 'Your invite was found — finish setting up your account.' : 'Enter the invite code your administrator sent you.'}
+        </p>
         <div className="space-y-3">
           <Field label="Invite code"><TextInput value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="e.g. M1K2X3AB4C" /></Field>
           <Field label="Full name"><TextInput value={name} onChange={e => setName(e.target.value)} placeholder="e.g. John Doe" /></Field>
@@ -132,22 +137,23 @@ function StaffRegisterScreen({ onBack }: { onBack: () => void }) {
           <Field label="Confirm password"><TextInput type="password" value={pw2} onChange={e => setPw2(e.target.value)} placeholder="Repeat password" /></Field>
           {err && <p className="text-xs text-red-600">{err}</p>}
           <Btn onClick={submit} className="w-full justify-center">Register with Invite</Btn>
-          <button onClick={onBack} className="w-full text-center text-xs font-bold text-hom-primary">Back to sign in</button>
+          {onOwner && (
+            <button onClick={onOwner} className="w-full text-center text-xs font-bold text-hom-primary">Own a hotel? Create your account</button>
+          )}
+          {onBack && (
+            <button onClick={onBack} className="w-full text-center text-xs font-bold text-hom-primary">Back to sign in</button>
+          )}
         </div>
       </Card>
     </Shell>
   );
 }
 
-function LoginScreen() {
+function LoginScreen({ onStaffRegister }: { onStaffRegister?: () => void }) {
   const { login, ownerRegistered } = useAuth();
-  const [showRegister, setShowRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [err, setErr] = useState('');
-
-  if (showRegister) return <StaffRegisterScreen onBack={() => setShowRegister(false)} />;
-  if (!ownerRegistered) return <OwnerRegisterScreen />;
 
   const submit = () => {
     if (!email.trim() || !pw) return setErr('Enter your email and password');
@@ -165,18 +171,42 @@ function LoginScreen() {
           <Field label="Password"><TextInput type="password" value={pw} onChange={e => setPw(e.target.value)} placeholder="••••••••" onKeyDown={e => e.key === 'Enter' && submit()} /></Field>
           {err && <p className="text-xs text-red-600">{err}</p>}
           <Btn onClick={submit} className="w-full justify-center">Sign In</Btn>
-          <button onClick={() => setShowRegister(true)} className="w-full text-center text-xs font-bold text-hom-primary">New staff? Register with an invite code</button>
+          {onStaffRegister && (
+            <button onClick={onStaffRegister} className="w-full text-center text-xs font-bold text-hom-primary">New staff? Register with an invite code</button>
+          )}
         </div>
       </Card>
     </Shell>
   );
 }
 
+/** Reads ?code= from the URL so WhatsApp invite links can pre-fill sign-up. */
+function useInviteCode(): string {
+  const [code, setCode] = useState('');
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setCode(new URLSearchParams(window.location.search).get('code') || '');
+  }, []);
+  return code;
+}
+
 /** Zero-trust gate: no default access. Renders login/register/pending/suspended states. */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { session, ownerRegistered } = useAuth();
+  const inviteCode = useInviteCode();
+  const [mode, setMode] = useState<'staff' | 'owner' | null>(null);
+
   if (!hasIdentity(session)) {
-    return ownerRegistered ? <LoginScreen /> : <OwnerRegisterScreen />;
+    if (inviteCode || mode === 'staff') {
+      return <StaffRegisterScreen initialCode={inviteCode} onBack={() => setMode(null)} onOwner={() => setMode('owner')} />;
+    }
+    if (mode === 'owner') {
+      return <OwnerRegisterScreen onSignIn={() => setMode(null)} onStaff={() => setMode('staff')} />;
+    }
+    if (!ownerRegistered) {
+      return <OwnerRegisterScreen onStaff={() => setMode('staff')} />;
+    }
+    return <LoginScreen onStaffRegister={() => setMode('staff')} />;
   }
   if (session.status === 'pending') return <AwaitingScreen />;
   if (session.status === 'suspended') return <SuspendedScreen />;
