@@ -316,7 +316,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HOM-Linux-Deb
-          path: mobile/build/hom_${HOM_VERSION}_amd64.deb
+          path: mobile/build/hom_${{ env.HOM_VERSION }}_amd64.deb
 
   # ─────────────────────────────────────────────
   # macOS (Desktop)
