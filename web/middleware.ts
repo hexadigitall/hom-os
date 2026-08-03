@@ -9,12 +9,19 @@ export function middleware(request: NextRequest) {
   if (host.includes('app.hom.com.ng')) {
     if (url.pathname === '/' || url.pathname === '') {
       url.pathname = '/flutter-web/index.html'
-      return NextResponse.rewrite(url)
-    }
-    if (!url.pathname.startsWith('/flutter-web')) {
+    } else if (!url.pathname.startsWith('/flutter-web')) {
       url.pathname = `/flutter-web${url.pathname}`
-      return NextResponse.rewrite(url)
     }
+    const res = NextResponse.rewrite(url)
+    // Hashed / SDK-versioned Flutter assets are safe to cache immutably.
+    if (url.pathname.includes('/canvaskit/')) {
+      res.headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+    } else {
+      // index.html, main.dart.js, service worker, assets etc. change every
+      // release but keep the same URL -> revalidate so updates are never stale.
+      res.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
+    }
+    return res
   }
 
   // www.hom.com.ng -> redirect to apex

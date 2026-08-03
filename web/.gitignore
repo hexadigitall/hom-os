@@ -7,3 +7,4 @@ npm-debug.log*
 /build
 *.tsbuildinfo
 next-env.d.ts
+.env*

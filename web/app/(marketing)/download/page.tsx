@@ -1,8 +1,14 @@
 "use client"
 import { useEffect, useState } from 'react'
+import QRCode from 'qrcode'
 
 type Asset = { name: string; browser_download_url: string; size: number }
-type Release = { tag_name: string; published_at: string; assets: Asset[] }
+type Release = {
+  tag_name: string
+  published_at: string
+  body?: string
+  assets: Asset[]
+}
 
 type Card = {
   key: string
@@ -45,7 +51,7 @@ const CARDS: Card[] = [
   {
     key: 'windows',
     title: 'Windows',
-    desc: 'Portable EXE — extract and run. No installer needed.',
+    desc: 'Portable build — extract the ZIP and run HOM.exe. No installer needed. Upgrades replace your existing HOM folder.',
     icon: '🪟',
     os: ['windows'],
     match: (a) => a.find((x) => /^HOM-Windows/i.test(x.name) && /\.exe$/i.test(x.name)) || a.find((x) => /^HOM-Windows/i.test(x.name)),
@@ -54,7 +60,7 @@ const CARDS: Card[] = [
   {
     key: 'msix',
     title: 'Windows MSIX',
-    desc: 'Signed MSIX bundle with certificate for Store-style deployment.',
+    desc: 'Signed MSIX bundle with certificate for Store-style deployment. Installs over older HOM versions in place.',
     icon: '🧾',
     os: ['windows'],
     match: (a) => a.find((x) => x.name === 'HOM-Msix-Cert.zip' || /^HOM-Msix/i.test(x.name)),
@@ -62,7 +68,7 @@ const CARDS: Card[] = [
   {
     key: 'linux',
     title: 'Linux',
-    desc: 'Portable Linux build. Runs on most distros.',
+    desc: 'Portable Linux build. Runs on most distros. Upgrades replace your existing HOM folder.',
     icon: '🐧',
     os: ['linux'],
     match: (a) => a.find((x) => /^HOM-Linux/i.test(x.name) && !/deb/i.test(x.name)),
@@ -71,7 +77,7 @@ const CARDS: Card[] = [
   {
     key: 'deb',
     title: 'Linux DEB',
-    desc: 'Debian/Ubuntu package for apt-based systems.',
+    desc: 'Debian/Ubuntu package for apt-based systems. Upgrades install over older HOM packages.',
     icon: '🐧',
     os: ['linux'],
     match: (a) => a.find((x) => x.name === 'HOM-Deb.deb' || /\.deb$/i.test(x.name)),
@@ -79,7 +85,7 @@ const CARDS: Card[] = [
   {
     key: 'macos',
     title: 'macOS',
-    desc: 'Mac build for Apple silicon and Intel.',
+    desc: 'Mac build for Apple silicon and Intel. Upgrades replace your existing HOM app.',
     icon: '🍎',
     os: ['macos'],
     match: (a) => a.find((x) => /^HOM-macOS/i.test(x.name)),
@@ -88,7 +94,7 @@ const CARDS: Card[] = [
   {
     key: 'web',
     title: 'Web App',
-    desc: 'Run HOM in the browser — app.hom.com.ng. Works on any device.',
+    desc: 'Run HOM in the browser — app.hom.com.ng. Works on any device and always stays up to date.',
     icon: '🌐',
     os: ['web', 'ios'],
     match: () => undefined,
@@ -98,7 +104,7 @@ const CARDS: Card[] = [
   {
     key: 'ios',
     title: 'iOS',
-    desc: 'Coming soon. Meanwhile, use the Web App on iPhone and iPad.',
+    desc: 'iOS app is coming soon. Until then, use the Web App on iPhone and iPad — add it to your home screen.',
     icon: '📱',
     os: ['ios'],
     match: () => undefined,
@@ -127,6 +133,39 @@ function formatBytes(n: number): string {
   return `${Math.round(n / 1024)} KB`
 }
 
+// Release bodies embed a SHA256SUMS.txt block: "<hash>  <filename>"
+function parseChecksums(body?: string): Record<string, string> {
+  const map: Record<string, string> = {}
+  if (!body) return map
+  const re = /([0-9a-f]{64})\s{2}(HOM-[^\s]+)/g
+  let m
+  while ((m = re.exec(body))) {
+    map[m[2]] = m[1]
+  }
+  return map
+}
+
+function QrCode({ value }: { value: string }) {
+  const [url, setUrl] = useState<string>('')
+  useEffect(() => {
+    QRCode.toDataURL(value, { width: 96, margin: 1 })
+      .then(setUrl)
+      .catch(() => setUrl(''))
+  }, [value])
+  if (!url) return <div className="w-24 h-24 mx-auto mb-4 rounded-xl bg-white/5" />
+  return (
+    <img
+      src={url}
+      alt={`QR code for ${value}`}
+      className="w-24 h-24 rounded-xl bg-white p-2 mb-4 mx-auto"
+    />
+  )
+}
+
+function shortHash(hash: string): string {
+  return `${hash.slice(0, 10)}…${hash.slice(-6)}`
+}
+
 export default function DownloadPage() {
   const [release, setRelease] = useState<Release | null>(null)
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
@@ -142,6 +181,8 @@ export default function DownloadPage() {
 
   const releaseUrl = 'https://github.com/hexadigitall/hom-os/releases/latest'
   const releaseLink = release?.tag_name ? `https://github.com/hexadigitall/hom-os/releases/tag/${encodeURIComponent(release.tag_name)}` : releaseUrl
+  const checksums = release ? parseChecksums(release.body) : {}
+  const checksumEntries = Object.entries(checksums)
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-16">
@@ -155,7 +196,36 @@ export default function DownloadPage() {
           {status === 'ok' && release && (
             <>Latest release <span className="text-hom-primary font-semibold">{release.tag_name}</span> — published {new Date(release.published_at).toLocaleDateString()}</>
           )}
-          {status === 'error' && (
+      {status === 'ok' && checksumEntries.length > 0 && (
+        <div className="mt-12 max-w-2xl mx-auto rounded-3xl border border-white/5 bg-hom-panel p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xl">🔒</span>
+            <h2 className="font-bold">Verify your download</h2>
+          </div>
+          <p className="text-xs text-white/40 mb-4">
+            Compare the SHA-256 hash of each file with the values below to confirm your download is complete and unmodified.
+          </p>
+          <div className="grid gap-1 font-mono text-[10px] text-white/35">
+            {checksumEntries.map(([file, hash]) => (
+              <div key={file} className="flex justify-between gap-4">
+                <span className="shrink-0">{file}</span>
+                <span className="break-all">{hash}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-10 max-w-2xl mx-auto rounded-3xl border border-hom-primary/20 bg-hom-primary/5 p-6 text-center">
+        <p className="text-sm font-bold text-hom-primary mb-1">Automatic, in-place updates</p>
+        <p className="text-xs text-white/45">
+          Installed HOM apps check for new versions on launch and prompt you to update.
+          Installing a newer build upgrades your current app in place — your data stays,
+          and you never need to uninstall and reinstall.
+        </p>
+      </div>
+
+      {status === 'error' && (
             <>No artifacts published yet — check <a className="text-hom-primary underline" href={releaseUrl} target="_blank" rel="noreferrer">GitHub Releases</a>.</>
           )}
         </p>
@@ -181,6 +251,7 @@ export default function DownloadPage() {
             const asset = c.match(release?.assets ?? [])
             const recommended = c.os.includes(os)
             const disabled = !asset && !c.qr
+            const sum = asset ? checksums[asset.name] : undefined
             return (
               <div
                 key={c.key}
@@ -193,15 +264,12 @@ export default function DownloadPage() {
                 </div>
                 <h3 className="font-bold mb-1">{c.title}</h3>
                 <p className="text-xs text-white/40 mb-4 flex-1">{c.desc}</p>
-                {c.qr && (
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(c.qr)}`}
-                    alt={`QR code for ${c.title}`}
-                    className="w-24 h-24 rounded-xl bg-white p-2 mb-4 mx-auto"
-                  />
-                )}
+                {c.qr && <QrCode value={c.qr} />}
                 {asset && (
                   <div className="text-xs text-white/30 mb-3 text-center">{asset.name} • {formatBytes(asset.size)}</div>
+                )}
+                {sum && (
+                  <div className="text-[10px] text-white/25 mb-3 text-center font-mono break-all">SHA-256 {shortHash(sum)}</div>
                 )}
                 <a
                   href={c.qr || asset?.browser_download_url || releaseLink}

@@ -16,7 +16,7 @@ export default function ContactPage() {
   }
 
   const whatsappHref = () =>
-    `https://wa.me/2348000000000?text=${encodeURIComponent(`Hi, I'm interested in HOM. ${name ? `My name is ${name}.` : ''} ${hotel ? `Hotel: ${hotel}.` : ''}`)}`
+    `https://wa.me/2348125802140?text=${encodeURIComponent(`Hi, I'm interested in HOM. ${name ? `My name is ${name}.` : ''} ${hotel ? `Hotel: ${hotel}.` : ''}`)}`
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-16">
@@ -73,6 +73,7 @@ export default function ContactPage() {
           <a href={whatsappHref()} target="_blank" rel="noreferrer" className="block rounded-3xl bg-hom-panel border border-white/5 p-6 hover:border-hom-primary/40 transition-colors">
             <p className="text-2xl mb-2">💬</p>
             <p className="font-bold">WhatsApp us</p>
+            <p className="text-hom-primary text-xs mt-1">+234 812 580 2140</p>
             <p className="text-xs text-white/40 mt-1">Fastest for hoteliers. Chat with the HOM team directly.</p>
           </a>
           <a href="mailto:hello@hexadigitall.com" className="block rounded-3xl bg-hom-panel border border-white/5 p-6 hover:border-hom-primary/40 transition-colors">
