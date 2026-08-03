@@ -1,0 +1,32 @@
+# LICENSE
+
+## HOM — Hospitality Operations Manager
+
+Copyright (c) 2026 Hexadigitall. All rights reserved.
+
+HOM (including all source code, documentation, design assets, build
+configuration and release artifacts in this repository) is proprietary
+software owned by Hexadigitall.
+
+**You are not granted a license.** You may not:
+
+- copy, modify, merge, publish, distribute, sub-license or sell copies of
+  this software or any part of it;
+- use the source code to build a competing product or derivative work;
+- reverse engineer, decompile or disassemble compiled artifacts, except as
+  explicitly permitted by applicable law;
+- remove or alter any copyright, trademark or proprietary notices.
+
+The name "HOM", the HOM logo and the "Hospitality Operations Manager" brand
+are trademarks of Hexadigitall.
+
+For licensing inquiries, commercial use or redistribution, contact
+<hello@hexadigitall.com>.
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
