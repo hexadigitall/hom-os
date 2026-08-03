@@ -550,6 +550,7 @@ class _PayrollTab extends StatelessWidget {
                                   showDialog(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
+                                            scrollable: true,
                                             title: Text(
                                                 '${r.staffName} — Pay Breakdown'),
                                             content: Column(
@@ -912,6 +913,7 @@ class _TaxConfigTab extends StatelessWidget {
                   onPressed: () => showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(
+                            scrollable: true,
                             title: const Text('Reset Tax Config?'),
                             content: const Text(
                                 'This will reset all tax settings to defaults.'),

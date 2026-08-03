@@ -746,6 +746,7 @@ class _LostFoundTab extends StatelessWidget {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+              scrollable: true,
               title: Text(lf.itemName),
               content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1097,6 +1098,7 @@ class _LinenTab extends StatelessWidget {
                         showDialog(
                             context: context,
                             builder: (ctx) => AlertDialog(
+                                  scrollable: true,
                                   title: Text(l.itemName),
                                   content: Column(
                                       mainAxisSize: MainAxisSize.min,

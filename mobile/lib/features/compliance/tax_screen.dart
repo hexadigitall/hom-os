@@ -255,37 +255,49 @@ class _TaxScreenState extends State<TaxScreen> {
               context: context,
               builder: (ctx) => AlertDialog(
                 title: const Text('Generate Tax Report'),
-                content: Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text('Period: ${DateFormat('MMM yyyy').format(periodStart)}'),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: salesCtl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        labelText: 'Total Sales (₦)', hintText: 'e.g. 500000'),
+                content: ConstrainedBox(
+                  constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(
+                          'Period: ${DateFormat('MMM yyyy').format(periodStart)}'),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: salesCtl,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                            labelText: 'Total Sales (₦)',
+                            hintText: 'e.g. 500000'),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('${configs.length} state(s) configured',
+                          style: TextStyle(
+                              fontSize: 13, color: AppColors.grey600)),
+                      if (configs.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        ...configs.map((c) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(c.stateName,
+                                        style: const TextStyle(fontSize: 12)),
+                                    Text(
+                                        '${c.rate}% → ₦${((double.tryParse(salesCtl.text) ?? 0) * c.rate / 100).toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.teal700)),
+                                  ]),
+                            )),
+                      ],
+                    ]),
                   ),
-                  const SizedBox(height: 8),
-                  Text('${configs.length} state(s) configured',
-                      style: TextStyle(fontSize: 13, color: AppColors.grey600)),
-                  if (configs.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    ...configs.map((c) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(c.stateName,
-                                    style: const TextStyle(fontSize: 12)),
-                                Text(
-                                    '${c.rate}% → ₦${((double.tryParse(salesCtl.text) ?? 0) * c.rate / 100).toStringAsFixed(0)}',
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.teal700)),
-                              ]),
-                        )),
-                  ],
-                ]),
+                ),
                 actions: [
                   TextButton(
                       onPressed: () => Navigator.pop(ctx),

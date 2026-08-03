@@ -7,8 +7,8 @@ import { Card, Field, TextInput, Btn } from './ui';
 
 function Shell({ children }: { children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-hom-background flex items-center justify-center p-6">
-      <div className="w-full max-w-md">
+    <main className="min-h-dvh bg-hom-background flex justify-center overflow-y-auto p-6 py-8">
+      <div className="w-full max-w-md my-auto">
         <div className="flex items-center gap-3 mb-6 justify-center">
           <div className="h-12 w-12 rounded-[14px] bg-white border-2 border-hom-primary p-1.5 shadow-sm">
             <img src="/logo.png" alt="HOM" className="h-full w-full object-contain" />

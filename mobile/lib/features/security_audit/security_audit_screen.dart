@@ -180,6 +180,7 @@ class _NightAuditTab extends StatelessWidget {
               showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
+                        scrollable: true,
                         title: Text(
                             'Night Audit — ${a.businessDate.toIso8601String().substring(0, 10)}'),
                         content: Column(
@@ -508,6 +509,7 @@ class _SecurityTab extends StatelessWidget {
                                   showDialog(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
+                                            scrollable: true,
                                             title: Text(inc.type.name),
                                             content: Column(
                                                 mainAxisSize: MainAxisSize.min,
@@ -904,6 +906,7 @@ class _VisitorsTab extends StatelessWidget {
                                     showDialog(
                                         context: context,
                                         builder: (ctx) => AlertDialog(
+                                              scrollable: true,
                                               title: Text(v.visitorName),
                                               content: Column(
                                                   mainAxisSize:

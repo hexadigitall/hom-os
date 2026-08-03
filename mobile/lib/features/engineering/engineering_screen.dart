@@ -698,6 +698,7 @@ class _FuelTanksTab extends StatelessWidget {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+              scrollable: true,
               title: Text('${d.tankName} — Dip Reading'),
               content: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1532,6 +1533,7 @@ class _WaterTab extends StatelessWidget {
     showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+              scrollable: true,
               title: Text('${w.source} — ${w.treatmentAction}'),
               content: Column(
                   mainAxisSize: MainAxisSize.min,

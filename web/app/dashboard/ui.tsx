@@ -73,7 +73,7 @@ export function MetricCard({ label, value, sub, color = 'bg-blue-50 text-blue-70
   return (
     <div className="rounded-2xl p-5 border bg-white min-w-0">
       <div className={`text-xs font-bold ${color} px-2 py-0.5 rounded-full inline-block`}>{label}</div>
-      <div className="text-xl sm:text-2xl lg:text-3xl font-black mt-2 truncate">{value}</div>
+      <div className="text-xl sm:text-2xl lg:text-3xl font-black mt-2 break-words leading-tight">{value}</div>
       {sub && <div className="text-xs text-zinc-500 mt-1 truncate">{sub}</div>}
     </div>
   );

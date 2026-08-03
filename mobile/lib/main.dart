@@ -691,8 +691,14 @@ class _HomeShellState extends State<HomeShell> {
                       }
                     },
                     // Icon+text where it fits; icons-only where it would be squeezed.
+                    // On short (landscape) viewports labels risk vertical overflow,
+                    // so fall back to icons-only whenever the available height is tight.
                     extended: size.width >= 900,
-                    labelType: size.width >= 900 ? null : NavigationRailLabelType.all,
+                    labelType: size.width >= 900
+                        ? null
+                        : (size.height >= 480
+                            ? NavigationRailLabelType.all
+                            : NavigationRailLabelType.none),
                     groupAlignment: -0.95,
                     backgroundColor: AppColors.grey50,
                     selectedIconTheme: IconThemeData(color: primaryGreen),
@@ -785,8 +791,8 @@ class _UpdateBanner extends StatelessWidget {
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.white,
                       backgroundColor: AppColors.white.withValues(alpha: 0.15),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 4),
                     ),
                     child: const Text('Update'),
                   ),
@@ -2232,11 +2238,15 @@ class _FuelScreenState extends State<DieselScreen> {
         Row(children: [
           Icon(icon, color: AppColors.white.withValues(alpha: 0.9), size: 14),
           const SizedBox(width: 4),
-          Text(value,
-              style: const TextStyle(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 15)),
+          Flexible(
+            child: Text(value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15)),
+          ),
         ]),
         Text(label,
             style: TextStyle(

@@ -1294,6 +1294,7 @@ class _CategoryMenu extends StatelessWidget {
                     context: context,
                     builder: (dCtx) => StatefulBuilder(
                           builder: (dCtx, setDState) => AlertDialog(
+                            scrollable: true,
                             title: Text(item.name),
                             content: Column(
                                 mainAxisSize: MainAxisSize.min,

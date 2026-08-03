@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, Search, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle } from 'lucide-react';
+import { Menu, X, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle } from 'lucide-react';
 import { OverviewModule, BookingsModule, RoomsModule, DieselModule, InventoryModule, StaffModule, VendorsModule } from './modules/core';
 import { ExpensesModule } from './modules/expenses';
 import { SubscriptionsModule } from './modules/subscriptions';
@@ -47,11 +47,26 @@ const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; pe
   { id: 'account', label: 'My Account', icon: UserCircle, module: AccountModule, perm: PERMISSIONS.viewReports, always: true },
 ];
 
-function Brand() {
+// Nav grouped by the six HOM pillars (see lib/rbac.ts) + system/channels, so
+// menu items are scannable by department instead of one flat list.
+const GROUPS: { label: string; items: string[] }[] = [
+  { label: 'Front Office', items: ['overview', 'bookings', 'rooms', 'operations'] },
+  { label: 'Housekeeping & Assets', items: ['housekeeping', 'inventory'] },
+  { label: 'Engineering & Utilities', items: ['engineering', 'diesel'] },
+  { label: 'F&B & Banqueting', items: ['fnb'] },
+  { label: 'Back Office & Supply Chain', items: ['expenses', 'staff', 'vendors', 'back_office', 'reconciliation', 'subscriptions'] },
+  { label: 'Compliance, Security & Audit', items: ['compliance', 'security_audit', 'reports'] },
+  { label: 'Channels', items: ['paystack', 'whatsapp', 'bookingcom'] },
+  { label: 'System', items: ['accounts', 'account'] },
+];
+
+function Brand({ minimal }: { minimal?: boolean }) {
   return (
-    <div className="flex items-center gap-3 mb-8 pb-4 border-b border-white/10">
+    <div className={`flex items-center gap-3 mb-8 pb-4 border-b border-white/10 ${minimal ? 'justify-center' : ''}`}>
       <div className="h-10 w-10 bg-white rounded-[12px] border-2 border-hom-primary p-1 flex-shrink-0"><img src="/logo.png" className="h-full w-full" alt="HOM" /></div>
-      <div><div className="font-black text-sm">HOM</div><div className="text-[8px] text-green-300 tracking-widest leading-tight">HOSPITALITY OPERATIONS MANAGER</div></div>
+      {!minimal && (
+        <div className="min-w-0"><div className="font-black text-sm">HOM</div><div className="text-[8px] text-green-300 tracking-widest leading-tight">HOSPITALITY OPERATIONS MANAGER</div></div>
+      )}
     </div>
   );
 }
@@ -60,8 +75,11 @@ function DashboardInner() {
   const { session, logout } = useAuth();
   const visible = NAV.filter(n => n.always || hasPermission(session, n.perm));
   const [tab, setTab] = useState('');
-  const [search, setSearch] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const grouped = GROUPS
+    .map(g => ({ ...g, items: g.items.map(id => visible.find(n => n.id === id)).filter((n): n is (typeof NAV)[number] => !!n) }))
+    .filter(g => g.items.length > 0);
 
   const activeTab = tab && visible.some(n => n.id === tab) ? tab : (visible[0]?.id || '');
   const current = visible.find(n => n.id === activeTab) || visible[0];
@@ -73,17 +91,24 @@ function DashboardInner() {
 
   return (
     <main className="min-h-screen bg-hom-background flex overflow-x-clip">
-      <aside className="w-64 bg-hom-ink text-white p-4 hidden md:flex flex-col sticky top-0 h-screen overflow-y-auto">
-        <Brand />
+      {/* Desktop / tablet sidebar — icon+text on lg, icon-only on md so content never gets squeezed */}
+      <aside className="w-16 lg:w-64 bg-hom-ink text-white p-3 lg:p-4 hidden md:flex flex-col sticky top-0 h-screen overflow-y-auto">
+        <Brand minimal />
         <nav className="space-y-0.5 flex-1">
-          {visible.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => goTab(id)}
-              className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${activeTab === id ? 'bg-hom-primary text-white' : 'hover:bg-white/10 text-zinc-400'}`}>
-              <Icon size={16} /><span className="text-sm truncate">{label}</span>
-            </button>
+          {grouped.map((g) => (
+            <div key={g.label} className="mb-2">
+              <p className="hidden lg:block text-[9px] font-bold uppercase tracking-widest text-green-300/60 px-3 mb-1">{g.label}</p>
+              {g.items.map(({ id, label, icon: Icon }) => (
+                <button key={id} onClick={() => goTab(id)} title={label}
+                  className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${activeTab === id ? 'bg-hom-primary text-white' : 'hover:bg-white/10 text-zinc-400'} ${id === 'overview' ? 'mt-1' : ''}`}>
+                  <Icon size={16} className="shrink-0" />
+                  <span className="hidden lg:inline text-sm truncate">{label}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
-        <div className="pt-4 border-t border-white/10 text-[10px] text-zinc-500">HOM v5 — Hexadigitall</div>
+        <div className="hidden lg:block pt-4 border-t border-white/10 text-[10px] text-zinc-500">HOM v5 — Hexadigitall</div>
       </aside>
 
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
@@ -98,13 +123,9 @@ function DashboardInner() {
             </h1>
           </div>
           <div className="flex items-center gap-2 min-w-0">
-            <div className="relative hidden md:block">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-8 pr-3 py-1.5 border rounded-lg text-sm w-36 lg:w-48" />
-            </div>
-            <span className="hidden sm:inline-flex text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0">HOM LIVE</span>
+            <span className="text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0">HOM LIVE</span>
             {hasIdentity(session) && (
-              <div className="hidden sm:flex items-center gap-2 pl-2 border-l">
+              <div className="flex items-center gap-2 pl-2 border-l">
                 <button onClick={() => goTab('account')} title="My Account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   <div className="h-8 w-8 rounded-full bg-hom-primary text-white flex items-center justify-center text-xs font-black shrink-0">{initials}</div>
                   <div className="hidden lg:block leading-tight min-w-0 text-left">
@@ -124,16 +145,21 @@ function DashboardInner() {
           <div className="fixed inset-0 z-40 md:hidden">
             <div className="absolute inset-0 bg-black/50" onClick={() => setMobileNavOpen(false)} />
             <div className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-hom-ink text-white p-4 flex flex-col shadow-2xl">
-              <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
                 <Brand />
                 <button onClick={() => setMobileNavOpen(false)} aria-label="Close menu"><X size={20} /></button>
               </div>
               <nav className="space-y-0.5 flex-1 overflow-y-auto">
-                {visible.map(({ id, label, icon: Icon }) => (
-                  <button key={id} onClick={() => goTab(id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${activeTab === id ? 'bg-hom-primary text-white' : 'hover:bg-white/10 text-zinc-400'}`}>
-                    <Icon size={16} /><span className="text-sm">{label}</span>
-                  </button>
+                {grouped.map((g) => (
+                  <div key={g.label} className="mb-2">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-green-300/60 px-3 mb-1 mt-3">{g.label}</p>
+                    {g.items.map(({ id, label, icon: Icon }) => (
+                      <button key={id} onClick={() => goTab(id)}
+                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${activeTab === id ? 'bg-hom-primary text-white' : 'hover:bg-white/10 text-zinc-400'}`}>
+                        <Icon size={16} /><span className="text-sm">{label}</span>
+                      </button>
+                    ))}
+                  </div>
                 ))}
               </nav>
               <div className="pt-4 border-t border-white/10 text-[10px] text-zinc-500 flex items-center justify-between">
@@ -143,15 +169,6 @@ function DashboardInner() {
             </div>
           </div>
         )}
-
-        <div className="md:hidden flex gap-1.5 overflow-x-auto p-3 pb-2">
-          {visible.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => goTab(id)}
-              className={`px-3 py-1.5 rounded-full text-xs whitespace-nowrap flex items-center gap-1 ${activeTab === id ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}>
-              <Icon size={12} />{label}
-            </button>
-          ))}
-        </div>
 
         <div className="p-4 md:p-6 flex-1 min-w-0">
           <div className="w-full max-w-7xl mx-auto">
