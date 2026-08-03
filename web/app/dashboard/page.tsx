@@ -19,7 +19,7 @@ import { AccountsModule } from './modules/accounts';
 import { AccountModule } from './modules/account';
 import { AuthProvider, useAuth } from '../../lib/auth';
 import { AuthGate } from './auth';
-import { Permission, PERMISSIONS, hasPermission, primaryRole, hasIdentity } from '../../lib/rbac';
+import { Permission, PERMISSIONS, hasPermission, primaryRole, hasIdentity, roleAccent } from '../../lib/rbac';
 
 const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; perm: Permission; always?: boolean }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, module: OverviewModule, perm: PERMISSIONS.viewReports },
@@ -87,6 +87,7 @@ function DashboardInner() {
   const goTab = (id: string) => { setTab(id); setMobileNavOpen(false); };
 
   const roleName = primaryRole(session)?.name;
+  const accent = roleAccent(session);
   const initials = (session.userName || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   return (
@@ -112,7 +113,7 @@ function DashboardInner() {
       </aside>
 
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        <header className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 gap-3">
+        <header className="bg-white border-b p-4 flex justify-between items-center sticky top-0 z-30 gap-3" style={{ borderBottomColor: accent }}>
           <div className="flex items-center gap-2 min-w-0">
             <button className="md:hidden p-2 -ml-2" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
               <Menu size={20} />
@@ -127,7 +128,7 @@ function DashboardInner() {
             {hasIdentity(session) && (
               <div className="flex items-center gap-2 pl-2 border-l">
                 <button onClick={() => goTab('account')} title="My Account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <div className="h-8 w-8 rounded-full bg-hom-primary text-white flex items-center justify-center text-xs font-black shrink-0">{initials}</div>
+                  <div className="h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-black shrink-0" style={{ backgroundColor: accent }}>{initials}</div>
                   <div className="hidden lg:block leading-tight min-w-0 text-left">
                     <div className="text-xs font-bold truncate max-w-[120px]">{session.userName}</div>
                     <div className="text-[9px] text-zinc-500 truncate max-w-[120px]">{roleName || 'Unassigned'}</div>

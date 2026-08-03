@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:ui' show Color;
 import '../models/role.dart';
 
 /// Reactive, additive permission context for the signed-in user.
@@ -82,6 +83,27 @@ class Session {
 
   bool get isManagement =>
       roleIds.contains('super_admin') || roleIds.contains('hotel_manager');
+
+  /// Per-role accent so staff instantly know whose context they are in.
+  /// Mirrors `ROLE_ACCENT` in web/lib/rbac.ts — keep in lockstep.
+  Color get roleAccent {
+    switch (primaryRole?.id) {
+      case 'auditor':
+        return const Color(0xFF3B82F6);
+      case 'front_desk':
+        return const Color(0xFF06B6D4);
+      case 'accountant':
+        return const Color(0xFFF59E0B);
+      case 'housekeeping':
+        return const Color(0xFF8B5CF6);
+      case 'kitchen':
+        return const Color(0xFFF43F5E);
+      case 'dept_head':
+        return const Color(0xFF6366F1);
+      default:
+        return const Color(0xFF0E9F6E);
+    }
+  }
 
   /// Union of every assigned role's permissions.
   Set<Permission> get rolePermissions =>

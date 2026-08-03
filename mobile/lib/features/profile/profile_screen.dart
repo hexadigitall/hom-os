@@ -7,8 +7,6 @@ import '../../models/role.dart';
 import 'edit_profile_screen.dart';
 import '../../utils/theme.dart';
 
-const Color _primaryGreen = AppColors.primary;
-
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -56,7 +54,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: CircleAvatar(
               radius: 48,
-              backgroundColor: _primaryGreen.withValues(alpha: 0.1),
+              backgroundColor: session.roleAccent.withValues(alpha: 0.12),
               backgroundImage: (profile?.photoUrl != null &&
                       profile!.photoUrl!.isNotEmpty)
                   ? NetworkImage(profile.photoUrl!)
@@ -64,7 +62,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: (profile?.photoUrl == null || profile!.photoUrl!.isEmpty)
                   ? Text(
                       (profile?.displayName ?? session.userName)[0].toUpperCase(),
-                      style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w700, color: _primaryGreen),
+                      style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w700,
+                          color: session.roleAccent),
                     )
                   : null,
             ),
@@ -77,9 +78,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           Center(
-            child: Text(
-              session.primaryRole?.name ?? 'Unassigned',
-              style: TextStyle(fontSize: 13, color: AppColors.grey600),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+              decoration: BoxDecoration(
+                color: session.roleAccent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                session.primaryRole?.name ?? 'Unassigned',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: session.roleAccent),
+              ),
             ),
           ),
           const SizedBox(height: 24),

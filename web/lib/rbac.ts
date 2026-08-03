@@ -340,6 +340,27 @@ export const primaryRole = (s: Session): AppRole | undefined =>
 export const isManagement = (s: Session) =>
   s.roleIds.includes('super_admin') || s.roleIds.includes('hotel_manager');
 
+// ──────────────────────────────────────────────────────────────
+// ROLE THEMING — per-role accent so staff instantly know whose
+// context they are working in. Mirrors the Flutter app.
+// ──────────────────────────────────────────────────────────────
+
+export const ROLE_ACCENT: Record<string, string> = {
+  super_admin: '#0E9F6E',
+  hotel_manager: '#0E9F6E',
+  auditor: '#3B82F6',
+  front_desk: '#06B6D4',
+  accountant: '#F59E0B',
+  housekeeping: '#8B5CF6',
+  kitchen: '#F43F5E',
+  dept_head: '#6366F1',
+};
+
+export const roleAccent = (s: Session): string => {
+  const r = primaryRole(s);
+  return (r && ROLE_ACCENT[r.id]) || '#0E9F6E';
+};
+
 export const rolePermissions = (s: Session): Permission[] => {
   const out: Permission[] = [];
   for (const r of resolvedRoles(s)) {
