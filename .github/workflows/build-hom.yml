@@ -6,6 +6,8 @@ on:
 
 env:
   FLUTTER_VERSION: '3.44.4'
+  HOM_VERSION: 2.${{ github.run_number }}.0
+  HOM_BUILD: ${{ github.run_number }}
 
 jobs:
   # ─────────────────────────────────────────────
@@ -23,6 +25,18 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Restore release signing keystore from secrets
+        shell: bash
+        run: |
+          printf '%s' "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          printf '%s\n' \
+            'storeFile=upload-keystore.jks' \
+            "storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}" \
+            'keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}' \
+            "keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}" \
+            > android/key.properties
+          ls -la android/app/upload-keystore.jks android/key.properties
 
       - uses: subosito/flutter-action@v2
         with:
@@ -43,7 +57,7 @@ jobs:
 
       - name: Build APK
         run: |
-          flutter build apk --release || echo "Flutter exit code: $? (APK may still exist)"
+          flutter build apk --release --dart-define=HOM_APP_VERSION=$HOM_VERSION --build-name "$HOM_VERSION" --build-number "$HOM_BUILD" || echo "Flutter exit code: $? (APK may still exist)"
           echo "--- Searching for APK ---"
           mkdir -p build/app/outputs/flutter-apk
           # Gradle 9.x puts APK in android/app/build/outputs/ instead of build/
@@ -69,7 +83,7 @@ jobs:
 
       - name: Build AAB
         run: |
-          flutter build appbundle --release || echo "Flutter exit code: $? (AAB may still exist)"
+          flutter build appbundle --release --dart-define=HOM_APP_VERSION=$HOM_VERSION --build-name "$HOM_VERSION" --build-number "$HOM_BUILD" || echo "Flutter exit code: $? (AAB may still exist)"
           echo "--- Searching for AAB ---"
           mkdir -p build/app/outputs/bundle/release
           for p in \
@@ -89,7 +103,7 @@ jobs:
 
       - name: Build split APKs
         run: |
-          flutter build apk --release --split-per-abi || echo "Flutter exit code: $? (split APKs may still exist)"
+          flutter build apk --release --split-per-abi --dart-define=HOM_APP_VERSION=$HOM_VERSION --build-name "$HOM_VERSION" --build-number "$HOM_BUILD" || echo "Flutter exit code: $? (split APKs may still exist)"
           echo "--- Searching for split APKs ---"
           mkdir -p build/app/outputs/flutter-apk
           for p in android/app/build/outputs/flutter-apk/app-*-release.apk; do
@@ -178,15 +192,23 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Restore MSIX signing certificate from secrets
+        shell: pwsh
+        run: |
+          [IO.File]::WriteAllBytes('windows\hom-sign.pfx', [Convert]::FromBase64String("${{ secrets.MSIX_PFX_BASE64 }}"))
+          Get-Item windows\hom-sign.pfx | Select-Object Name, Length
+
       - name: Build Windows
         run: flutter build windows --release
 
       - name: Create MSIX Installer (unsigned)
-        run: dart run msix:create --sign-msix false
+        run: dart run msix:create --sign-msix false --version "$HOM_VERSION.0"
         shell: bash
 
       - name: Sign MSIX with Windows SDK signtool
         shell: pwsh
+        env:
+          MSIX_PFX_PASSWORD: ${{ secrets.MSIX_PFX_PASSWORD }}
         run: |
           $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter signtool.exe |
             Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
@@ -194,7 +216,7 @@ jobs:
           $msix = Get-ChildItem "build\windows\x64\runner\Release\*.msix" | Select-Object -First 1 -ExpandProperty FullName
           if (-not $msix) { throw "no .msix produced by msix:create" }
           & $signtool sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com `
-            /f windows\hom-sign.pfx /p HOM-CI-2026 $msix
+            /f windows\hom-sign.pfx /p $env:MSIX_PFX_PASSWORD $msix
           if ($LASTEXITCODE -ne 0) { throw "signtool failed with exit code $LASTEXITCODE" }
 
       - name: Upload Windows Build
@@ -257,7 +279,7 @@ jobs:
       - name: Create .deb package
         run: |
           BUNDLE=build/linux/x64/release/bundle
-          DEB_DIR=build/deb/hom_2.0.1_amd64
+          DEB_DIR=build/deb/hom_${HOM_VERSION}_amd64
           mkdir -p "$DEB_DIR/DEBIAN"
           mkdir -p "$DEB_DIR/usr/bin"
           mkdir -p "$DEB_DIR/usr/lib/hom"
@@ -280,9 +302,9 @@ jobs:
           fi
 
           # Create control file (no leading spaces in field values)
-          printf 'Package: hom\nVersion: 2.0.1\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Hexadigitall <info@hexadigitall.com>\nDescription: HOM - Hospitality Operations Manager\n A hospitality operations management application\n for managing rooms, bookings, diesel, inventory, staff, and vendors.\nDepends: libgtk-3-0\n' > "$DEB_DIR/DEBIAN/control"
+          printf 'Package: hom\nVersion: %s\nSection: utils\nPriority: optional\nArchitecture: amd64\nMaintainer: Hexadigitall <info@hexadigitall.com>\nDescription: HOM - Hospitality Operations Manager\n A hospitality operations management application\n for managing rooms, bookings, diesel, inventory, staff, and vendors.\nDepends: libgtk-3-0\n' "$HOM_VERSION" > "$DEB_DIR/DEBIAN/control"
 
-          dpkg-deb --build "$DEB_DIR" "build/hom_2.0.1_amd64.deb"
+          dpkg-deb --build "$DEB_DIR" "build/hom_${HOM_VERSION}_amd64.deb"
 
       - name: Upload Linux Bundle
         uses: actions/upload-artifact@v4
@@ -294,7 +316,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HOM-Linux-Deb
-          path: mobile/build/hom_2.0.1_amd64.deb
+          path: mobile/build/hom_${HOM_VERSION}_amd64.deb
 
   # ─────────────────────────────────────────────
   # macOS (Desktop)
@@ -351,7 +373,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Web
-        run: flutter build web --release --base-href /flutter-web/
+        run: flutter build web --release --dart-define=HOM_APP_VERSION=$HOM_VERSION --base-href /flutter-web/
 
       - name: Upload Web Build
         uses: actions/upload-artifact@v4
@@ -428,25 +450,40 @@ jobs:
           echo "--- Staged files ---"
           ls -la ../staging
 
+      - name: Create SHA-256 checksums
+        working-directory: staging
+        run: |
+          sha256sum HOM-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Generate release body
+        shell: bash
+        run: |
+          {
+            printf 'Automated release build for HOM v%s - the Hotel Operating System for Nigerian hotels.\n\n' "${{ github.run_number }}"
+            printf '**App version:** 2.%s.0 (build %s)\n\n' "${{ github.run_number }}" "${{ github.run_number }}"
+            printf '## Downloads\n'
+            printf -- '- Android APK (`HOM-APK.apk`) - sideloadable single-file installer\n'
+            printf -- '- Android AAB (`HOM-AAB.aab`) - Play Store app bundle\n'
+            printf -- '- Split APKs (`HOM-Split-APKs.zip`) - per-ABI sideload packages\n'
+            printf -- '- Windows (`HOM-Windows.zip`) - portable build, extract and run `HOM.exe`\n'
+            printf -- '- Windows MSIX + certificate (`HOM-Msix-Cert.zip`)\n'
+            printf -- '- Linux bundle (`HOM-Linux.zip`)\n'
+            printf -- '- Linux DEB (`HOM-Linux-Deb.deb`)\n'
+            printf -- '- macOS (`HOM-macOS.zip`)\n'
+            printf -- '- Web build (`HOM-Web.zip`)\n'
+            printf '\n## SHA-256 checksums\n```\n'
+            cat staging/SHA256SUMS.txt
+            printf '```\n\nWeb app: https://app.hom.com.ng\n'
+          } > body.md
+          head -3 body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ github.run_number }}
           name: HOM v${{ github.run_number }}
-          body: |
-            Automated release build for HOM — the Hotel Operating System for Nigerian hotels.
-
-            Downloads
-            - Android APK (`HOM-APK.apk`)
-            - Android AAB (`HOM-AAB.aab`)
-            - Split APKs (`HOM-Split-APKs.zip`)
-            - Windows (`HOM-Windows.zip`)
-            - Windows MSIX + certificate (`HOM-Msix-Cert.zip`)
-            - Linux bundle (`HOM-Linux.zip`)
-            - Linux DEB (`HOM-Linux-Deb.deb`)
-            - macOS (`HOM-macOS.zip`)
-            - Web build (`HOM-Web.zip`)
-
-            Web app: https://app.hom.com.ng
+          body_path: body.md
           files: |
             staging/*
+

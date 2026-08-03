@@ -14,6 +14,11 @@ mobile/android/local.properties
 mobile/android/key.properties
 mobile/android/app/upload-keystore.jks
 
+# MSIX signing certificate (restored from GitHub Secrets in CI)
+mobile/windows/hom-sign.pfx
+
 # Android build artifacts (Gradle 9.x puts outputs in project subdir)
 mobile/android/build/
 mobile/android/app/build/
+.vercel
+.env*
