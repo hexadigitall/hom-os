@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
-import '../../data/cloud_functions_service.dart';
+import '../../data/hom_api_service.dart';
 import 'package:hom_mobile/utils/theme.dart';
 
 class StaffRegistrationScreen extends StatefulWidget {
@@ -70,7 +70,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
         password: _passCtrl.text,
       );
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
-    } on CloudFunctionsException catch (e) {
+    } on HomApiException catch (e) {
       _showError(e.message);
     } catch (e) {
       _showError('Registration failed: $e');

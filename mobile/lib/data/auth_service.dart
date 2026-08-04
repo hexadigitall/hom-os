@@ -7,7 +7,7 @@ import '../models/role.dart';
 import 'role_store.dart';
 import 'user_store.dart';
 import 'firestore_role_service.dart';
-import 'cloud_functions_service.dart';
+import 'hom_api_service.dart';
 
 enum AuthStatus { ok, unprovisioned, failed }
 
@@ -230,8 +230,8 @@ class AuthService {
     required String password,
     required String hotelName,
   }) async {
-    // The callable creates the Auth user, hotel doc and super_admin role doc.
-    await CloudFunctionsService.signupOwner(
+    // The server creates the Auth user, hotel doc and super_admin role doc.
+    await HomApiService.signupOwner(
       name: name,
       email: email,
       phone: phone,
@@ -241,10 +241,10 @@ class AuthService {
     // Sign in locally so the client has a Firebase Auth session.
     await _firebaseAuth.signInWithEmailAndPassword(email: email, password: password);
     final user = _firebaseAuth.currentUser;
-    if (user == null) throw CloudFunctionsException('Sign-in after registration failed.');
+    if (user == null) throw HomApiException('Sign-in after registration failed.');
     final result = await _applyRoleDoc(user.uid);
     if (!result.isOk) {
-      throw CloudFunctionsException(result.message ?? 'Account created but role could not be loaded.');
+      throw HomApiException(result.message ?? 'Account created but role could not be loaded.');
     }
     return RoleStore.current;
   }
@@ -256,7 +256,7 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
-    await CloudFunctionsService.signupStaff(
+    await HomApiService.signupStaff(
       inviteCode: inviteCode,
       name: name,
       email: email,
@@ -265,22 +265,22 @@ class AuthService {
     );
     await _firebaseAuth.signInWithEmailAndPassword(email: email, password: password);
     final user = _firebaseAuth.currentUser;
-    if (user == null) throw CloudFunctionsException('Sign-in after registration failed.');
+    if (user == null) throw HomApiException('Sign-in after registration failed.');
     final result = await _applyRoleDoc(user.uid);
     if (!result.isOk) {
-      throw CloudFunctionsException(result.message ?? 'Account created but role could not be loaded.');
+      throw HomApiException(result.message ?? 'Account created but role could not be loaded.');
     }
     return RoleStore.current;
   }
 
   /// Link the already-signed-in (Google) account to an invite code.
   static Future<Session> redeemInvite(String inviteCode) async {
-    await CloudFunctionsService.redeemInvite(inviteCode);
+    await HomApiService.redeemInvite(inviteCode);
     final user = _firebaseAuth.currentUser;
-    if (user == null) throw CloudFunctionsException('Sign in required.');
+    if (user == null) throw HomApiException('Sign in required.');
     final result = await _applyRoleDoc(user.uid);
     if (!result.isOk) {
-      throw CloudFunctionsException(result.message ?? 'Invite could not be redeemed.');
+      throw HomApiException(result.message ?? 'Invite could not be redeemed.');
     }
     return RoleStore.current;
   }
@@ -291,16 +291,16 @@ class AuthService {
     required String phone,
     required String hotelName,
   }) async {
-    await CloudFunctionsService.provisionOwner(
+    await HomApiService.provisionOwner(
       name: name,
       phone: phone,
       hotelName: hotelName,
     );
     final user = _firebaseAuth.currentUser;
-    if (user == null) throw CloudFunctionsException('Sign in required.');
+    if (user == null) throw HomApiException('Sign in required.');
     final result = await _applyRoleDoc(user.uid);
     if (!result.isOk) {
-      throw CloudFunctionsException(result.message ?? 'Hotel could not be provisioned.');
+      throw HomApiException(result.message ?? 'Hotel could not be provisioned.');
     }
     return RoleStore.current;
   }

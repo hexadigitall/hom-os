@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
-import '../../data/cloud_functions_service.dart';
+import '../../data/hom_api_service.dart';
 import '../../utils/theme.dart';
 
 class OwnerRegistrationScreen extends StatefulWidget {
@@ -61,7 +61,7 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
         hotelName: _hotelCtrl.text.trim(),
       );
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
-    } on CloudFunctionsException catch (e) {
+    } on HomApiException catch (e) {
       _showError(e.message);
     } catch (e) {
       _showError('Registration failed: $e');

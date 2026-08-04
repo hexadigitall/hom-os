@@ -4,7 +4,7 @@ import 'package:hive/hive.dart';
 import '../models/hotel_user.dart';
 import '../models/invite_code.dart';
 import '../models/role.dart';
-import 'cloud_functions_service.dart';
+import 'hom_api_service.dart';
 
 /// Offline cache of the hotel's users and invites.
 ///
@@ -56,7 +56,7 @@ class UserStore {
   /// Best-effort: on failure the last cached snapshot stays readable.
   static Future<void> refreshUsers() async {
     try {
-      final users = await CloudFunctionsService.listUsers();
+      final users = await HomApiService.listUsers();
       await _saveUsers(users);
       usersVersion.value++;
     } catch (_) {}
@@ -65,7 +65,7 @@ class UserStore {
   /// Pull the hotel's invites from the `listInvites` callable into the cache.
   static Future<void> refreshInvites() async {
     try {
-      final invites = await CloudFunctionsService.listInvites();
+      final invites = await HomApiService.listInvites();
       await _saveInvites(invites);
       invitesVersion.value++;
     } catch (_) {}
@@ -121,7 +121,7 @@ class UserStore {
     List<Department> departments = const [],
     bool isHead = false,
   }) async {
-    final invite = await CloudFunctionsService.createInvite(
+    final invite = await HomApiService.createInvite(
       roleId: roleId,
       roleName: roleName,
       departments: departments,
@@ -137,7 +137,7 @@ class UserStore {
 
   static Future<void> deleteInvite(String code) async {
     try {
-      await CloudFunctionsService.deleteInvite(code);
+      await HomApiService.deleteInvite(code);
     } finally {
       final invites = _loadInvites()
         ..removeWhere((i) => i.code == code);
@@ -150,7 +150,7 @@ class UserStore {
   static Future<void> updateUser(HotelUser updated) async {
     final uid = updated.firebaseUid ?? updated.userId;
     try {
-      await CloudFunctionsService.updateUserRole(
+      await HomApiService.updateUserRole(
         targetUid: uid,
         roleIds: updated.roleIds,
         userName: updated.name,
@@ -169,7 +169,7 @@ class UserStore {
   /// Remove a staff account via the `deleteUserRole` callable, then refresh.
   static Future<void> deleteUser(String userId) async {
     try {
-      await CloudFunctionsService.deleteUserRole(userId);
+      await HomApiService.deleteUserRole(userId);
     } finally {
       final users = _loadUsers()
         ..removeWhere((u) => u.userId == userId);

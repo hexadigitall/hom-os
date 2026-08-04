@@ -8,7 +8,7 @@ import {
   emptySession, DEFAULT_PREFERENCES, findRoleById, isDepartment,
 } from './rbac';
 import {
-  getAuthInstance, getFirestoreInstance, callFunction, firebaseGoogleSignIn,
+  getAuthInstance, getFirestoreInstance, apiCall, firebaseGoogleSignIn,
 } from './firebase';
 
 const SESSION_CACHE = 'hom_web_session';
@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUsers = useCallback(async () => {
     try {
-      const res = await callFunction('listUsers');
+      const res = await apiCall('GET', '/api/users');
       const list: HotelUser[] = (res.users || []).map((u: any) => ({
         userId: u.uid,
         name: u.userName || '',
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshInvites = useCallback(async () => {
     try {
-      const res = await callFunction('listInvites');
+      const res = await apiCall('GET', '/api/invites');
       setInvites(res.invites || []);
     } catch { /* keep last known list */ }
   }, []);
@@ -170,7 +170,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerOwner = useCallback(async (d: { name: string; email: string; phone: string; password: string; hotelName: string }): Promise<string | null> => {
     try {
-      await callFunction('signupOwner', {
+      await apiCall('POST', '/api/auth/signup-owner', {
         name: d.name, email: d.email.trim(), phone: d.phone, password: d.password, hotelName: d.hotelName,
       });
       await signInWithEmailAndPassword(getAuthInstance(), d.email.trim(), d.password);
@@ -182,7 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerStaff = useCallback(async (d: { inviteCode: string; name: string; email: string; phone: string; password: string }): Promise<string | null> => {
     try {
-      await callFunction('signupStaff', {
+      await apiCall('POST', '/api/auth/signup-staff', {
         inviteCode: d.inviteCode.trim().toUpperCase(),
         name: d.name, email: d.email.trim(), phone: d.phone, password: d.password,
       });
@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const provisionOwner = useCallback(async (d: { name: string; hotelName: string; phone?: string }): Promise<string | null> => {
     try {
-      await callFunction('provisionOwner', { name: d.name, hotelName: d.hotelName, phone: d.phone || '' });
+      await apiCall('POST', '/api/auth/provision-owner', { name: d.name, hotelName: d.hotelName, phone: d.phone || '' });
       return null;
     } catch (err: any) {
       return errMsg(err);
@@ -210,7 +210,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const redeemInvite = useCallback(async (inviteCode: string): Promise<string | null> => {
     try {
-      await callFunction('redeemInvite', { inviteCode: inviteCode.trim().toUpperCase() });
+      await apiCall('POST', '/api/auth/redeem-invite', { inviteCode: inviteCode.trim().toUpperCase() });
       return null;
     } catch (err: any) {
       return errMsg(err);
@@ -218,7 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const generateInvite = useCallback(async (d: { roleId: string; departments: Department[]; isHead: boolean }): Promise<string> => {
-    const res = await callFunction('createInvite', {
+    const res = await apiCall('POST', '/api/invites', {
       roleId: d.roleId,
       roleName: findRoleById(d.roleId)?.name || d.roleId,
       departments: d.departments,
@@ -230,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback(async (targetUid: string, patch: { roleIds?: string[]; userName?: string; assignedDepartments?: Department[]; customPermissions?: string[]; isHeadOfDepartment?: Record<string, boolean>; status?: AccountStatus }): Promise<string | null> => {
     try {
-      await callFunction('updateUserRole', { targetUid, ...patch });
+      await apiCall('PATCH', `/api/users/${encodeURIComponent(targetUid)}`, patch);
       refreshUsers();
       return null;
     } catch (err: any) {
@@ -240,7 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteUser = useCallback(async (targetUid: string): Promise<string | null> => {
     try {
-      await callFunction('deleteUserRole', { targetUid });
+      await apiCall('DELETE', `/api/users/${encodeURIComponent(targetUid)}`);
       refreshUsers();
       return null;
     } catch (err: any) {
@@ -250,7 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteInvite = useCallback(async (code: string): Promise<string | null> => {
     try {
-      await callFunction('deleteInvite', { code });
+      await apiCall('DELETE', `/api/invites/${encodeURIComponent(code)}`);
       refreshInvites();
       return null;
     } catch (err: any) {

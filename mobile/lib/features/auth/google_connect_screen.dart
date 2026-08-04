@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
-import '../../data/cloud_functions_service.dart';
+import '../../data/hom_api_service.dart';
 import '../../utils/theme.dart';
 
 /// Shown when a Google account is signed in but has no role document yet.
@@ -44,7 +44,7 @@ class _GoogleConnectScreenState extends State<GoogleConnectScreen> {
     try {
       await AuthService.redeemInvite(_codeCtrl.text.trim());
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
-    } on CloudFunctionsException catch (e) {
+    } on HomApiException catch (e) {
       _showError(e.message);
     } catch (e) {
       _showError('Could not connect invite: $e');
@@ -66,7 +66,7 @@ class _GoogleConnectScreenState extends State<GoogleConnectScreen> {
         hotelName: _hotelCtrl.text.trim(),
       );
       if (mounted) Navigator.pushReplacementNamed(context, '/home');
-    } on CloudFunctionsException catch (e) {
+    } on HomApiException catch (e) {
       _showError(e.message);
     } catch (e) {
       _showError('Could not create your hotel: $e');

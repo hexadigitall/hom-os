@@ -6,7 +6,6 @@ import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import type { Auth, User } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 
 // Firebase web app config (project hom-os) — mirrors mobile/lib/firebase_options.dart.
 const FIREBASE_CONFIG = {
@@ -39,19 +38,31 @@ export function getFirestoreInstance(): Firestore {
   return getFirestore(getAppInstance());
 }
 
-/** Call a HOM Cloud Function; rejects with a plain Error carrying the server message. */
-export async function callFunction(name: string, data?: object): Promise<any> {
-  const fn = httpsCallable(getFunctions(getAppInstance()), name);
-  try {
-    const res = await fn(data);
-    return res.data;
-  } catch (err: any) {
+/**
+ * Call a HOM server endpoint (Vercel API routes backed by firebase-admin).
+ * Carries the current Firebase ID token as a Bearer token; rejects with a
+ * plain Error carrying the server message.
+ */
+export async function apiCall(method: string, path: string, data?: object): Promise<any> {
+  const auth = getAuthInstance();
+  const token = await auth.currentUser?.getIdToken().catch(() => undefined);
+  const res = await fetch(path, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: data !== undefined ? JSON.stringify(data) : undefined,
+  });
+  const body = await res.json().catch(() => null);
+  if (!res.ok) {
     const message =
-      (typeof err?.details === 'object' && err?.details?.message) ||
-      err?.message ||
+      (body && typeof body.error === 'object' && (body.error as any)?.message) ||
+      (body && typeof (body as any).message === 'string' && (body as any).message) ||
       'Something went wrong.';
     throw new Error(message);
   }
+  return body ?? {};
 }
 
 /** Google sign-in via popup. Returns the signed-in Firebase user. */

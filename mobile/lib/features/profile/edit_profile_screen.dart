@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/profile_store.dart';
-import '../../data/cloud_functions_service.dart';
+import '../../data/hom_api_service.dart';
 import '../../data/role_store.dart';
 import '../../models/user_profile.dart';
 
@@ -61,7 +61,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // the callable requires admin. Staff keep their name locally.)
     if (session != null && _nameCtrl.text.trim().isNotEmpty &&
         _nameCtrl.text.trim() != session.userName) {
-      CloudFunctionsService.updateUserRole(
+      HomApiService.updateUserRole(
         targetUid: session.userId,
         userName: _nameCtrl.text.trim(),
       ).catchError((_) {});
