@@ -1,15 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   UserCircle, Mail, Phone, Building2, ShieldCheck, LogOut, Save,
   Lock, CheckCircle2, Bell, Rows3, Globe, Camera,
 } from 'lucide-react';
 import { useAuth } from '../../../lib/auth';
 import {
-  Session, HotelUser, Department, Permission, DEPARTMENT_LABEL, ACCOUNT_STATUS_LABEL,
+  Department, Department as Dept, DEPARTMENT_LABEL, ACCOUNT_STATUS_LABEL,
   findRoleById, effectivePermissions, hasIdentity, isManagement,
-  hashPassword, verifyPassword, LANGUAGES,
+  DEFAULT_PREFERENCES, UserPreferences,
 } from '../../../lib/rbac';
 import { Card, SectionHeader, Btn, Field, TextInput, Select, EmptyState, FieldGrid } from '../ui';
 
@@ -40,16 +40,50 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-function ProfileForm({ me, onSaved }: { me: HotelUser; onSaved: () => void }) {
-  const { updateUser } = useAuth();
-  const [name, setName] = useState(me.name);
-  const [phone, setPhone] = useState(me.phone || '');
-  const [photoUrl, setPhotoUrl] = useState(me.photoUrl || '');
+interface Profile {
+  phone: string;
+  photoUrl: string;
+  preferences: UserPreferences;
+}
 
-  const save = () => {
+const loadProfile = (): Profile => {
+  try {
+    const raw = localStorage.getItem('hom_web_profile');
+    if (raw) {
+      const p = JSON.parse(raw);
+      return {
+        phone: p?.phone || '',
+        photoUrl: p?.photoUrl || '',
+        preferences: { ...DEFAULT_PREFERENCES, ...(p?.preferences || {}) },
+      };
+    }
+  } catch { /* ignore */ }
+  return { phone: '', photoUrl: '', preferences: { ...DEFAULT_PREFERENCES } };
+};
+
+function ProfileForm({ onSaved }: { onSaved: (msg: string) => void }) {
+  const { session, updateUser } = useAuth();
+  const cached = useMemo(loadProfile, []);
+  const [name, setName] = useState(session.userName);
+  const [phone, setPhone] = useState(cached.phone);
+  const [photoUrl, setPhotoUrl] = useState(cached.photoUrl);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
     if (!name.trim()) return;
-    updateUser({ ...me, name: name.trim(), phone: phone.trim(), photoUrl: photoUrl.trim() });
-    onSaved();
+    setSaving(true);
+    try {
+      if (name.trim() !== session.userName && session.userId) {
+        const error = await updateUser(session.userId, { userName: name.trim() });
+        if (error) { alert(error); return; }
+      }
+      try {
+        localStorage.setItem('hom_web_profile', JSON.stringify({ phone: phone.trim(), photoUrl: photoUrl.trim(), preferences: cached.preferences }));
+      } catch { /* ignore */ }
+      onSaved('Profile updated.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -72,44 +106,7 @@ function ProfileForm({ me, onSaved }: { me: HotelUser; onSaved: () => void }) {
           </div>
         </Field>
         <div className="pt-2">
-          <Btn onClick={save}><Save size={14} /> Save Profile</Btn>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function PasswordForm({ me, onSaved }: { me: HotelUser; onSaved: () => void }) {
-  const { updateUser } = useAuth();
-  const [current, setCurrent] = useState('');
-  const [next, setNext] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [err, setErr] = useState('');
-
-  const save = () => {
-    if (!verifyPassword(current, me.passwordHash)) return setErr('Current password is incorrect');
-    if (next.length < 6) return setErr('New password must be at least 6 characters');
-    if (next !== confirm) return setErr('New passwords do not match');
-    updateUser({ ...me, passwordHash: hashPassword(next) });
-    setCurrent(''); setNext(''); setConfirm(''); setErr('');
-    onSaved();
-  };
-
-  return (
-    <Card className="p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Lock size={18} className="text-hom-primary" />
-        <h3 className="font-bold">Change Password</h3>
-      </div>
-      <div className="space-y-3">
-        <Field label="Current password"><TextInput type="password" value={current} onChange={e => setCurrent(e.target.value)} placeholder="••••••••" /></Field>
-        <FieldGrid>
-          <Field label="New password"><TextInput type="password" value={next} onChange={e => setNext(e.target.value)} placeholder="At least 6 characters" /></Field>
-          <Field label="Confirm new password"><TextInput type="password" value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="Repeat new password" /></Field>
-        </FieldGrid>
-        {err && <p className="text-xs text-red-600">{err}</p>}
-        <div className="pt-2">
-          <Btn color="amber" onClick={save}><Save size={14} /> Update Password</Btn>
+          <Btn onClick={save} disabled={saving}><Save size={14} /> Save Profile</Btn>
         </div>
       </div>
     </Card>
@@ -133,16 +130,21 @@ function Toggle({ label, icon, active, onChange }: {
   );
 }
 
-function PreferencesForm({ me, onSaved }: { me: HotelUser; onSaved: () => void }) {
-  const { updateUser } = useAuth();
-  const prefs = me.preferences ?? { notificationsEnabled: true, compactMode: false, language: 'en' };
-  const [notifications, setNotifications] = useState(prefs.notificationsEnabled);
-  const [compact, setCompact] = useState(prefs.compactMode);
-  const [language, setLanguage] = useState(prefs.language);
+function PreferencesForm({ onSaved }: { onSaved: (msg: string) => void }) {
+  const cached = useMemo(loadProfile, []);
+  const [notifications, setNotifications] = useState(cached.preferences.notificationsEnabled);
+  const [compact, setCompact] = useState(cached.preferences.compactMode);
+  const [language, setLanguage] = useState(cached.preferences.language);
 
   const save = () => {
-    updateUser({ ...me, preferences: { notificationsEnabled: notifications, compactMode: compact, language } });
-    onSaved();
+    try {
+      localStorage.setItem('hom_web_profile', JSON.stringify({
+        phone: cached.phone,
+        photoUrl: cached.photoUrl,
+        preferences: { notificationsEnabled: notifications, compactMode: compact, language },
+      }));
+      onSaved('Preferences saved.');
+    } catch { /* ignore */ }
   };
 
   return (
@@ -156,7 +158,9 @@ function PreferencesForm({ me, onSaved }: { me: HotelUser; onSaved: () => void }
         <Toggle label="Compact Mode" icon={<Rows3 size={15} />} active={compact} onChange={setCompact} />
         <Field label="Language">
           <Select value={language} onChange={e => setLanguage(e.target.value)}>
-            {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+            {[{ code: 'en', label: 'English' }, { code: 'fr', label: 'French' }, { code: 'es', label: 'Spanish' }, { code: 'ha', label: 'Hausa' }, { code: 'yo', label: 'Yoruba' }, { code: 'ig', label: 'Igbo' }].map(l => (
+              <option key={l.code} value={l.code}>{l.label}</option>
+            ))}
           </Select>
         </Field>
         <div className="pt-2">
@@ -168,13 +172,9 @@ function PreferencesForm({ me, onSaved }: { me: HotelUser; onSaved: () => void }
 }
 
 export function AccountModule() {
-  const { session, users, logout } = useAuth();
+  const { session, logout } = useAuth();
   const [saved, setSaved] = useState('');
-
-  const me = useMemo(
-    () => users.find(u => u.userId === session.userId),
-    [users, session.userId],
-  );
+  const cached = useMemo(loadProfile, []);
 
   if (!hasIdentity(session)) {
     return <EmptyState text="You are not signed in." />;
@@ -184,15 +184,15 @@ export function AccountModule() {
   const roles = session.roleIds.map(id => findRoleById(id)?.name || id);
   const depts = session.assignedDepartments.length
     ? session.assignedDepartments
-    : (isManagement(session) ? ['management' as Department] : []);
+    : (isManagement(session) ? ['management' as Dept] : []);
   const heads = Object.keys(session.isHeadOfDepartment)
     .filter(d => session.isHeadOfDepartment[d]);
 
   const flash = (m: string) => { setSaved(m); window.setTimeout(() => setSaved(''), 2500); };
 
   const initials = (session.userName || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  const avatar = session.photoUrl
-    ? <img src={session.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 border-hom-primary shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+  const avatar = session.photoUrl || cached.photoUrl
+    ? <img src={session.photoUrl || cached.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 border-hom-primary shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
     : <div className="h-16 w-16 rounded-full bg-hom-primary text-white flex items-center justify-center text-xl font-black shrink-0">{initials}</div>;
 
   return (
@@ -223,16 +223,26 @@ export function AccountModule() {
             </div>
             <div className="mt-3 space-y-1">
               <DetailRow icon={<Mail size={15} />} label="Email" value={session.email} />
-              <DetailRow icon={<Phone size={15} />} label="Phone" value={me?.phone || ''} />
-              <DetailRow icon={<Building2 size={15} />} label="Hotel" value={me?.hotelName || session.hotelId || ''} />
+              <DetailRow icon={<Phone size={15} />} label="Phone" value={cached.phone} />
+              <DetailRow icon={<Building2 size={15} />} label="Hotel" value={session.hotelId || ''} />
             </div>
           </div>
         </div>
       </Card>
 
-      {me && <ProfileForm me={me} onSaved={() => flash('Profile updated.')} />}
-      {me && <PreferencesForm me={me} onSaved={() => flash('Preferences saved.')} />}
-      {me && <PasswordForm me={me} onSaved={() => flash('Password changed.')} />}
+      <ProfileForm onSaved={flash} />
+      <PreferencesForm onSaved={flash} />
+
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Lock size={18} className="text-hom-primary" />
+          <h3 className="font-bold">Password</h3>
+        </div>
+        <p className="text-xs text-zinc-500">
+          Your password is managed by your sign-in provider (Google or email). Use the{' '}
+          <span className="font-semibold">Forgot password</span> link on the sign-in screen to reset it via email.
+        </p>
+      </Card>
 
       <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">

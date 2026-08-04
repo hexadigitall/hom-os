@@ -5,38 +5,11 @@ import '../models/role.dart';
 /// Cloud (Firestore) role document — the real-time source of truth for
 /// assignments. Zero-trust: an unknown/missing role NEVER falls back to an
 /// admin role; it resolves to a pending (unassigned) account instead.
+///
+/// Reads only. Writes are server-authoritative (Cloud Functions) so a client
+/// can never promote itself, demote others or grant super_admin.
 class FirestoreRoleService {
   static final _firestore = FirebaseFirestore.instance;
-
-  static String _permissionName(Permission p) => p.name;
-  static String _departmentName(Department d) => d.name;
-
-  static Future<void> writeUserRole({
-    required String uid,
-    required String userId,
-    List<String> roleIds = const [],
-    required String userName,
-    required String hotelId,
-    required String email,
-    List<Department> assignedDepartments = const [],
-    Set<Permission> customPermissions = const {},
-    Map<Department, bool> isHeadOfDepartment = const {},
-    AccountStatus status = AccountStatus.active,
-  }) async {
-    await _firestore.collection('user_roles').doc(uid).set({
-      'userId': userId,
-      'roleIds': roleIds,
-      'userName': userName,
-      'hotelId': hotelId,
-      'email': email,
-      'assignedDepartments': assignedDepartments.map(_departmentName).toList(),
-      'customPermissions': customPermissions.map(_permissionName).toList(),
-      'isHeadOfDepartment':
-          isHeadOfDepartment.map((k, v) => MapEntry(_departmentName(k), v)),
-      'status': status.name,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-  }
 
   static Future<Map<String, dynamic>?> readUserRole(String uid) async {
     try {
@@ -96,6 +69,7 @@ class FirestoreRoleService {
       isHeadOfDepartment: _heads(data['isHeadOfDepartment']),
       status: status,
       hotelId: data['hotelId']?.toString(),
+      hotelName: data['hotelName']?.toString() ?? '',
     );
   }
 
@@ -114,12 +88,7 @@ class FirestoreRoleService {
       roleIds: roleId.isEmpty ? const [] : [roleId],
       status: roleId.isEmpty ? AccountStatus.pending : AccountStatus.active,
       hotelId: hotelId,
+      hotelName: '',
     );
-  }
-
-  static Future<void> clearUserRole(String uid) async {
-    try {
-      await _firestore.collection('user_roles').doc(uid).delete();
-    } catch (_) {}
   }
 }

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../data/profile_store.dart';
-import '../../models/hotel_user.dart';
+import '../../data/cloud_functions_service.dart';
+import '../../data/role_store.dart';
 import '../../models/user_profile.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final UserProfile? profile;
-  final HotelUser? user;
+  final Session? session;
 
-  const EditProfileScreen({super.key, this.profile, this.user});
+  const EditProfileScreen({super.key, this.profile, this.session});
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -21,9 +22,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.profile?.displayName ?? widget.user?.name ?? '');
-    _phoneCtrl = TextEditingController(text: widget.profile?.phone ?? widget.user?.phone ?? '');
-    _photoCtrl = TextEditingController(text: widget.profile?.photoUrl ?? '');
+    final profile = widget.profile;
+    _nameCtrl = TextEditingController(
+        text: profile?.displayName ?? widget.session?.userName ?? '');
+    _phoneCtrl = TextEditingController(text: profile?.phone ?? '');
+    _photoCtrl = TextEditingController(text: profile?.photoUrl ?? '');
   }
 
   @override
@@ -34,21 +37,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  void _save() {
-    final profile = widget.profile;
-    final user = widget.user;
-    if (profile != null) {
-      profile.displayName = _nameCtrl.text;
-      profile.phone = _phoneCtrl.text;
-      profile.photoUrl = _photoCtrl.text.trim().isEmpty ? null : _photoCtrl.text.trim();
-      profile.updatedAt = DateTime.now();
-      ProfileStore.save(profile);
+  Future<void> _save() async {
+    final session = widget.session;
+    final profile = widget.profile ??
+        UserProfile(
+          userId: session?.userId ?? '',
+          displayName: session?.userName ?? '',
+          email: session?.email ?? '',
+          phone: '',
+          roleId: session?.roleIds.isNotEmpty == true ? session!.roleIds.first : '',
+          roleIds: session?.roleIds ?? const [],
+          hotelId: session?.hotelId ?? '',
+          hotelName: session?.hotelName ?? '',
+          createdAt: DateTime.now(),
+        );
+    profile.displayName = _nameCtrl.text;
+    profile.phone = _phoneCtrl.text;
+    profile.photoUrl = _photoCtrl.text.trim().isEmpty ? null : _photoCtrl.text.trim();
+    profile.updatedAt = DateTime.now();
+    await ProfileStore.save(profile);
+
+    // Best-effort server name sync (only works for management-level accounts;
+    // the callable requires admin. Staff keep their name locally.)
+    if (session != null && _nameCtrl.text.trim().isNotEmpty &&
+        _nameCtrl.text.trim() != session.userName) {
+      CloudFunctionsService.updateUserRole(
+        targetUid: session.userId,
+        userName: _nameCtrl.text.trim(),
+      ).catchError((_) {});
     }
-    if (user != null) {
-      user.name = _nameCtrl.text;
-      user.phone = _phoneCtrl.text;
-    }
-    Navigator.pop(context);
+
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -82,14 +101,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               hintText: 'https://...',
             ),
           ),
-          if (widget.user != null) ...[
+          if (widget.session != null) ...[
             const SizedBox(height: 16),
             TextField(
               enabled: false,
               decoration: InputDecoration(
                 labelText: 'Email',
                 prefixIcon: const Icon(Icons.email_rounded),
-                hintText: widget.user!.email,
+                hintText: widget.session!.email,
               ),
             ),
           ],

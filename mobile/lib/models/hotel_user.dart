@@ -76,6 +76,43 @@ class HotelUser {
     'createdAt': createdAt.toIso8601String(),
   };
 
+  /// Builds a cache copy from a Firestore `user_roles` document (as returned
+  /// by the `listUsers` callable). In the server-first model the Firebase UID
+  /// IS the user id, so both are mapped to the same value. Passwords are never
+  /// stored client-side anymore.
+  factory HotelUser.fromRoleDoc(Map<String, dynamic> j) {
+    final uid = j['uid']?.toString() ?? j['userId']?.toString() ?? '';
+    final roleIds = (j['roleIds'] as List<dynamic>? ?? [])
+        .whereType<String>()
+        .toList();
+    return HotelUser(
+      userId: j['userId']?.toString() ?? uid,
+      name: j['userName']?.toString() ?? '',
+      email: j['email']?.toString() ?? '',
+      phone: j['phone']?.toString() ?? '',
+      passwordHash: '',
+      roleId: roleIds.isNotEmpty ? roleIds.first : '',
+      roleIds: roleIds,
+      assignedDepartments: (j['assignedDepartments'] as List<dynamic>? ?? [])
+          .map((e) => Department.values.asNameMap()[e.toString()] ?? Department.management)
+          .toList(),
+      customPermissions: (j['customPermissions'] as List<dynamic>? ?? [])
+          .map((e) => Permission.values.asNameMap()[e.toString()])
+          .whereType<Permission>()
+          .toSet(),
+      isHeadOfDepartment: (j['isHeadOfDepartment'] as Map<String, dynamic>? ?? {})
+          .map((k, v) => MapEntry(
+            Department.values.asNameMap()[k] ?? Department.management,
+            v == true,
+          )),
+      status: AccountStatus.values.asNameMap()[j['status']] ?? AccountStatus.active,
+      hotelId: j['hotelId']?.toString() ?? '',
+      hotelName: j['hotelName']?.toString() ?? '',
+      firebaseUid: uid,
+      createdAt: DateTime.now(),
+    );
+  }
+
   factory HotelUser.fromJson(Map<String, dynamic> j) => HotelUser(
     userId: j['userId'],
     name: j['name'],

@@ -1,0 +1,79 @@
+rules_version = '2';
+
+// HOM — Firebase Security Rules
+//
+// Zero-trust by design:
+//   - Firestore documents are NEVER written by end-user clients.
+//     All identity, role and invite mutations go through Cloud Functions
+//     (Admin SDK), which bypass these rules after server-side validation.
+//   - Clients may only READ:
+//       hotels/*           → members of that hotel (active)
+//       user_roles/*       → the account itself, or same-hotel admins
+//   - invites/* is not readable or writable by clients at all, so invite
+//     codes cannot be enumerated or forged (the code IS the credential).
+//
+// Deployment: firebase deploy --only firestore:rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────────────────────── helpers ─────────────────────────
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function roleDoc(uid) {
+      return get(/databases/$(database)/documents/user_roles/$(uid)).data;
+    }
+
+    function isActive(uid) {
+      let d = roleDoc(uid);
+      return d != null && d.status == 'active';
+    }
+
+    function isAdminRole(roleIds) {
+      return roleIds.hasAny(['super_admin', 'hotel_manager']);
+    }
+
+    function isAdmin(uid) {
+      let d = roleDoc(uid);
+      return d != null && isActive(uid) && isAdminRole(d.roleIds);
+    }
+
+    function sameHotel(a, b) {
+      return a != null && b != null && a == b;
+    }
+
+    // ───────────────────────── hotels ─────────────────────────
+
+    match /hotels/{hotelId} {
+      allow read: if signedIn() && isActive(request.auth.uid)
+        && sameHotel(roleDoc(request.auth.uid).hotelId, hotelId);
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ─────────────────────── user_roles ───────────────────────
+
+    // The role document is the real-time source of truth for assignments.
+    // Writes are server-authoritative (Cloud Functions only) so a client can
+    // never promote itself, demote others, or grant super_admin.
+    match /user_roles/{uid} {
+      allow read: if signedIn() && (
+        request.auth.uid == uid ||
+        (isAdmin(request.auth.uid) &&
+          sameHotel(roleDoc(request.auth.uid).hotelId, roleDoc(uid).hotelId))
+      );
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ───────────────────────── invites ─────────────────────────
+
+    // Invite codes are single-use bearer credentials. They are created,
+    // validated and consumed inside Cloud Functions, so clients cannot list,
+    // guess, forge or reuse them.
+    match /invites/{code} {
+      allow read, write: if false; // Cloud Functions only
+    }
+  }
+}

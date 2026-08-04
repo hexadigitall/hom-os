@@ -4,11 +4,33 @@ import 'package:hive/hive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/role.dart';
-import '../models/hotel_user.dart';
 import 'role_store.dart';
 import 'user_store.dart';
 import 'firestore_role_service.dart';
+import 'cloud_functions_service.dart';
 
+enum AuthStatus { ok, unprovisioned, failed }
+
+/// Result of an auth attempt. `unprovisioned` means the Firebase account is
+/// signed in but has no role document yet — the UI must route to invite
+/// connect (staff) or hotel provisioning (owner).
+class AuthResult {
+  final AuthStatus status;
+  final String? message;
+
+  const AuthResult._(this.status, [this.message]);
+
+  static const ok = AuthResult._(AuthStatus.ok);
+  static const unprovisioned = AuthResult._(AuthStatus.unprovisioned);
+  static AuthResult failed(String msg) => AuthResult._(AuthStatus.failed, msg);
+
+  bool get isOk => status == AuthStatus.ok;
+}
+
+/// Firebase-first identity. Firebase Auth is the only sign-in; role
+/// assignments are read from the `user_roles` Firestore doc (realtime) and
+/// every mutation goes through Cloud Functions callables. The Hive box is
+/// purely an offline cache — it is never treated as a source of truth.
 class AuthService {
   static Box<String>? _box;
   static final _firebaseAuth = FirebaseAuth.instance;
@@ -23,19 +45,31 @@ class AuthService {
       await _googleSignIn.initialize();
     } catch (_) {}
 
-    // Try restoring session from Hive first
-    final restored = await _restoreFromHive();
-    if (restored) return;
-
-    // If Firebase Auth has a current user, try restoring from Firestore
     final firebaseUser = _firebaseAuth.currentUser;
     if (firebaseUser != null) {
-      await _restoreFromFirestore(firebaseUser.uid);
+      // Authoritative refresh from Firestore (self-read allowed by rules).
+      final data = await FirestoreRoleService.readUserRole(firebaseUser.uid);
+      if (data != null) {
+        final session = FirestoreRoleService.buildSessionFromMap(data);
+        if (session.userId.isNotEmpty) {
+          RoleStore.setSession(session);
+          await _persist(session);
+          _subscribeToFirestore(firebaseUser.uid);
+          _refreshAdminData(session);
+          return;
+        }
+      }
+      // Signed in but not provisioned — stay signed in to Firebase so
+      // redeemInvite/provisionOwner can attach a role, but show login.
     }
+
+    // Offline / no Firebase user — restore cached session (local cache only).
+    await _restoreFromHive();
   }
 
-  /// Zero-trust restore: NO admin fallback. A stored session that no longer
-  /// resolves to a known user or roles stays unauthenticated.
+  /// Zero-trust restore from the offline cache: NO admin fallback. A stored
+  /// session that carries no identity or roles stays unauthenticated. The
+  /// session doc itself is the only source — no dependency on the user cache.
   static Future<bool> _restoreFromHive() async {
     final raw = _box?.get('session');
     if (raw == null) return false;
@@ -43,12 +77,11 @@ class AuthService {
       final data = jsonDecode(raw) as Map<String, dynamic>;
       final userId = data['userId'] as String;
       if (userId.isEmpty) return false;
-      final user = UserStore.findById(userId);
-      if (user == null) return false;
 
       final roleIds = (data['roleIds'] as List<dynamic>? ?? [])
           .map((e) => e.toString())
           .toList();
+      if (roleIds.isEmpty) return false;
       final departments = (data['assignedDepartments'] as List<dynamic>? ?? [])
           .map((e) => Department.values.asNameMap()[e.toString()])
           .whereType<Department>()
@@ -63,35 +96,25 @@ class AuthService {
             v == true,
           ));
       final status = AccountStatus.values.asNameMap()[data['status']] ??
-          (roleIds.isEmpty ? AccountStatus.pending : AccountStatus.active);
+          AccountStatus.pending;
 
       final session = Session(
-        userId: user.userId,
-        userName: user.name,
-        email: user.email,
-        roleIds: roleIds.isNotEmpty ? roleIds : user.roleIds,
-        assignedDepartments:
-            departments.isNotEmpty ? departments : user.assignedDepartments,
-        customPermissions: custom.isNotEmpty ? custom : user.customPermissions,
-        isHeadOfDepartment: heads.isNotEmpty ? heads : user.isHeadOfDepartment,
-        status: user.isSuspended ? AccountStatus.suspended : status,
-        hotelId: user.hotelId,
+        userId: userId,
+        userName: data['userName']?.toString() ?? '',
+        email: data['email']?.toString() ?? '',
+        roleIds: roleIds,
+        assignedDepartments: departments,
+        customPermissions: custom,
+        isHeadOfDepartment: heads,
+        status: status,
+        hotelId: data['hotelId']?.toString(),
+        hotelName: data['hotelName']?.toString() ?? '',
       );
       RoleStore.setSession(session);
       return true;
     } catch (_) {
       return false;
     }
-  }
-
-  static Future<void> _restoreFromFirestore(String uid) async {
-    final data = await FirestoreRoleService.readUserRole(uid);
-    if (data == null) return;
-    final session = FirestoreRoleService.buildSessionFromMap(data);
-    if (session.userId.isEmpty) return;
-    RoleStore.setSession(session);
-    await _persist(session);
-    _subscribeToFirestore(uid);
   }
 
   /// Real-time access sync: promotion, department transfer and suspension
@@ -108,136 +131,95 @@ class AuthService {
       if (session.userId.isEmpty) return;
       RoleStore.setSession(session);
       _persist(session);
+      _refreshAdminData(session);
     });
   }
 
-  static Session _buildSessionForUser(HotelUser user) {
-    return Session(
-      userId: user.userId,
-      userName: user.name,
-      email: user.email,
-      roleIds: user.roleIds,
-      assignedDepartments: user.assignedDepartments,
-      customPermissions: user.customPermissions,
-      isHeadOfDepartment: user.isHeadOfDepartment,
-      status: user.status,
-      hotelId: user.hotelId,
-    );
+  /// When the session is management-level, refresh the admin caches
+  /// (users + invites) from the callables.
+  static void _refreshAdminData(Session session) {
+    if (session.has(Permission.manageStaff)) {
+      UserStore.refreshInvites().catchError((_) {});
+    }
+    if (session.has(Permission.manageUsers)) {
+      UserStore.refreshUsers().catchError((_) {});
+    }
+  }
+
+  /// Attach the signed-in Firebase user's role doc to the session.
+  static Future<AuthResult> _applyRoleDoc(String uid) async {
+    Map<String, dynamic>? data;
+    for (var attempt = 0; attempt < 6 && data == null; attempt++) {
+      data = await FirestoreRoleService.readUserRole(uid);
+      if (data == null) await Future<void>.delayed(const Duration(milliseconds: 300));
+    }
+    if (data == null) return AuthResult.unprovisioned;
+
+    final session = FirestoreRoleService.buildSessionFromMap(data);
+    if (session.userId.isEmpty) return AuthResult.unprovisioned;
+    RoleStore.setSession(session);
+    await _persist(session);
+    _subscribeToFirestore(uid);
+    _refreshAdminData(session);
+    return AuthResult.ok;
   }
 
   // ===================== EMAIL/PASSWORD LOGIN =====================
 
-  static Future<bool> login(String email, String password) async {
-    final user = UserStore.findByEmail(email);
-    if (user == null) return false;
-    if (!UserStore.verifyPassword(password, user.passwordHash)) return false;
-
-    final session = _buildSessionForUser(user);
-    RoleStore.setSession(session);
-    await _persist(session);
-
-    // Background: create Firebase Auth user + write role to Firestore
-    _syncToFirebase(user.email, password, session, user.userId);
-    return true;
+  static Future<AuthResult> login(String email, String password) async {
+    try {
+      await _firebaseAuth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'invalid-credential' ||
+          e.code == 'wrong-password' ||
+          e.code == 'user-not-found' ||
+          e.code == 'invalid-email') {
+        return AuthResult.failed('Invalid email or password');
+      }
+      return AuthResult.failed(e.message ?? 'Login failed');
+    } catch (e) {
+      return AuthResult.failed('Login failed: $e');
+    }
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return AuthResult.failed('Sign-in failed.');
+    return _applyRoleDoc(user.uid);
   }
 
-  static Future<void> _syncToFirebase(
-    String email,
-    String password,
-    Session session,
-    String userId,
-  ) async {
+  static Future<String?> sendPasswordReset(String email) async {
     try {
-      UserCredential? cred;
-      try {
-        cred = await _firebaseAuth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'user-not-found') {
-          cred = await _firebaseAuth.createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
-        } else {
-          rethrow;
-        }
-      }
-      if (cred.user != null) {
-        await FirestoreRoleService.writeUserRole(
-          uid: cred.user!.uid,
-          userId: userId,
-          roleIds: session.roleIds,
-          userName: session.userName,
-          hotelId: session.hotelId ?? '',
-          email: email,
-          assignedDepartments: session.assignedDepartments,
-          customPermissions: session.customPermissions,
-          isHeadOfDepartment: session.isHeadOfDepartment,
-          status: session.status,
-        );
-        await _rememberFirebaseUid(userId, cred.user!.uid);
-        _subscribeToFirestore(cred.user!.uid);
-      }
-    } catch (_) {}
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return e.message ?? 'Could not send reset email.';
+    }
   }
 
   // ===================== GOOGLE SIGN-IN =====================
 
-  static Future<bool> signInWithGoogle() async {
+  static Future<AuthResult> signInWithGoogle() async {
     try {
       final googleUser = await _googleSignIn.authenticate();
       final googleAuth = googleUser.authentication;
-      if (googleAuth.idToken == null) return false;
-      final credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken!,
-      );
+      if (googleAuth.idToken == null) return AuthResult.failed('Google sign-in incomplete.');
+      final credential = GoogleAuthProvider.credential(idToken: googleAuth.idToken!);
       final userCred = await _firebaseAuth.signInWithCredential(credential);
       final firebaseUser = userCred.user;
-      if (firebaseUser == null) return false;
-
-      // Look up role in Firestore
-      final data = await FirestoreRoleService.readUserRole(firebaseUser.uid);
-      if (data == null) {
-        // New Google user — check if email is in local UserStore
-        final localUser = UserStore.findByEmail(firebaseUser.email ?? '');
-        if (localUser != null) {
-          // Known user: write role to Firestore and proceed
-          final session = _buildSessionForUser(localUser);
-          RoleStore.setSession(session);
-          await _persist(session);
-          await FirestoreRoleService.writeUserRole(
-            uid: firebaseUser.uid,
-            userId: localUser.userId,
-            roleIds: localUser.roleIds,
-            userName: localUser.name,
-            hotelId: localUser.hotelId,
-            email: firebaseUser.email ?? '',
-            assignedDepartments: localUser.assignedDepartments,
-            customPermissions: localUser.customPermissions,
-            isHeadOfDepartment: localUser.isHeadOfDepartment,
-            status: localUser.status,
-          );
-          _subscribeToFirestore(firebaseUser.uid);
-          return true;
-        }
-        // Unknown Google user — cannot proceed without an invite
-        await _firebaseAuth.signOut();
-        await _googleSignIn.signOut();
-        return false;
-      }
-
-      final session = FirestoreRoleService.buildSessionFromMap(data);
-      if (session.userId.isEmpty) return false;
-      RoleStore.setSession(session);
-      await _persist(session);
-      _subscribeToFirestore(firebaseUser.uid);
-      return true;
-    } catch (_) {
-      return false;
+      if (firebaseUser == null) return AuthResult.failed('Google sign-in failed.');
+      return _applyRoleDoc(firebaseUser.uid);
+    } on FirebaseAuthException catch (e) {
+      return AuthResult.failed(e.message ?? 'Google sign-in failed.');
+    } catch (e) {
+      return AuthResult.failed('Google sign-in error: $e');
     }
   }
+
+  /// True when Firebase is signed in but the account has no role document —
+  /// used to decide whether to show the invite-connect / provision UI.
+  static bool get hasUnprovisionedFirebaseUser =>
+      _firebaseAuth.currentUser != null;
 
   // ===================== REGISTRATION =====================
 
@@ -248,20 +230,23 @@ class AuthService {
     required String password,
     required String hotelName,
   }) async {
-    final user = await UserStore.registerOwner(
+    // The callable creates the Auth user, hotel doc and super_admin role doc.
+    await CloudFunctionsService.signupOwner(
       name: name,
       email: email,
       phone: phone,
       password: password,
       hotelName: hotelName,
     );
-    final session = _buildSessionForUser(user);
-    RoleStore.setSession(session);
-    await _persist(session);
-
-    // Create Firebase Auth user + write role claim
-    _firebaseCreateUser(email, password, session, user.userId);
-    return session;
+    // Sign in locally so the client has a Firebase Auth session.
+    await _firebaseAuth.signInWithEmailAndPassword(email: email, password: password);
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw CloudFunctionsException('Sign-in after registration failed.');
+    final result = await _applyRoleDoc(user.uid);
+    if (!result.isOk) {
+      throw CloudFunctionsException(result.message ?? 'Account created but role could not be loaded.');
+    }
+    return RoleStore.current;
   }
 
   static Future<Session?> registerStaff({
@@ -271,60 +256,53 @@ class AuthService {
     required String phone,
     required String password,
   }) async {
-    final user = await UserStore.registerStaff(
+    await CloudFunctionsService.signupStaff(
       inviteCode: inviteCode,
       name: name,
       email: email,
       phone: phone,
       password: password,
     );
-    if (user == null) return null;
-    final session = _buildSessionForUser(user);
-    RoleStore.setSession(session);
-    await _persist(session);
-
-    _firebaseCreateUser(email, password, session, user.userId);
-    return session;
-  }
-
-  static Future<void> _firebaseCreateUser(
-    String email,
-    String password,
-    Session session,
-    String userId,
-  ) async {
-    try {
-      final cred = await _firebaseAuth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      if (cred.user != null) {
-        await FirestoreRoleService.writeUserRole(
-          uid: cred.user!.uid,
-          userId: userId,
-          roleIds: session.roleIds,
-          userName: session.userName,
-          hotelId: session.hotelId ?? '',
-          email: email,
-          assignedDepartments: session.assignedDepartments,
-          customPermissions: session.customPermissions,
-          isHeadOfDepartment: session.isHeadOfDepartment,
-          status: session.status,
-        );
-        await _rememberFirebaseUid(userId, cred.user!.uid);
-        _subscribeToFirestore(cred.user!.uid);
-      }
-    } catch (_) {}
-  }
-
-  /// Persist the Firebase Auth UID onto the local user so admin edits can
-  /// push updated assignments to the right Firestore role document.
-  static Future<void> _rememberFirebaseUid(String userId, String uid) async {
-    final local = UserStore.findById(userId);
-    if (local != null && local.firebaseUid != uid) {
-      local.firebaseUid = uid;
-      await UserStore.updateUser(local);
+    await _firebaseAuth.signInWithEmailAndPassword(email: email, password: password);
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw CloudFunctionsException('Sign-in after registration failed.');
+    final result = await _applyRoleDoc(user.uid);
+    if (!result.isOk) {
+      throw CloudFunctionsException(result.message ?? 'Account created but role could not be loaded.');
     }
+    return RoleStore.current;
+  }
+
+  /// Link the already-signed-in (Google) account to an invite code.
+  static Future<Session> redeemInvite(String inviteCode) async {
+    await CloudFunctionsService.redeemInvite(inviteCode);
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw CloudFunctionsException('Sign in required.');
+    final result = await _applyRoleDoc(user.uid);
+    if (!result.isOk) {
+      throw CloudFunctionsException(result.message ?? 'Invite could not be redeemed.');
+    }
+    return RoleStore.current;
+  }
+
+  /// Provision a new hotel for the already-signed-in (Google) owner.
+  static Future<Session> provisionOwner({
+    required String name,
+    required String phone,
+    required String hotelName,
+  }) async {
+    await CloudFunctionsService.provisionOwner(
+      name: name,
+      phone: phone,
+      hotelName: hotelName,
+    );
+    final user = _firebaseAuth.currentUser;
+    if (user == null) throw CloudFunctionsException('Sign in required.');
+    final result = await _applyRoleDoc(user.uid);
+    if (!result.isOk) {
+      throw CloudFunctionsException(result.message ?? 'Hotel could not be provisioned.');
+    }
+    return RoleStore.current;
   }
 
   // ===================== PERSISTENCE =====================
@@ -342,6 +320,7 @@ class AuthService {
           session.isHeadOfDepartment.map((k, v) => MapEntry(k.name, v)),
       'status': session.status.name,
       'hotelId': session.hotelId,
+      'hotelName': session.hotelName,
     };
     await _box?.put('session', jsonEncode(data));
   }
@@ -354,12 +333,10 @@ class AuthService {
   }
 
   static Future<void> logout() async {
-    final uid = _firebaseAuth.currentUser?.uid;
-    if (uid != null) {
-      await FirestoreRoleService.clearUserRole(uid);
-      await _firebaseAuth.signOut();
+    await _firebaseAuth.signOut();
+    try {
       await _googleSignIn.signOut();
-    }
+    } catch (_) {}
     await clear();
   }
 }

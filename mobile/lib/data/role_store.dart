@@ -28,6 +28,7 @@ class Session {
 
   AccountStatus status;
   String? hotelId;
+  String hotelName;
 
   Session({
     required this.userId,
@@ -39,6 +40,7 @@ class Session {
     this.isHeadOfDepartment = const {},
     this.status = AccountStatus.pending,
     this.hotelId,
+    this.hotelName = '',
   });
 
   /// Backward-compatible constructor for a single primary role.
@@ -52,6 +54,7 @@ class Session {
     this.isHeadOfDepartment = const {},
     this.status = AccountStatus.active,
     this.hotelId,
+    this.hotelName = '',
   }) : roleIds = [role.id],
        assignedDepartments = assignedDepartments ??
            (role.department != null ? [role.department!] : const []);

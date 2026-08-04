@@ -41,25 +41,25 @@ function AccountEditForm({ user, onClose }: { user: HotelUser; onClose: () => vo
     setDepts(prev => (on ? [...prev, d] : prev.filter(x => x !== d)));
   };
 
-  const save = () => {
+  const save = async () => {
     const heads: Record<string, boolean> = {};
     if (isHead) for (const d of depts) heads[d] = true;
-    const next: HotelUser = {
-      ...user,
+    const error = await updateUser(user.userId, {
       roleIds,
-      roleId: roleIds.includes(user.roleId) || !roleIds.length ? user.roleId : roleIds[0],
+      userName: user.name,
       assignedDepartments: depts,
       isHeadOfDepartment: heads,
       status,
-    };
-    updateUser(next);
-    onClose();
+    });
+    if (error) alert(error);
+    else onClose();
   };
 
-  const remove = () => {
+  const remove = async () => {
     if (!confirm(`Delete ${user.name}? Their access ends immediately.`)) return;
-    deleteUser(user.userId);
-    onClose();
+    const error = await deleteUser(user.userId);
+    if (error) alert(error);
+    else onClose();
   };
 
   return (
@@ -127,14 +127,23 @@ function InviteForm({ onClose }: { onClose: () => void }) {
   const [depts, setDepts] = useState<Department[]>([]);
   const [isHead, setIsHead] = useState(false);
   const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
 
   const toggleDept = (d: Department, on: boolean) => {
     setDepts(prev => (on ? [...prev, d] : prev.filter(x => x !== d)));
   };
 
-  const generate = () => {
+  const generate = async () => {
     if (!roleId) return;
-    setCode(generateInvite({ roleId, departments: depts, isHead }));
+    setBusy(true);
+    try {
+      const c = await generateInvite({ roleId, departments: depts, isHead });
+      setCode(c);
+    } catch (e: any) {
+      alert(e?.message || 'Could not generate the invite.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const copy = async () => {
@@ -178,7 +187,7 @@ function InviteForm({ onClose }: { onClose: () => void }) {
         {depts.length === 0 && <span className="text-[10px] text-zinc-400">(select departments first)</span>}
       </label>
       <div className="flex gap-2">
-        <Btn onClick={generate} disabled={!roleId}><Plus size={14} /> Generate Code</Btn>
+        <Btn onClick={generate} disabled={!roleId || busy}>{busy ? 'Generating…' : (<><Plus size={14} /> Generate Code</>)}</Btn>
         <Btn color="outline" onClick={onClose}>Cancel</Btn>
       </div>
       {code && (
@@ -279,7 +288,9 @@ export function AccountsModule() {
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusChip status={used ? 'delivered' : 'pending'} label={used ? 'Used' : 'Pending'} />
-                    <IconBtn tone="red" title="Revoke code" onClick={() => deleteInvite(inv.code)}><Trash2 size={14} /></IconBtn>
+                    <IconBtn tone="red" title="Revoke code" onClick={() => {
+                      if (confirm(`Revoke invite ${inv.code}?`)) deleteInvite(inv.code);
+                    }}><Trash2 size={14} /></IconBtn>
                   </div>
                 </div>
               );

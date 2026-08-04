@@ -1,12 +1,24 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../models/hotel_user.dart';
 import '../models/invite_code.dart';
 import '../models/role.dart';
-import 'firestore_invite_service.dart';
+import 'cloud_functions_service.dart';
 
+/// Offline cache of the hotel's users and invites.
+///
+/// This is NOT a source of truth — the authoritative store is Firestore,
+/// written only by Cloud Functions. Reads come from the `listUsers` /
+/// `listInvites` callables and every mutation proxies to `updateUserRole` /
+/// `deleteUserRole` / `createInvite` / `deleteInvite`. The Hive box just keeps
+/// the data readable offline and drives the admin accounts UI.
 class UserStore {
   static Box<String>? _box;
+
+  /// Bumped after every successful refresh so the admin UI can rebuild.
+  static final ValueNotifier<int> usersVersion = ValueNotifier<int>(0);
+  static final ValueNotifier<int> invitesVersion = ValueNotifier<int>(0);
 
   static Future<void> init() async {
     _box = await Hive.openBox<String>('hom_users');
@@ -38,27 +50,46 @@ class UserStore {
     await _box?.put('invites', jsonEncode(invites.map((e) => e.toJson()).toList()));
   }
 
+  // ──────────────────── server-backed refresh ────────────────────
+
+  /// Pull the hotel's users from the `listUsers` callable into the cache.
+  /// Best-effort: on failure the last cached snapshot stays readable.
+  static Future<void> refreshUsers() async {
+    try {
+      final users = await CloudFunctionsService.listUsers();
+      await _saveUsers(users);
+      usersVersion.value++;
+    } catch (_) {}
+  }
+
+  /// Pull the hotel's invites from the `listInvites` callable into the cache.
+  static Future<void> refreshInvites() async {
+    try {
+      final invites = await CloudFunctionsService.listInvites();
+      await _saveInvites(invites);
+      invitesVersion.value++;
+    } catch (_) {}
+  }
+
+  // ──────────────────── cache reads ────────────────────
+
   static bool get isOwnerRegistered {
     final users = _loadUsers();
     return users.any((u) => u.roleId == 'super_admin');
   }
 
   static String? get ownerHotelId {
-    final users = _loadUsers();
-    final owner = users.cast<HotelUser?>().firstWhere(
-      (u) => u!.roleId == 'super_admin',
-      orElse: () => null,
-    );
-    return owner?.hotelId;
+    for (final u in _loadUsers()) {
+      if (u.roleId == 'super_admin') return u.hotelId;
+    }
+    return null;
   }
 
   static String? get ownerHotelName {
-    final users = _loadUsers();
-    final owner = users.cast<HotelUser?>().firstWhere(
-      (u) => u!.roleId == 'super_admin',
-      orElse: () => null,
-    );
-    return owner?.hotelName;
+    for (final u in _loadUsers()) {
+      if (u.roleId == 'super_admin') return u.hotelName;
+    }
+    return null;
   }
 
   static HotelUser? findByEmail(String email) {
@@ -77,159 +108,74 @@ class UserStore {
     return null;
   }
 
-  static Future<HotelUser> registerOwner({
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-    required String hotelName,
-  }) async {
-    final users = _loadUsers();
-    final userId = 'usr_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
-    final hash = base64Encode(utf8.encode(password));
-    final user = HotelUser(
-      userId: userId,
-      name: name,
-      email: email,
-      phone: phone,
-      passwordHash: hash,
-      roleId: 'super_admin',
-      roleIds: ['super_admin'],
-      status: AccountStatus.active,
-      hotelId: 'hotel_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}',
-      hotelName: hotelName,
-      createdAt: DateTime.now(),
-    );
-    users.add(user);
-    await _saveUsers(users);
-    return user;
-  }
-
-  static Future<HotelUser?> registerStaff({
-    required String inviteCode,
-    required String name,
-    required String email,
-    required String phone,
-    required String password,
-  }) async {
-    final normalized = inviteCode.trim().toUpperCase();
-    var invites = _loadInvites();
-    InviteCode? invite;
-    for (final i in invites) {
-      if (i.code.toUpperCase() == normalized && i.isValid) {
-        invite = i;
-        break;
-      }
-    }
-    if (invite == null) {
-      // Not issued on this device — the owner may have generated the code on
-      // another phone, the desktop app or the web dashboard. Fall back to the
-      // shared cloud store so staff can redeem from any device.
-      final cloud = await FirestoreInviteService.readInvite(normalized);
-      if (cloud != null && cloud.isValid) {
-        invites = [...invites, cloud];
-        invite = cloud;
-      }
-    }
-    if (invite == null) return null;
-
-    final users = _loadUsers();
-    final userId = 'usr_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';
-    final hash = base64Encode(utf8.encode(password));
-    final user = HotelUser(
-      userId: userId,
-      name: name,
-      email: email,
-      phone: phone,
-      passwordHash: hash,
-      roleId: invite.roleId,
-      roleIds: [invite.roleId],
-      assignedDepartments: invite.departments,
-      isHeadOfDepartment: invite.isHead
-          ? {for (final d in invite.departments) d: true}
-          : const {},
-      status: AccountStatus.active,
-      hotelId: invite.hotelId,
-      hotelName: invite.hotelName,
-      createdAt: DateTime.now(),
-    );
-    users.add(user);
-    await _saveUsers(users);
-
-    invite.usedByUserId = userId;
-    invite.usedAt = DateTime.now();
-    await _saveInvites(invites);
-
-    // Consume the cloud copy so the code cannot be used on another device.
-    FirestoreInviteService.markUsed(invite.code, userId);
-
-    return user;
-  }
-
-  static bool verifyPassword(String password, String hash) {
-    return base64Encode(utf8.encode(password)) == hash;
-  }
-
-  static String generateInviteCode(
-    String roleId,
-    String roleName,
-    String hotelId,
-    String hotelName, {
-    List<Department> departments = const [],
-    bool isHead = false,
-  }) {
-    final invites = _loadInvites();
-    final ts = DateTime.now().millisecondsSinceEpoch.toRadixString(36).toUpperCase();
-    final seq = (1000 + invites.length).toRadixString(36).toUpperCase();
-    final code = '$ts$seq';
-    final invite = InviteCode(
-      code: code,
-      roleId: roleId,
-      roleName: roleName,
-      departments: departments,
-      isHead: isHead,
-      hotelId: hotelId,
-      hotelName: hotelName,
-      createdAt: DateTime.now(),
-    );
-    invites.add(invite);
-    _saveInvites(invites);
-    // Publish to the cloud store so staff can redeem this code from any
-    // device (web, phone, desktop). Best-effort — offline-first never blocks.
-    FirestoreInviteService.writeInvite(invite);
-    return code;
-  }
-
   static List<InviteCode> getInviteCodes() => _loadInvites();
 
   static List<HotelUser> getUsers() => _loadUsers();
 
-  // ===================== USER UPDATE/DELETE =====================
+  // ──────────────────── mutations (via callables) ────────────────────
 
-  static Future<void> updateUser(HotelUser updated) async {
-    final users = _loadUsers();
-    final i = users.indexWhere((u) => u.userId == updated.userId);
-    if (i >= 0) { users[i] = updated; await _saveUsers(users); }
-  }
-
-  static Future<void> deleteUser(String userId) async {
-    final users = _loadUsers();
-    users.removeWhere((u) => u.userId == userId);
-    await _saveUsers(users);
-  }
-
-  // ===================== INVITE CODE UPDATE/DELETE =====================
-
-  static Future<void> updateInvite(InviteCode updated) async {
-    final invites = _loadInvites();
-    final i = invites.indexWhere((inv) => inv.code == updated.code);
-    if (i >= 0) { invites[i] = updated; await _saveInvites(invites); }
+  /// Create a single-use invite through the `createInvite` callable.
+  static Future<String> createInvite({
+    required String roleId,
+    required String roleName,
+    List<Department> departments = const [],
+    bool isHead = false,
+  }) async {
+    final invite = await CloudFunctionsService.createInvite(
+      roleId: roleId,
+      roleName: roleName,
+      departments: departments,
+      isHead: isHead,
+    );
+    final invites = _loadInvites()
+      ..removeWhere((i) => i.code == invite.code)
+      ..insert(0, invite);
+    await _saveInvites(invites);
+    invitesVersion.value++;
+    return invite.code;
   }
 
   static Future<void> deleteInvite(String code) async {
-    final invites = _loadInvites();
-    invites.removeWhere((inv) => inv.code == code);
-    await _saveInvites(invites);
-    FirestoreInviteService.deleteInvite(code);
+    try {
+      await CloudFunctionsService.deleteInvite(code);
+    } finally {
+      final invites = _loadInvites()
+        ..removeWhere((i) => i.code == code);
+      await _saveInvites(invites);
+      invitesVersion.value++;
+    }
+  }
+
+  /// Push the edited assignment to `updateUserRole`, then refresh the cache.
+  static Future<void> updateUser(HotelUser updated) async {
+    final uid = updated.firebaseUid ?? updated.userId;
+    try {
+      await CloudFunctionsService.updateUserRole(
+        targetUid: uid,
+        roleIds: updated.roleIds,
+        userName: updated.name,
+        assignedDepartments: updated.assignedDepartments.map((d) => d.name).toList(),
+        customPermissions: updated.customPermissions.map((p) => p.name).toList(),
+        isHeadOfDepartment: {
+          for (final e in updated.isHeadOfDepartment.entries) e.key.name: e.value,
+        },
+        status: updated.status.name,
+      );
+    } finally {
+      await refreshUsers();
+    }
+  }
+
+  /// Remove a staff account via the `deleteUserRole` callable, then refresh.
+  static Future<void> deleteUser(String userId) async {
+    try {
+      await CloudFunctionsService.deleteUserRole(userId);
+    } finally {
+      final users = _loadUsers()
+        ..removeWhere((u) => u.userId == userId);
+      await _saveUsers(users);
+      usersVersion.value++;
+      await refreshUsers();
+    }
   }
 }

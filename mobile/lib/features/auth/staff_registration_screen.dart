@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
+import '../../data/cloud_functions_service.dart';
 import 'package:hom_mobile/utils/theme.dart';
 
 class StaffRegistrationScreen extends StatefulWidget {
@@ -61,18 +62,16 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
 
     setState(() => _loading = true);
     try {
-      final session = await AuthService.registerStaff(
+      await AuthService.registerStaff(
         inviteCode: _codeCtrl.text.trim(),
         name: _nameCtrl.text.trim(),
         email: _emailCtrl.text.trim(),
         phone: _phoneCtrl.text.trim(),
         password: _passCtrl.text,
       );
-      if (session != null) {
-        if (mounted) Navigator.pushReplacementNamed(context, '/home');
-      } else {
-        _showError('Invalid or expired invite code');
-      }
+      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+    } on CloudFunctionsException catch (e) {
+      _showError(e.message);
     } catch (e) {
       _showError('Registration failed: $e');
     } finally {

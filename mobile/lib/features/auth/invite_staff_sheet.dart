@@ -34,7 +34,9 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
     });
   }
 
-  void _generate() {
+  bool _generating = false;
+
+  Future<void> _generate() async {
     if (_selectedRoleId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a role'), backgroundColor: AppColors.red),
@@ -46,17 +48,24 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
       orElse: () => null,
     );
     if (role == null) return;
-    final hotelId = RoleStore.current.hotelId ?? 'hotel_001';
-    final hotelName = UserStore.ownerHotelName ?? 'My Hotel';
-    final code = UserStore.generateInviteCode(
-      role.id,
-      role.name,
-      hotelId,
-      hotelName,
-      departments: _selectedDepts,
-      isHead: _isHead,
-    );
-    setState(() => _generatedCode = code);
+    setState(() => _generating = true);
+    try {
+      final code = await UserStore.createInvite(
+        roleId: role.id,
+        roleName: role.name,
+        departments: _selectedDepts,
+        isHead: _isHead,
+      );
+      if (!mounted) return;
+      setState(() => _generatedCode = code);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not create invite: $e'), backgroundColor: AppColors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _generating = false);
+    }
   }
 
   void _copy() {
@@ -159,8 +168,10 @@ class _InviteStaffSheetState extends State<InviteStaffSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _generate,
-              icon: const Icon(Icons.generating_tokens_rounded, size: 18),
+              onPressed: _generating ? null : _generate,
+              icon: _generating
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white))
+                  : const Icon(Icons.generating_tokens_rounded, size: 18),
               label: const Text('Generate Invite Code'),
             ),
           ),

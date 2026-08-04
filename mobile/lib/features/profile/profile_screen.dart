@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
 import '../../data/profile_store.dart';
 import '../../data/role_store.dart';
-import '../../data/user_store.dart';
 import '../../models/role.dart';
 import 'edit_profile_screen.dart';
 import '../../utils/theme.dart';
@@ -27,7 +26,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final session = RoleStore.current;
-    final user = UserStore.findById(session.userId);
     final profile = ProfileStore.load(session.userId);
 
     return Scaffold(
@@ -40,7 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => EditProfileScreen(profile: profile, user: user),
+                  builder: (_) => EditProfileScreen(profile: profile, session: session),
                 ),
               ).then((_) => setState(() {}));
             },
@@ -97,11 +95,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Account', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                 const SizedBox(height: 12),
-                _detailRow(Icons.email_rounded, 'Email', user?.email ?? ''),
+                _detailRow(Icons.email_rounded, 'Email', session.email),
                 const Divider(height: 20),
-                _detailRow(Icons.phone_rounded, 'Phone', user?.phone ?? ''),
+                _detailRow(Icons.phone_rounded, 'Phone', profile?.phone ?? ''),
                 const Divider(height: 20),
-                _detailRow(Icons.business_rounded, 'Hotel', user?.hotelName ?? ''),
+                _detailRow(Icons.business_rounded, 'Hotel', session.hotelName.isEmpty ? (session.hotelId ?? '') : session.hotelName),
               ]),
             ),
           ),

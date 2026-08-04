@@ -24,6 +24,7 @@ import 'features/auth/owner_registration_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/staff_registration_screen.dart';
 import 'features/auth/invite_staff_sheet.dart';
+import 'features/auth/google_connect_screen.dart';
 import 'data/auth_service.dart';
 import 'data/compliance_store.dart';
 import 'data/back_office_store.dart';
@@ -44,7 +45,6 @@ import 'utils/theme.dart';
 import 'data/profile_store.dart';
 import 'data/role_store.dart';
 import 'data/update_service.dart';
-import 'data/firestore_role_service.dart';
 import 'models/role.dart';
 import 'models/hotel_user.dart';
 import 'models/expenditure.dart';
@@ -252,6 +252,7 @@ class HOMApp extends StatelessWidget {
         '/staff-register': (context) => StaffRegistrationScreen(
           initialCode: _inviteCodeArg(ModalRoute.of(context)?.settings.arguments),
         ),
+        '/google-connect': (context) => const GoogleConnectScreen(),
         '/profile': (context) => const ProfileScreen(),
       },
       onGenerateRoute: _deepLinkRoute,
@@ -282,10 +283,12 @@ class AuthGate extends StatelessWidget {
       valueListenable: RoleStore.sessionNotifier,
       builder: (context, session, _) {
         if (!session.hasIdentity) {
-          // Zero-trust: no session → owner bootstrap or login only.
-          return UserStore.isOwnerRegistered
-              ? const LoginScreen()
-              : const OwnerRegistrationScreen();
+          // Signed in to Firebase but not linked to a hotel yet → connect UI.
+          if (AuthService.hasUnprovisionedFirebaseUser) {
+            return const GoogleConnectScreen();
+          }
+          // Zero-trust: no session → login (with register + invite links).
+          return const LoginScreen();
         }
         switch (session.status) {
           case AccountStatus.pending:
@@ -2502,6 +2505,14 @@ class StaffScreen extends StatefulWidget {
 }
 
 class _StaffScreenState extends State<StaffScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Pull the hotel's users + invites from the callables into the cache.
+    UserStore.refreshUsers().then((_) => mounted ? setState(() {}) : null);
+    UserStore.refreshInvites();
+  }
+
   void _add() {
     final name = TextEditingController(),
         role = TextEditingController(),
@@ -2709,27 +2720,35 @@ class _StaffScreenState extends State<StaffScreen> {
       }),
       if (RoleStore.has(Permission.manageUsers)) ...[
         const SizedBox(height: 20),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Flexible(
-              child: Text('App Accounts (${UserStore.getUsers().length})',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 16),
-                  overflow: TextOverflow.ellipsis)),
-          IconButton(
-            onPressed: () {
-              UserStore.getUsers()
-                  .where((u) => u.userId == RoleStore.current.userId)
-                  .forEach(_showAppAccountSheet);
-              if (mounted) setState(() {});
-            },
-            icon: const Icon(Icons.manage_accounts_rounded, size: 20),
-            tooltip: 'Manage my own access',
-          ),
-        ]),
-        const SizedBox(height: 8),
-        ...UserStore.getUsers()
-            .where((u) => u.userId != RoleStore.current.userId)
-            .map((u) => _accountTile(u)),
+        ValueListenableBuilder<int>(
+          valueListenable: UserStore.usersVersion,
+          builder: (context, _, __) {
+            final accounts = UserStore.getUsers()
+                .where((u) => u.userId != RoleStore.current.userId)
+                .toList();
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Flexible(
+                    child: Text('App Accounts (${UserStore.getUsers().length})',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w800, fontSize: 16),
+                        overflow: TextOverflow.ellipsis)),
+                IconButton(
+                  onPressed: () {
+                    UserStore.getUsers()
+                        .where((u) => u.userId == RoleStore.current.userId)
+                        .forEach(_showAppAccountSheet);
+                    if (mounted) setState(() {});
+                  },
+                  icon: const Icon(Icons.manage_accounts_rounded, size: 20),
+                  tooltip: 'Manage my own access',
+                ),
+              ]),
+              const SizedBox(height: 8),
+              ...accounts.map((u) => _accountTile(u)),
+            ]);
+          },
+        ),
       ],
     ]);
   }
@@ -2921,10 +2940,15 @@ class _StaffScreenState extends State<StaffScreen> {
                             final confirmed = await _confirm('Delete account',
                                 'Remove ${u.name}? Their access ends immediately.');
                             if (confirmed != true) return;
-                            await UserStore.deleteUser(u.userId);
-                            if (u.firebaseUid != null)
-                              await FirestoreRoleService.clearUserRole(
-                                  u.firebaseUid!);
+                            try {
+                              await UserStore.deleteUser(u.firebaseUid ?? u.userId);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Delete failed: $e'),
+                                        backgroundColor: AppColors.red));
+                              }
+                            }
                             if (mounted) setState(() {});
                           },
                           child: const Text('Delete'),
@@ -2962,20 +2986,15 @@ class _StaffScreenState extends State<StaffScreen> {
                               ..clear()
                               ..addAll({for (final d in depts) d: isHead});
                             u.status = status;
-                            await UserStore.updateUser(u);
-                            if (u.firebaseUid != null) {
-                              await FirestoreRoleService.writeUserRole(
-                                uid: u.firebaseUid!,
-                                userId: u.userId,
-                                roleIds: u.roleIds,
-                                userName: u.name,
-                                hotelId: u.hotelId,
-                                email: u.email,
-                                assignedDepartments: u.assignedDepartments,
-                                customPermissions: u.customPermissions,
-                                isHeadOfDepartment: u.isHeadOfDepartment,
-                                status: u.status,
-                              );
+                            try {
+                              await UserStore.updateUser(u);
+                            } catch (e) {
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Save failed: $e'),
+                                      backgroundColor: AppColors.red));
+                              return;
                             }
                             if (ctx.mounted) Navigator.pop(ctx);
                             if (!mounted) return;
