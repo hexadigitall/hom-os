@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
 import '../../data/hom_api_service.dart';
 import 'package:hom_mobile/utils/theme.dart';
+import 'auth_shell.dart';
+import 'google_button.dart';
+import 'google_connect_screen.dart';
 
 class StaffRegistrationScreen extends StatefulWidget {
   const StaffRegistrationScreen({super.key, this.initialCode});
@@ -22,6 +25,7 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _loading = false;
+  bool _googleLoading = false;
   bool _obscure = true;
 
   @override
@@ -79,6 +83,28 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
     }
   }
 
+  Future<void> _googleSignIn() async {
+    setState(() => _googleLoading = true);
+    try {
+      final result = await AuthService.signInWithGoogle();
+      if (!mounted) return;
+      if (result.isOk) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else if (result.status == AuthStatus.unprovisioned) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GoogleConnectScreen()),
+        );
+      } else {
+        _showError(result.message ?? 'Google sign-in failed');
+      }
+    } catch (e) {
+      _showError('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
+  }
+
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.red));
@@ -86,57 +112,61 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Join with Invite Code'),
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.black87,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Enter the invite code from your hotel manager to create your account.',
-                style: TextStyle(fontSize: 14, color: AppColors.grey500)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _codeCtrl,
-              decoration: InputDecoration(
-                labelText: 'Invite code',
-                prefixIcon: const Icon(Icons.vpn_key_rounded),
-                suffixIcon: _codeCtrl.text.isNotEmpty
-                    ? Icon(Icons.check_circle_rounded, color: AppColors.green)
-                    : null,
-              ),
-              textCapitalization: TextCapitalization.characters,
-              onChanged: (v) => setState(() {
-                _codeCtrl.value = _codeCtrl.value.copyWith(
-                  text: v.toUpperCase(),
-                  selection: TextSelection.collapsed(offset: v.length),
-                );
-              }),
+    return AuthShell(
+      showAppBar: true,
+      appBarTitle: 'Join with Invite Code',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Enter the invite code from your hotel manager to create your account.',
+              style: TextStyle(fontSize: 14, color: AppColors.grey500)),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _codeCtrl,
+            decoration: InputDecoration(
+              labelText: 'Invite code',
+              prefixIcon: const Icon(Icons.vpn_key_rounded),
+              suffixIcon: _codeCtrl.text.isNotEmpty
+                  ? Icon(Icons.check_circle_rounded, color: AppColors.green)
+                  : null,
             ),
-            const SizedBox(height: 24),
-            TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_rounded))),
-            const SizedBox(height: 12),
-            TextField(controller: _emailCtrl, decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.email_rounded)), keyboardType: TextInputType.emailAddress),
-            const SizedBox(height: 12),
-            TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone number (optional)', prefixIcon: Icon(Icons.phone_rounded)), keyboardType: TextInputType.phone),
-            const SizedBox(height: 12),
-            TextField(controller: _passCtrl, decoration: InputDecoration(labelText: 'Create password', prefixIcon: const Icon(Icons.lock_rounded), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded), onPressed: () => setState(() => _obscure = !_obscure))), obscureText: _obscure),
-            const SizedBox(height: 12),
-            TextField(controller: _confirmCtrl, decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_rounded)), obscureText: true),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity, height: 50,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _register,
-                child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              ),
+            textCapitalization: TextCapitalization.characters,
+            onChanged: (v) => setState(() {
+              _codeCtrl.value = _codeCtrl.value.copyWith(
+                text: v.toUpperCase(),
+                selection: TextSelection.collapsed(offset: v.length),
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+          GoogleButton(onPressed: _googleSignIn, loading: _googleLoading),
+          const SizedBox(height: 20),
+          const GoogleOrDivider(label: 'or register with email'),
+          const SizedBox(height: 20),
+          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full name', prefixIcon: Icon(Icons.person_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _emailCtrl, decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.email_rounded)), keyboardType: TextInputType.emailAddress),
+          const SizedBox(height: 12),
+          TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone number (optional)', prefixIcon: Icon(Icons.phone_rounded)), keyboardType: TextInputType.phone),
+          const SizedBox(height: 12),
+          TextField(controller: _passCtrl, decoration: InputDecoration(labelText: 'Create password', prefixIcon: const Icon(Icons.lock_rounded), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded), onPressed: () => setState(() => _obscure = !_obscure))), obscureText: _obscure),
+          const SizedBox(height: 12),
+          TextField(controller: _confirmCtrl, decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_rounded)), obscureText: true),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _register,
+              child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
-          ]),
-        ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+            child: const Text('Already have an account? Sign in', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }

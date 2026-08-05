@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
 import '../../data/hom_api_service.dart';
 import '../../utils/theme.dart';
+import 'auth_shell.dart';
+import 'google_button.dart';
+import 'google_connect_screen.dart';
 
 class OwnerRegistrationScreen extends StatefulWidget {
   const OwnerRegistrationScreen({super.key});
@@ -17,6 +20,7 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
   final _passCtrl = TextEditingController();
   final _confirmCtrl = TextEditingController();
   bool _loading = false;
+  bool _googleLoading = false;
   bool _obscure = true;
 
   @override
@@ -70,6 +74,28 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
     }
   }
 
+  Future<void> _googleSignIn() async {
+    setState(() => _googleLoading = true);
+    try {
+      final result = await AuthService.signInWithGoogle();
+      if (!mounted) return;
+      if (result.isOk) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else if (result.status == AuthStatus.unprovisioned) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GoogleConnectScreen()),
+        );
+      } else {
+        _showError(result.message ?? 'Google sign-in failed');
+      }
+    } catch (e) {
+      _showError('Google sign-in error: $e');
+    } finally {
+      if (mounted) setState(() => _googleLoading = false);
+    }
+  }
+
   void _showError(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.red));
@@ -77,45 +103,44 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
-                child: const Icon(Icons.hotel_rounded, color: AppColors.primary, size: 32),
-              ),
-              const SizedBox(height: 20),
-              const Text('Welcome to HOM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
-              const SizedBox(height: 4),
-              const Text('Set up your hotel to get started', style: TextStyle(fontSize: 14, color: AppColors.grey500)),
-              const SizedBox(height: 28),
-              TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Your full name', prefixIcon: Icon(Icons.person_rounded))),
-              const SizedBox(height: 12),
-              TextField(controller: _emailCtrl, decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.email_rounded)), keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 12),
-              TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone number (optional)', prefixIcon: Icon(Icons.phone_rounded)), keyboardType: TextInputType.phone),
-              const SizedBox(height: 12),
-              TextField(controller: _hotelCtrl, decoration: const InputDecoration(labelText: 'Hotel / Business name', prefixIcon: Icon(Icons.business_rounded))),
-              const SizedBox(height: 12),
-              TextField(controller: _passCtrl, decoration: InputDecoration(labelText: 'Password', prefixIcon: const Icon(Icons.lock_rounded), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded), onPressed: () => setState(() => _obscure = !_obscure))), obscureText: _obscure),
-              const SizedBox(height: 12),
-              TextField(controller: _confirmCtrl, decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_rounded)), obscureText: true),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity, height: 50,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _register,
-                  child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ]),
+    return AuthShell(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Welcome to HOM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
+          const SizedBox(height: 4),
+          const Text('Set up your hotel to get started', style: TextStyle(fontSize: 14, color: AppColors.grey500)),
+          const SizedBox(height: 24),
+          GoogleButton(onPressed: _googleSignIn, loading: _googleLoading),
+          const SizedBox(height: 20),
+          const GoogleOrDivider(),
+          const SizedBox(height: 20),
+          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Your full name', prefixIcon: Icon(Icons.person_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _emailCtrl, decoration: const InputDecoration(labelText: 'Email address', prefixIcon: Icon(Icons.email_rounded)), keyboardType: TextInputType.emailAddress),
+          const SizedBox(height: 12),
+          TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone number (optional)', prefixIcon: Icon(Icons.phone_rounded)), keyboardType: TextInputType.phone),
+          const SizedBox(height: 12),
+          TextField(controller: _hotelCtrl, decoration: const InputDecoration(labelText: 'Hotel / Business name', prefixIcon: Icon(Icons.business_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: _passCtrl, decoration: InputDecoration(labelText: 'Password', prefixIcon: const Icon(Icons.lock_rounded), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded), onPressed: () => setState(() => _obscure = !_obscure))), obscureText: _obscure),
+          const SizedBox(height: 12),
+          TextField(controller: _confirmCtrl, decoration: const InputDecoration(labelText: 'Confirm password', prefixIcon: Icon(Icons.lock_rounded)), obscureText: true),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity, height: 50,
+            child: ElevatedButton(
+              onPressed: _loading ? null : _register,
+              child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)) : const Text('Create Account', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+            child: const Text('Already have an account? Sign in', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ],
       ),
     );
   }

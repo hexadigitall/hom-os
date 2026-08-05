@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
 import '../../data/hom_api_service.dart';
 import '../../utils/theme.dart';
+import 'auth_shell.dart';
 
 /// Shown when a Google account is signed in but has no role document yet.
 /// Staff attach an invite code; owners provision their new hotel.
@@ -77,33 +78,29 @@ class _GoogleConnectScreenState extends State<GoogleConnectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Finish Signing In'),
-        backgroundColor: AppColors.white,
-        foregroundColor: AppColors.black87,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(
+    return AuthShell(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text('Finish Signing In', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 22)),
+          const SizedBox(height: 4),
+          const Text(
             'You are signed in with Google, but your account is not linked to a hotel yet.',
-            style: TextStyle(fontSize: 14, color: AppColors.grey600),
+            style: TextStyle(fontSize: 14, color: AppColors.grey500),
           ),
           const SizedBox(height: 24),
 
-          // Join with an invite code
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Join your hotel',
+                  const Text('Join your hotel',
                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text('Have an invite code from your manager? Enter it below.',
+                  const Text('Have an invite code from your manager? Enter it below.',
                       style: TextStyle(fontSize: 12, color: AppColors.grey500)),
                   const SizedBox(height: 12),
                   TextField(
@@ -138,22 +135,21 @@ class _GoogleConnectScreenState extends State<GoogleConnectScreen> {
           ),
 
           const SizedBox(height: 16),
-          Center(
+          const Center(
             child: Text('or', style: TextStyle(color: AppColors.grey500)),
           ),
           const SizedBox(height: 16),
 
-          // Provision a new hotel
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('I own the hotel',
+                  const Text('I own the hotel',
                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                   const SizedBox(height: 4),
-                  Text('Set up a new hotel with this Google account.',
+                  const Text('Set up a new hotel with this Google account.',
                       style: TextStyle(fontSize: 12, color: AppColors.grey500)),
                   const SizedBox(height: 12),
                   TextField(
@@ -191,7 +187,7 @@ class _GoogleConnectScreenState extends State<GoogleConnectScreen> {
               ),
             ),
           ),
-        ]),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive/hive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -201,6 +202,18 @@ class AuthService {
 
   static Future<AuthResult> signInWithGoogle() async {
     try {
+      if (kIsWeb) {
+        // Web: use Firebase's signInWithPopup (Google Identity Services).
+        // The google_sign_in plugin needs its own web client ID, so the
+        // Firebase-first popup flow is used instead on the web build.
+        final provider = GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        final userCred = await _firebaseAuth.signInWithPopup(provider);
+        final firebaseUser = userCred.user;
+        if (firebaseUser == null) return AuthResult.failed('Google sign-in failed.');
+        return _applyRoleDoc(firebaseUser.uid);
+      }
       final googleUser = await _googleSignIn.authenticate();
       final googleAuth = googleUser.authentication;
       if (googleAuth.idToken == null) return AuthResult.failed('Google sign-in incomplete.');

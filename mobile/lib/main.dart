@@ -207,6 +207,12 @@ void _initDeepLinks() {
 void _handleDeepLink(Uri uri) {
   final target = _parseAppLink(uri);
   if (target == null) return;
+  // Ignore sign-in deep links when a session already exists so the login
+  // screen is never stacked on top of an authenticated shell.
+  if ((target.route == '/login' || target.route == '/signin') &&
+      RoleStore.current.hasIdentity) {
+    return;
+  }
   WidgetsBinding.instance.addPostFrameCallback((_) {
     navigatorKey.currentState?.pushNamed(target.route, arguments: target.query);
   });
@@ -248,6 +254,7 @@ class HOMApp extends StatelessWidget {
       routes: {
         '/home': (context) => const HomeShell(),
         '/login': (context) => const LoginScreen(),
+        '/signin': (context) => const LoginScreen(),
         '/register': (context) => const OwnerRegistrationScreen(),
         '/staff-register': (context) => StaffRegistrationScreen(
           initialCode: _inviteCodeArg(ModalRoute.of(context)?.settings.arguments),
