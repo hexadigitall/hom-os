@@ -73,7 +73,9 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
         phone: _phoneCtrl.text.trim(),
         password: _passCtrl.text,
       );
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      }
     } on HomApiException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -89,11 +91,19 @@ class _StaffRegistrationScreenState extends State<StaffRegistrationScreen> {
       final result = await AuthService.signInWithGoogle();
       if (!mounted) return;
       if (result.isOk) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
       } else if (result.status == AuthStatus.unprovisioned) {
+        // Staff flow: land on the connect form with the code (if the link
+        // carried one) already filled in — never re-enter it by hand.
+        final code = _codeCtrl.text.trim();
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const GoogleConnectScreen()),
+          MaterialPageRoute(
+            builder: (_) => GoogleConnectScreen(
+              mode: ConnectMode.staff,
+              initialCode: code.isEmpty ? null : code,
+            ),
+          ),
         );
       } else {
         _showError(result.message ?? 'Google sign-in failed');

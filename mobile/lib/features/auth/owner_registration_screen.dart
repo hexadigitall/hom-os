@@ -64,7 +64,9 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
         password: _passCtrl.text,
         hotelName: _hotelCtrl.text.trim(),
       );
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+      }
     } on HomApiException catch (e) {
       _showError(e.message);
     } catch (e) {
@@ -80,11 +82,15 @@ class _OwnerRegistrationScreenState extends State<OwnerRegistrationScreen> {
       final result = await AuthService.signInWithGoogle();
       if (!mounted) return;
       if (result.isOk) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
       } else if (result.status == AuthStatus.unprovisioned) {
+        // Owner flow: straight to the hotel-provisioning form.
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const GoogleConnectScreen()),
+          MaterialPageRoute(
+            builder: (_) =>
+                const GoogleConnectScreen(mode: ConnectMode.owner),
+          ),
         );
       } else {
         _showError(result.message ?? 'Google sign-in failed');

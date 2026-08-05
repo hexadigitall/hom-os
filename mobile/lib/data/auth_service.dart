@@ -287,8 +287,10 @@ class AuthService {
   }
 
   /// Link the already-signed-in (Google) account to an invite code.
-  static Future<Session> redeemInvite(String inviteCode) async {
-    await HomApiService.redeemInvite(inviteCode);
+  /// [name] is sent to the server so the profile shows the real name,
+  /// not the invite placeholder.
+  static Future<Session> redeemInvite(String inviteCode, {String? name}) async {
+    await HomApiService.redeemInvite(inviteCode, name: name);
     final user = _firebaseAuth.currentUser;
     if (user == null) throw HomApiException('Sign in required.');
     final result = await _applyRoleDoc(user.uid);

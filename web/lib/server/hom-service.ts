@@ -96,7 +96,11 @@ function roleDocData({
 }
 
 /** Atomically consume an invite and provision a role doc for [uid]. */
-async function consumeInvite(code: string, uid: string): Promise<Record<string, any>> {
+async function consumeInvite(
+  code: string,
+  uid: string,
+  profile?: { name?: string; email?: string },
+): Promise<Record<string, any>> {
   const db = adminDb();
   const inviteRef = db.collection('invites').doc(code);
   return db.runTransaction(async (t) => {
@@ -108,13 +112,15 @@ async function consumeInvite(code: string, uid: string): Promise<Record<string, 
       throw new ApiError('This invite code has expired.', 400);
     }
     const departments = cleanStrings(inv.departments, VALID_DEPARTMENTS);
+    const name = profile?.name?.trim() || inv.userNameHint || 'Staff';
+    const email = profile?.email?.trim() || inv.emailHint || '';
     t.set(db.collection('user_roles').doc(uid), roleDocData({
       userId: uid,
       roleIds: [inv.roleId],
-      userName: inv.userNameHint || 'Staff',
+      userName: name,
       hotelId: inv.hotelId,
       hotelName: inv.hotelName || '',
-      email: inv.emailHint || '',
+      email,
       departments,
       customPermissions: [],
       isHead: inv.isHead === true,
@@ -266,14 +272,25 @@ export async function redeemInvite(
 
   const existing = await findInviteForUser(uid);
   if (existing) {
-    // Already provisioned — return the existing assignment (idempotent).
+    // Already provisioned — idempotent, but back-fill the display name/email
+    // when the verified caller identity is richer than what the invite recorded.
+    const name = typeof input?.name === 'string' && input.name.trim()
+      ? input.name.trim()
+      : existing.userName;
+    const em = email || existing.email || '';
+    const patch: Record<string, any> = {};
+    if (name && name !== existing.userName) patch.userName = name;
+    if (em && em !== existing.email) patch.email = em;
+    if (Object.keys(patch).length > 0) {
+      await adminDb().collection('user_roles').doc(uid).update(patch);
+    }
     return { hotelId: existing.hotelId };
   }
 
   const code = String(inviteCode).trim().toUpperCase();
-  const invite = await consumeInvite(code, uid);
-  await adminDb().collection('user_roles').doc(uid).update({
-    email,
+  const invite = await consumeInvite(code, uid, {
+    name: typeof input?.name === 'string' ? input.name : undefined,
+    email: email || undefined,
   });
 
   return { hotelId: invite.hotelId };

@@ -143,11 +143,15 @@ class HomApiService {
   }
 
   /// Link an already-authenticated account (Google) to an invite code.
-  static Future<String> redeemInvite(String inviteCode) async {
+  /// [name] is the confirmed display name (Google's by default).
+  static Future<String> redeemInvite(String inviteCode, {String? name}) async {
     final res = await _call(
       'POST',
       '/api/auth/redeem-invite',
-      {'inviteCode': inviteCode},
+      {
+        'inviteCode': inviteCode,
+        if (name != null && name.isNotEmpty) 'name': name,
+      },
     );
     return res['hotelId']?.toString() ?? '';
   }

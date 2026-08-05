@@ -20,6 +20,7 @@ import 'features/engineering/engineering_screen.dart';
 import 'features/housekeeping/housekeeping_screen.dart';
 import 'features/back_office/back_office_screen.dart';
 import 'features/security_audit/security_audit_screen.dart';
+import 'features/home/home_dashboard.dart';
 import 'features/auth/owner_registration_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/staff_registration_screen.dart';
@@ -50,7 +51,6 @@ import 'models/hotel_user.dart';
 import 'models/expenditure.dart';
 import 'models/fuel.dart';
 import 'features/profile/profile_screen.dart';
-import 'widgets/hom_widgets.dart';
 import 'utils/role_gate.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -207,10 +207,17 @@ void _initDeepLinks() {
 void _handleDeepLink(Uri uri) {
   final target = _parseAppLink(uri);
   if (target == null) return;
-  // Ignore sign-in deep links when a session already exists so the login
-  // screen is never stacked on top of an authenticated shell.
-  if ((target.route == '/login' || target.route == '/signin') &&
-      RoleStore.current.hasIdentity) {
+  // Ignore auth deep links when a session already exists so the login,
+  // registration and invite screens are never stacked on top of an
+  // authenticated shell.
+  const ignoredAuthRoutes = {
+    '/login',
+    '/signin',
+    '/register',
+    '/staff-register',
+    '/google-connect',
+  };
+  if (ignoredAuthRoutes.contains(target.route) && RoleStore.current.hasIdentity) {
     return;
   }
   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -400,7 +407,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _tab = 0;
   final List<Widget> _tabScreens = [
-    const OverviewScreen(),
+    const HomeDashboard(),
     BookingsScreen(),
     RoomsScreen(),
     DieselScreen(),
@@ -458,7 +465,7 @@ class _HomeShellState extends State<HomeShell> {
 
   // Master tab definitions — screen, label, nav icon, required permission (null = always visible)
   static final List<_TabDef> _allTabs = [
-    _TabDef(0, OverviewScreen(), 'Overview', Icons.dashboard_rounded, null),
+    _TabDef(0, const HomeDashboard(), 'Home', Icons.home_rounded, null),
     _TabDef(1, BookingsScreen(), 'Bookings', Icons.calendar_month_rounded,
         Permission.viewBookings),
     _TabDef(2, RoomsScreen(), 'Rooms', Icons.bed_rounded, Permission.viewRooms),
@@ -528,6 +535,23 @@ class _HomeShellState extends State<HomeShell> {
   String get _currentLabel {
     final found = _allTabs.where((t) => t.index == _tab);
     return found.isNotEmpty ? found.first.label : 'Overview';
+  }
+
+  // Role identity badge in the header. Owner and Hotel Manager both hold
+  // full access, so they are told apart by label + colour rather than by
+  // the (identical) footer menu.
+  String get _roleBadgeLabel {
+    final ids = RoleStore.current.roleIds;
+    if (ids.contains('super_admin')) return 'Owner';
+    if (ids.contains('hotel_manager')) return 'Manager';
+    return 'Staff';
+  }
+
+  Color get _roleBadgeColor {
+    final ids = RoleStore.current.roleIds;
+    if (ids.contains('super_admin')) return const Color(0xFFB45309);
+    if (ids.contains('hotel_manager')) return const Color(0xFF2563EB);
+    return primaryGreen;
   }
 
   void _showMoreSheet() {
@@ -682,6 +706,7 @@ class _HomeShellState extends State<HomeShell> {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: LayoutBuilder(
           builder: (ctx, constraints) => Row(children: [
             Image.asset('assets/logo/logo.png',
@@ -726,6 +751,18 @@ class _HomeShellState extends State<HomeShell> {
                   ),
                 ),
             ]),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                  color: _roleBadgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20)),
+              child: Text(_roleBadgeLabel,
+                  style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      color: _roleBadgeColor)),
+            ),
             const SizedBox(width: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1345,97 +1382,6 @@ void _showForm(BuildContext context, String title, List<Widget> fields,
       ),
     ),
   );
-}
-
-// ===================== OVERVIEW =====================
-
-class OverviewScreen extends StatelessWidget {
-  const OverviewScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    final avail = HOMData.rooms.where((r) => r.status == 'available').length;
-    final active =
-        HOMData.bookings.where((b) => b.status == 'checked-in').length;
-    final low = HOMData.inventory.where((i) => i.qty <= i.low).length;
-    final dieselLogs =
-        HOMData.fuelLogs.where((f) => f.fuelType == FuelType.diesel).toList();
-    final theft = dieselLogs.where((f) => f.theftAlertRate != null).length;
-    final totalDieselL = dieselLogs.fold(0.0, (a, b) => a + b.quantity);
-
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      HomResponsiveGrid(children: [
-        HomMetricCard(
-            label: 'Rooms',
-            value: '${HOMData.rooms.length}',
-            color: AppColors.blue,
-            icon: Icons.bed_rounded,
-            sub: '$avail available'),
-        HomMetricCard(
-            label: 'Bookings',
-            value: '$active',
-            color: primaryGreen,
-            icon: Icons.calendar_month_rounded,
-            sub: '${HOMData.bookings.length} total'),
-        HomMetricCard(
-            label: 'Fuel',
-            value: '${totalDieselL.toStringAsFixed(0)}L',
-            color: AppColors.amber,
-            icon: Icons.local_gas_station_rounded,
-            sub: '${dieselLogs.length} logs'),
-        HomMetricCard(
-            label: 'Low Stock',
-            value: '$low',
-            color: AppColors.red,
-            icon: Icons.warning_rounded,
-            sub: '${HOMData.inventory.length} items'),
-      ]),
-      const SizedBox(height: 16),
-      if (theft > 0)
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-              color: AppColors.red50, borderRadius: BorderRadius.circular(16)),
-          child: Row(children: [
-            const Icon(Icons.warning_rounded, color: AppColors.red, size: 20),
-            const SizedBox(width: 10),
-            Flexible(
-                child: Text('$theft theft alert(s)!',
-                    style: const TextStyle(
-                        color: AppColors.red,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13))),
-          ]),
-        )
-      else
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-              color: AppColors.green50,
-              borderRadius: BorderRadius.circular(16)),
-          child: const Row(children: [
-            Icon(Icons.check_circle, color: primaryGreen, size: 20),
-            SizedBox(width: 10),
-            Flexible(
-                child: Text('No theft alerts',
-                    style: TextStyle(
-                        color: primaryGreen,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13))),
-          ]),
-        ),
-      const SizedBox(height: 16),
-      HomSectionTitle(title: 'Recent Bookings'),
-      ...HOMData.bookings.take(3).map((b) => Card(
-            child: ListTile(
-              title: Text('${b.guest} — Room ${b.room}',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('${b.checkin} → ${b.checkout}',
-                  overflow: TextOverflow.ellipsis),
-              trailing: HomStatusChip.fromStatus(b.status),
-            ),
-          )),
-    ]);
-  }
 }
 
 // ===================== BOOKINGS =====================

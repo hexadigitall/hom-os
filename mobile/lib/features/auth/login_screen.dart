@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _routeResult(AuthResult result) {
     if (!mounted) return;
     if (result.isOk) {
-      Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
     } else if (result.status == AuthStatus.unprovisioned) {
       Navigator.pushReplacement(
         context,
