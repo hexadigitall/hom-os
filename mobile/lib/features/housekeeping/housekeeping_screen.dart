@@ -1073,17 +1073,17 @@ class _LinenTab extends StatelessWidget {
                                   fontSize: 12)),
                         RoleGate(
                             requiredPermission: Permission.logLinenDamage,
-                            child: IconButton(
-                              icon: Icon(Icons.edit_rounded,
-                                  size: 18, color: AppColors.grey500),
+                            child: HomTileAction(
+                              icon: Icons.edit_rounded,
+                              color: AppColors.grey500,
                               onPressed: () =>
                                   _showLinenEditForm(context, item: l),
                             )),
                         RoleGate(
                             requiredPermission: Permission.logLinenDamage,
-                            child: IconButton(
-                              icon: const Icon(Icons.delete_rounded,
-                                  size: 18, color: AppColors.redAccent),
+                            child: HomTileAction(
+                              icon: Icons.delete_rounded,
+                              color: AppColors.redAccent,
                               onPressed: () {
                                 HousekeepingStore.removeLinenDamage(l.id);
                                 onChange();

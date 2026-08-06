@@ -160,7 +160,7 @@ class _TablesTabState extends State<_TablesTab> {
                             child: Text(_tableLabel(t.status),
                                 style: const TextStyle(
                                     color: AppColors.white,
-                                    fontSize: 9,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w700)),
                           ),
                         ]),
@@ -1057,14 +1057,21 @@ class _KdsView extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(children: [
                           Expanded(
-                              child: Text('${item.quantity}x ${item.name}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 15))),
-                          if (item.note != null && item.note!.isNotEmpty)
-                            Text('(${item.note})',
-                                style: TextStyle(
-                                    color: AppColors.grey600, fontSize: 11)),
+                              child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                Text('${item.quantity}x ${item.name}',
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15)),
+                                if (item.note != null &&
+                                    item.note!.isNotEmpty)
+                                  Text('• ${item.note}',
+                                      style: TextStyle(
+                                          color: AppColors.grey600,
+                                          fontSize: 11)),
+                              ])),
                           const SizedBox(width: 8),
                           RoleGate(
                             requiredPermission: Permission.manageKDS,
@@ -1155,16 +1162,16 @@ class _MenuTabState extends State<_MenuTab> {
                         const SizedBox(width: 8),
                         RoleGate(
                           requiredPermission: Permission.managePOS,
-                          child: IconButton(
-                            icon: const Icon(Icons.edit_rounded, size: 18),
+                          child: HomTileAction(
+                            icon: Icons.edit_rounded,
                             onPressed: () => _showItemForm(context, item: item),
                           ),
                         ),
                         RoleGate(
                           requiredPermission: Permission.managePOS,
-                          child: IconButton(
-                            icon: const Icon(Icons.delete_rounded,
-                                size: 18, color: AppColors.redAccent),
+                          child: HomTileAction(
+                            icon: Icons.delete_rounded,
+                            color: AppColors.redAccent,
                             onPressed: () {
                               FnbStore.removeMenuItem(item.id);
                               setState(() {});

@@ -9,6 +9,7 @@ import { useAuth } from '../../../lib/auth';
 import {
   Department, Department as Dept, DEPARTMENT_LABEL, ACCOUNT_STATUS_LABEL,
   findRoleById, effectivePermissions, hasIdentity, isManagement,
+  primaryRole, roleAccent,
 } from '../../../lib/rbac';
 import { Card, SectionHeader, Btn, Field, TextInput, Select, EmptyState, FieldGrid } from '../ui';
 
@@ -21,9 +22,9 @@ const STATUS_COLOR: Record<string, string> = {
   suspended: 'bg-red-100 text-red-700',
 };
 
-function Chip({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+function Chip({ children, className = '', style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${className || 'bg-zinc-100 text-zinc-600'}`}>
+    <span style={style} className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${className || 'bg-zinc-100 text-zinc-600'}`}>
       {children}
     </span>
   );
@@ -163,9 +164,11 @@ export function AccountModule() {
   const flash = (m: string) => { setSaved(m); window.setTimeout(() => setSaved(''), 2500); };
 
   const initials = (session.userName || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const accent = roleAccent(session);
+  const primaryRoleName = primaryRole(session)?.name;
   const avatar = session.photoUrl
-    ? <img src={session.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 border-hom-primary shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-    : <div className="h-16 w-16 rounded-full bg-hom-primary text-white flex items-center justify-center text-xl font-black shrink-0">{initials}</div>;
+    ? <img src={session.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 shrink-0" style={{ borderColor: accent }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+    : <div className="h-16 w-16 rounded-full text-white flex items-center justify-center text-xl font-black shrink-0" style={{ backgroundColor: accent }}>{initials}</div>;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -188,7 +191,9 @@ export function AccountModule() {
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {roles.map(r => <Chip key={r} className="bg-hom-primary/10 text-hom-primary font-bold">{r}</Chip>)}
+              {roles.map(r => r === primaryRoleName
+                ? <Chip key={r} className="font-bold text-white" style={{ backgroundColor: accent }}>{r}</Chip>
+                : <Chip key={r} className="font-semibold" style={{ backgroundColor: `${accent}1A`, color: accent }}>{r}</Chip>)}
               {depts.map(d => <Chip key={d}>{DEPARTMENT_LABEL[d]}</Chip>)}
               {heads.map(h => <Chip key={h} className="bg-green-100 text-green-700">Heads {DEPARTMENT_LABEL[h as Department]}</Chip>)}
               {session.customPermissions.length > 0 && <Chip className="bg-amber-100 text-amber-700">+{session.customPermissions.length} custom grants</Chip>}

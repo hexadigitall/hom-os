@@ -332,7 +332,7 @@ class _ContactsTab extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10)),
                   child: Text(_entityLabel(c.entityType),
                       style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.w700,
                           color: _entityColor(c.entityType))),
                 ),

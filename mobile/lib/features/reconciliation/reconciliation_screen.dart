@@ -318,7 +318,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                 ),
                 child: Text(isMatched ? 'Matched' : 'Unmatched',
                     style: TextStyle(
-                        fontSize: 9,
+                        fontSize: 10,
                         fontWeight: FontWeight.w700,
                         color: isMatched ? _primaryGreen : AppColors.orange)),
               ),
@@ -1296,7 +1296,7 @@ class _VirtualAccountsTabState extends State<_VirtualAccountsTab> {
                   borderRadius: BorderRadius.circular(10)),
               child: Text(va.status.toUpperCase(),
                   style: TextStyle(
-                      fontSize: 9,
+                      fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: statusColor)),
             ),
@@ -2139,23 +2139,29 @@ class _PosSettlementsTabState extends State<_PosSettlementsTab> {
                       style: TextStyle(fontSize: 10, color: AppColors.grey600),
                       overflow: TextOverflow.ellipsis),
                 ])),
-            Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('₦${s.amount.toStringAsFixed(0)}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w900, fontSize: 14)),
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10)),
-                child: Text(s.status.toUpperCase(),
-                    style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: statusColor)),
-              ),
-            ]),
+            Flexible(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                  Text('₦${s.amount.toStringAsFixed(0)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w900, fontSize: 14)),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Text(s.status.toUpperCase(),
+                        style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: statusColor)),
+                  ),
+                ])),
           ]),
         ),
       ),

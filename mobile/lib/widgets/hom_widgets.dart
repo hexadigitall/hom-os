@@ -25,6 +25,34 @@ int gridColumns(BuildContext context) {
   return isLandscape(context) ? 3 : 2;
 }
 
+/// Compact action button for dense list-tile trailing rows. Stays inside the
+/// trailing budget on narrow (320dp) screens instead of overflowing next to
+/// the title text.
+class HomTileAction extends StatelessWidget {
+  final IconData icon;
+  final Color? color;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  const HomTileAction(
+      {super.key,
+      required this.icon,
+      this.color,
+      this.onPressed,
+      this.tooltip});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18, color: color),
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      padding: const EdgeInsets.all(6),
+    );
+  }
+}
+
 // ═══════════════════════════ METRIC CARD ═══════════════════════════
 
 class HomMetricCard extends StatelessWidget {

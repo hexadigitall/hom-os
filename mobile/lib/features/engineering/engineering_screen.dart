@@ -640,15 +640,15 @@ class _FuelTanksTab extends StatelessWidget {
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   RoleGate(
                       requiredPermission: Permission.trackFuelDeliveryCycles,
-                      child: IconButton(
-                        icon: const Icon(Icons.edit_rounded, size: 18),
+                      child: HomTileAction(
+                        icon: Icons.edit_rounded,
                         onPressed: () => _showDipForm(context, dip: d),
                       )),
                   RoleGate(
                       requiredPermission: Permission.trackFuelDeliveryCycles,
-                      child: IconButton(
-                        icon: const Icon(Icons.delete_rounded,
-                            size: 18, color: AppColors.redAccent),
+                      child: HomTileAction(
+                        icon: Icons.delete_rounded,
+                        color: AppColors.redAccent,
                         onPressed: () {
                           EngineeringStore.removeTankDipLog(d.id);
                           onChange();
@@ -685,7 +685,7 @@ class _FuelTanksTab extends StatelessWidget {
                               '${f.theftAlertRate!.toStringAsFixed(1)} L/hr',
                               style: const TextStyle(
                                   color: AppColors.white,
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w700)),
                         )
                       : null,
@@ -950,7 +950,7 @@ class _GridCostTab extends StatelessWidget {
                         child: const Text('ACTIVE',
                             style: TextStyle(
                                 color: AppColors.white,
-                                fontSize: 9,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w800)),
                       )
                     else
@@ -1247,9 +1247,9 @@ class _MaintenanceTab extends StatelessWidget {
                             RoleGate(
                                 requiredPermission:
                                     Permission.managePreventativeMaintenance,
-                                child: IconButton(
-                                  icon:
-                                      Icon(Icons.check_circle, color: _primary),
+                                child: HomTileAction(
+                                  icon: Icons.check_circle,
+                                  color: _primary,
                                   onPressed: () {
                                     EngineeringStore.updateTask(
                                         t.id,
@@ -1269,16 +1269,16 @@ class _MaintenanceTab extends StatelessWidget {
                           RoleGate(
                               requiredPermission:
                                   Permission.managePreventativeMaintenance,
-                              child: IconButton(
-                                icon: const Icon(Icons.edit_rounded, size: 18),
+                              child: HomTileAction(
+                                icon: Icons.edit_rounded,
                                 onPressed: () => _showForm(context, task: t),
                               )),
                           RoleGate(
                               requiredPermission:
                                   Permission.managePreventativeMaintenance,
-                              child: IconButton(
-                                icon: const Icon(Icons.delete_rounded,
-                                    color: AppColors.redAccent, size: 18),
+                              child: HomTileAction(
+                                icon: Icons.delete_rounded,
+                                color: AppColors.redAccent,
                                 onPressed: () {
                                   EngineeringStore.removeTask(t.id);
                                   onChange();
@@ -1499,15 +1499,15 @@ class _WaterTab extends StatelessWidget {
                 trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                   RoleGate(
                       requiredPermission: Permission.manageWaterTreatment,
-                      child: IconButton(
-                        icon: const Icon(Icons.edit_rounded, size: 18),
+                      child: HomTileAction(
+                        icon: Icons.edit_rounded,
                         onPressed: () => _showForm(context, log: w),
                       )),
                   RoleGate(
                       requiredPermission: Permission.manageWaterTreatment,
-                      child: IconButton(
-                        icon: const Icon(Icons.delete_rounded,
-                            size: 18, color: AppColors.redAccent),
+                      child: HomTileAction(
+                        icon: Icons.delete_rounded,
+                        color: AppColors.redAccent,
                         onPressed: () {
                           EngineeringStore.removeWaterLog(w.id);
                           onChange();

@@ -139,7 +139,7 @@ class _NotificationCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                       decoration: BoxDecoration(color: accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                      child: Text(n.actionLabel!, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: accent)),
+                      child: Text(n.actionLabel!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: accent)),
                     ),
                   ],
                 ]),

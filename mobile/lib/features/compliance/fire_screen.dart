@@ -172,7 +172,7 @@ class _FireScreenState extends State<FireScreen> {
                       margin: const EdgeInsets.only(left: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(color: AppColors.orange50, borderRadius: BorderRadius.circular(12)),
-                      child: Text('SOON', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.orange700)),
+                      child: Text('SOON', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.orange700)),
                     ),
                   RoleGate(requiredPermission: Permission.manageFireServiceCertificates, child: IconButton(onPressed: () => _edit(c), icon: const Icon(Icons.edit_rounded, size: 18))),
                   RoleGate(requiredPermission: Permission.manageFireServiceCertificates, child: IconButton(onPressed: () => _delete(c.id), icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),
@@ -209,7 +209,7 @@ class _FireScreenState extends State<FireScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(color: c.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-      child: Text(status.replaceAll('-', ' ').toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: c)),
+      child: Text(status.replaceAll('-', ' ').toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: c)),
     );
   }
 }

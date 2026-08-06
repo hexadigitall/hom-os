@@ -562,8 +562,9 @@ class _PayrollTab extends StatelessWidget {
                         if (r.status == PayrollStatus.pending)
                           RoleGate(
                               requiredPermission: Permission.runPayroll,
-                              child: IconButton(
-                                icon: Icon(Icons.check_circle, color: _primary),
+                              child: HomTileAction(
+                                icon: Icons.check_circle,
+                                color: _primary,
                                 tooltip: 'Mark Paid',
                                 onPressed: () {
                                   BackOfficeStore.updatePayroll(

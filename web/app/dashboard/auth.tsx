@@ -15,7 +15,7 @@ function Shell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <div className="font-black tracking-tight text-lg leading-none">HOM</div>
-            <div className="text-[9px] font-bold text-hom-primary tracking-widest uppercase">Hospitality Operations Manager</div>
+            <div className="text-[10px] font-bold text-hom-primary tracking-widest uppercase">Hospitality Operations Manager</div>
           </div>
         </div>
         {children}

@@ -52,6 +52,7 @@ import 'models/expenditure.dart';
 import 'models/fuel.dart';
 import 'features/profile/profile_screen.dart';
 import 'utils/role_gate.dart';
+import 'widgets/hom_widgets.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -271,6 +272,10 @@ class HOMApp extends StatelessWidget {
       },
       onGenerateRoute: _deepLinkRoute,
       theme: AppTheme.light,
+      builder: (context, child) => SafeArea(
+        top: false,
+        child: child ?? const SizedBox.shrink(),
+      ),
     );
   }
 
@@ -547,13 +552,6 @@ class _HomeShellState extends State<HomeShell> {
     return 'Staff';
   }
 
-  Color get _roleBadgeColor {
-    final ids = RoleStore.current.roleIds;
-    if (ids.contains('super_admin')) return const Color(0xFFB45309);
-    if (ids.contains('hotel_manager')) return const Color(0xFF2563EB);
-    return primaryGreen;
-  }
-
   void _showMoreSheet() {
     final items = _moreTabs;
     if (items.isEmpty) return;
@@ -589,6 +587,7 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _moreSheetContent(BuildContext ctx, List<_TabDef> items,
       {required bool isWide}) {
+    final accent = RoleStore.current.roleAccent;
     final size = MediaQuery.sizeOf(ctx);
     final width = size.width;
     final columns = isWide
@@ -627,12 +626,12 @@ class _HomeShellState extends State<HomeShell> {
                       child: Container(
                         decoration: BoxDecoration(
                           color: _tab == item.index
-                              ? primaryGreen.withValues(alpha: 0.1)
+                              ? accent.withValues(alpha: 0.1)
                               : AppColors.grey50,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                               color: _tab == item.index
-                                  ? primaryGreen.withValues(alpha: 0.3)
+                                  ? accent.withValues(alpha: 0.3)
                                   : AppColors.grey200),
                         ),
                         child: Column(
@@ -640,7 +639,7 @@ class _HomeShellState extends State<HomeShell> {
                             children: [
                               Icon(item.icon,
                                   color: _tab == item.index
-                                      ? primaryGreen
+                                      ? accent
                                       : AppColors.grey700,
                                   size: isWide ? 24 : 26),
                               const SizedBox(height: 6),
@@ -652,7 +651,7 @@ class _HomeShellState extends State<HomeShell> {
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
                                         color: _tab == item.index
-                                            ? primaryGreen
+                                            ? accent
                                             : AppColors.grey800),
                                     textAlign: TextAlign.center,
                                     maxLines: 1,
@@ -755,13 +754,13 @@ class _HomeShellState extends State<HomeShell> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                  color: _roleBadgeColor.withValues(alpha: 0.12),
+                  color: RoleStore.current.roleAccent.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20)),
               child: Text(_roleBadgeLabel,
                   style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
-                      color: _roleBadgeColor)),
+                      color: RoleStore.current.roleAccent)),
             ),
             const SizedBox(width: 4),
             Container(
@@ -806,11 +805,13 @@ class _HomeShellState extends State<HomeShell> {
                             : NavigationRailLabelType.none),
                     groupAlignment: -0.95,
                     backgroundColor: AppColors.grey50,
-                    selectedIconTheme: IconThemeData(color: primaryGreen),
+                    selectedIconTheme: IconThemeData(
+                        color: RoleStore.current.roleAccent),
                     unselectedIconTheme:
                         const IconThemeData(color: AppColors.grey600),
-                    selectedLabelTextStyle: const TextStyle(
-                        fontWeight: FontWeight.w700, color: primaryGreen),
+                    selectedLabelTextStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: RoleStore.current.roleAccent),
                     unselectedLabelTextStyle:
                         const TextStyle(color: AppColors.grey600),
                     destinations: [
@@ -3250,20 +3251,20 @@ class _VendorsScreenState extends State<VendorsScreen> {
             subtitle: Text('${v.contact} • ${v.category}'),
             trailing: Row(mainAxisSize: MainAxisSize.min, children: [
               if (v.contact.isNotEmpty)
-                IconButton(
+                HomTileAction(
                     onPressed: () => _sendWhatsApp(context, v.contact,
                         'Hello ${v.name}, this is HOM Hotel. We have a new purchase order for you.'),
-                    icon: const Icon(Icons.chat_rounded,
-                        size: 18, color: AppColors.whatsapp),
+                    icon: Icons.chat_rounded,
+                    color: AppColors.whatsapp,
                     tooltip: 'WhatsApp'),
               RoleGate(
                   requiredPermission: Permission.manageVendors,
-                  child: IconButton(
+                  child: HomTileAction(
                       onPressed: () => _editVendor(v),
-                      icon: const Icon(Icons.edit_rounded, size: 18))),
+                      icon: Icons.edit_rounded)),
               RoleGate(
                   requiredPermission: Permission.manageVendors,
-                  child: IconButton(
+                  child: HomTileAction(
                       onPressed: () {
                         setState(() {
                           HOMData.vendors.remove(v);
@@ -3272,8 +3273,8 @@ class _VendorsScreenState extends State<VendorsScreen> {
                         });
                         HOMData.save();
                       },
-                      icon: const Icon(Icons.delete_rounded,
-                          size: 18, color: AppColors.redAccent))),
+                      icon: Icons.delete_rounded,
+                      color: AppColors.redAccent)),
             ]),
           ))),
       const SizedBox(height: 16),
@@ -3297,18 +3298,18 @@ class _VendorsScreenState extends State<VendorsScreen> {
                     child: _statusChip(po.status))),
             RoleGate(
                 requiredPermission: Permission.managePurchaseOrders,
-                child: IconButton(
+                child: HomTileAction(
                     onPressed: () => _editPO(po),
-                    icon: const Icon(Icons.edit_rounded, size: 18))),
+                    icon: Icons.edit_rounded)),
             RoleGate(
                 requiredPermission: Permission.managePurchaseOrders,
-                child: IconButton(
+                child: HomTileAction(
                     onPressed: () {
                       setState(() => HOMData.purchaseOrders.remove(po));
                       HOMData.save();
                     },
-                    icon: const Icon(Icons.delete_rounded,
-                        size: 18, color: AppColors.redAccent))),
+                    icon: Icons.delete_rounded,
+                    color: AppColors.redAccent)),
           ]),
         ));
       }),

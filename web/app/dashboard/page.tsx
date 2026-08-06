@@ -65,7 +65,7 @@ function Brand({ minimal }: { minimal?: boolean }) {
     <div className={`flex items-center gap-3 mb-8 pb-4 border-b border-white/10 ${minimal ? 'justify-center' : ''}`}>
       <div className="h-10 w-10 bg-white rounded-[12px] border-2 border-hom-primary p-1 flex-shrink-0"><img src="/logo.png" className="h-full w-full" alt="HOM" /></div>
       {!minimal && (
-        <div className="min-w-0"><div className="font-black text-sm">HOM</div><div className="text-[8px] text-green-300 tracking-widest leading-tight">HOSPITALITY OPERATIONS MANAGER</div></div>
+        <div className="min-w-0"><div className="font-black text-sm">HOM</div><div className="text-[10px] text-green-300 tracking-widest leading-tight">HOSPITALITY OPERATIONS MANAGER</div></div>
       )}
     </div>
   );
@@ -91,17 +91,18 @@ function DashboardInner() {
   const initials = (session.userName || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   return (
-    <main className="min-h-screen bg-hom-background flex overflow-x-clip">
+    <main className="min-h-screen bg-hom-background flex">
       {/* Desktop / tablet sidebar — icon+text on lg, icon-only on md so content never gets squeezed */}
       <aside className="w-16 lg:w-64 bg-hom-ink text-white p-3 lg:p-4 hidden md:flex flex-col sticky top-0 h-screen overflow-y-auto">
         <Brand minimal />
         <nav className="space-y-0.5 flex-1">
           {grouped.map((g) => (
             <div key={g.label} className="mb-2">
-              <p className="hidden lg:block text-[9px] font-bold uppercase tracking-widest text-green-300/60 px-3 mb-1">{g.label}</p>
+              <p className="hidden lg:block text-[10px] font-bold uppercase tracking-widest text-green-300/60 px-3 mb-1">{g.label}</p>
               {g.items.map(({ id, label, icon: Icon }) => (
                 <button key={id} onClick={() => goTab(id)} title={label}
-                  className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${activeTab === id ? 'bg-hom-primary text-white' : 'hover:bg-white/10 text-zinc-400'} ${id === 'overview' ? 'mt-1' : ''}`}>
+                  className={`w-full flex items-center gap-2.5 rounded-xl px-3 py-2.5 transition-colors ${activeTab === id ? 'text-white' : 'hover:bg-white/10 text-zinc-400'} ${id === 'overview' ? 'mt-1' : ''}`}
+                  style={activeTab === id ? { backgroundColor: accent } : undefined}>
                   <Icon size={16} className="shrink-0" />
                   <span className="hidden lg:inline text-sm truncate">{label}</span>
                 </button>
@@ -119,7 +120,7 @@ function DashboardInner() {
               <Menu size={20} />
             </button>
             <h1 className="font-bold capitalize flex items-center gap-2 min-w-0 truncate">
-              {current && (() => { const Icon = current.icon; return <Icon size={20} className="text-hom-primary shrink-0" />; })()}
+              {current && (() => { const Icon = current.icon; return <Icon size={20} className="shrink-0" style={{ color: accent }} />; })()}
               <span className="truncate">{current?.label || 'HOM'}</span>
             </h1>
           </div>
@@ -131,7 +132,7 @@ function DashboardInner() {
                   <div className="h-8 w-8 rounded-full text-white flex items-center justify-center text-xs font-black shrink-0" style={{ backgroundColor: accent }}>{initials}</div>
                   <div className="hidden lg:block leading-tight min-w-0 text-left">
                     <div className="text-xs font-bold truncate max-w-[120px]">{session.userName}</div>
-                    <div className="text-[9px] text-zinc-500 truncate max-w-[120px]">{roleName || 'Unassigned'}</div>
+                    <div className="text-[10px] text-zinc-500 truncate max-w-[120px]">{roleName || 'Unassigned'}</div>
                   </div>
                 </button>
                 <button onClick={logout} title="Sign out" className="p-1.5 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-500">
@@ -153,10 +154,11 @@ function DashboardInner() {
               <nav className="space-y-0.5 flex-1 overflow-y-auto">
                 {grouped.map((g) => (
                   <div key={g.label} className="mb-2">
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-green-300/60 px-3 mb-1 mt-3">{g.label}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-300/60 px-3 mb-1 mt-3">{g.label}</p>
                     {g.items.map(({ id, label, icon: Icon }) => (
                       <button key={id} onClick={() => goTab(id)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${activeTab === id ? 'bg-hom-primary text-white' : 'hover:bg-white/10 text-zinc-400'}`}>
+                        className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-2.5 transition-colors ${activeTab === id ? 'text-white' : 'hover:bg-white/10 text-zinc-400'}`}
+                        style={activeTab === id ? { backgroundColor: accent } : undefined}>
                         <Icon size={16} /><span className="text-sm">{label}</span>
                       </button>
                     ))}

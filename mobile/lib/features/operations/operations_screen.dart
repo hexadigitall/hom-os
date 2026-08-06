@@ -486,7 +486,7 @@ class _RevparTab extends StatelessWidget {
                         Text(
                             '${r.roomsSold} sold · ${pct.toStringAsFixed(0)}% occ · ${r.walkIns} walk-ins',
                             style: TextStyle(
-                                fontSize: 9, color: AppColors.grey500)),
+                                fontSize: 10, color: AppColors.grey500)),
                       ])),
                   RoleGate(
                       requiredPermission: Permission.createExpenditure,
@@ -714,7 +714,7 @@ class _NightAuditTab extends StatelessWidget {
                         if (isLocked)
                           Text('Locked',
                               style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   color: AppColors.grey500,
                                   fontWeight: FontWeight.w600)),
                       ])),

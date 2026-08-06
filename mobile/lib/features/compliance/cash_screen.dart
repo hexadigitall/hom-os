@@ -191,7 +191,7 @@ class _CashScreenState extends State<CashScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(color: AppColors.red50, borderRadius: BorderRadius.circular(20)),
-                      child: Text('THRESHOLD', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.red700)),
+                      child: Text('THRESHOLD', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.red700)),
                     ),
                   RoleGate(requiredPermission: Permission.logCashTransactions, child: IconButton(onPressed: () => _edit(t), icon: const Icon(Icons.edit_rounded, size: 18))),
                   RoleGate(requiredPermission: Permission.logCashTransactions, child: IconButton(onPressed: () => _delete(t.id), icon: const Icon(Icons.delete_rounded, size: 18, color: AppColors.redAccent))),

@@ -6,6 +6,7 @@ import '../../utils/tax_engine.dart';
 import '../../models/role.dart';
 import '../../utils/role_gate.dart';
 import '../../utils/theme.dart';
+import '../../widgets/hom_widgets.dart';
 
 class TaxScreen extends StatefulWidget {
   const TaxScreen({super.key});
@@ -156,18 +157,18 @@ class _TaxScreenState extends State<TaxScreen> {
                   const SizedBox(width: 4),
                   RoleGate(
                       requiredPermission: Permission.manageTaxConfig,
-                      child: IconButton(
+                      child: HomTileAction(
                           onPressed: () => _editConfig(c),
-                          icon: const Icon(Icons.edit_rounded, size: 18))),
+                          icon: Icons.edit_rounded)),
                   RoleGate(
                       requiredPermission: Permission.manageTaxConfig,
-                      child: IconButton(
+                      child: HomTileAction(
                           onPressed: () {
                             ComplianceStore.removeTaxConfig(c.stateName);
                             setState(() {});
                           },
-                          icon: const Icon(Icons.delete_rounded,
-                              size: 18, color: AppColors.redAccent))),
+                          icon: Icons.delete_rounded,
+                          color: AppColors.redAccent)),
                 ]),
               ),
             )),

@@ -88,7 +88,7 @@ function RevParTab() {
             return (
               <div key={r.id} className="flex-1 flex flex-col items-center justify-end gap-1 min-w-0" title={`${fmtDate(r.date)}: ${naira(r.totalRevenue)}`}>
                 <div className="w-full rounded-t bg-hom-primary" style={{ height: h, opacity: isToday ? 1 : 0.75 }} />
-                <div className={`text-[8px] ${isToday ? 'text-hom-primary font-bold' : 'text-zinc-400'}`}>{r.date.slice(8)}</div>
+                <div className={`text-[10px] ${isToday ? 'text-hom-primary font-bold' : 'text-zinc-400'}`}>{r.date.slice(8)}</div>
               </div>
             );
           })}

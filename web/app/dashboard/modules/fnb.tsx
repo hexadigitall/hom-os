@@ -84,7 +84,7 @@ function TablesTab() {
             <Card key={t.id} className={`p-4 flex flex-col items-center gap-1.5 border-2 ${TABLE_COLOR[t.status]}`}>
               <div className="font-black text-xl">{t.number}</div>
               <div className="text-[10px] text-zinc-500">{t.seats} seats</div>
-              <span className={`${TABLE_CHIP[t.status]} text-white text-[9px] px-2 py-0.5 rounded-full font-bold`}>{t.status}</span>
+              <span className={`${TABLE_CHIP[t.status]} text-white text-[10px] px-2 py-0.5 rounded-full font-bold`}>{t.status}</span>
               {openOrder && (
                 <button onClick={() => setViewOrder(openOrder)} className="text-[10px] bg-white border rounded-lg px-2 py-1 font-bold text-zinc-700 hover:bg-zinc-50">
                   {naira(orderTotal(openOrder))}
