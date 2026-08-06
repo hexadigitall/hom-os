@@ -281,3 +281,77 @@ class HomResponsiveGrid extends StatelessWidget {
     );
   }
 }
+
+// ═══════════════════════════ VENDOR PICKER ═══════════════════════════
+
+/// Dropdown over known vendor names with a "+ New vendor…" free-text entry.
+class VendorPickerField extends StatelessWidget {
+  final List<String> vendorNames;
+  final String current;
+  final ValueChanged<String> onChanged;
+  const VendorPickerField({
+    super.key,
+    this.vendorNames = const [],
+    required this.current,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final names = vendorNames.toSet().toList();
+    if (names.isEmpty) {
+      return TextField(
+        controller: TextEditingController(text: current),
+        decoration: const InputDecoration(
+            labelText: 'Vendor Name', border: OutlineInputBorder()),
+        onChanged: onChanged,
+      );
+    }
+    return StatefulBuilder(
+      builder: (ctx, setSB) => DropdownButtonFormField<String>(
+        key: ValueKey('vendor-$current'),
+        initialValue: current,
+        items: [
+          ...names.map((n) => DropdownMenuItem(value: n, child: Text(n))),
+          const DropdownMenuItem(
+              value: '__new__', child: Text('+ New vendor…')),
+        ],
+        onChanged: (v) {
+          if (v == '__new__') {
+            final ctl = TextEditingController(text: current);
+            showDialog<String>(
+              context: ctx,
+              builder: (dctx) => AlertDialog(
+                title: const Text('New vendor'),
+                content: TextField(
+                    controller: ctl,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                        labelText: 'Vendor name',
+                        border: OutlineInputBorder())),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(dctx),
+                      child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () {
+                      final val = ctl.text.trim();
+                      if (val.isNotEmpty) onChanged(val);
+                      Navigator.pop(dctx);
+                    },
+                    child: const Text('Add'),
+                  ),
+                ],
+              ),
+            ).then((_) => setSB(() {}));
+          } else if (v != null) {
+            onChanged(v);
+            setSB(() {});
+          }
+        },
+        decoration: const InputDecoration(
+            labelText: 'Vendor Name', border: OutlineInputBorder()),
+      ),
+    );
+  }
+}

@@ -5,7 +5,7 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, User } from 'firebase/auth';
 import {
   Session, HotelUser, InviteCode, Department, AccountStatus,
-  emptySession, DEFAULT_PREFERENCES, findRoleById, isDepartment,
+  emptySession, DEFAULT_PREFERENCES, findRoleById, isDepartment, UserPreferences,
 } from './rbac';
 import {
   getAuthInstance, getFirestoreInstance, apiCall, firebaseGoogleSignIn,
@@ -28,33 +28,50 @@ interface AuthContextValue {
   redeemInvite: (inviteCode: string) => Promise<string | null>;
   generateInvite: (d: { roleId: string; departments: Department[]; isHead: boolean }) => Promise<string>;
   updateUser: (targetUid: string, patch: { roleIds?: string[]; userName?: string; assignedDepartments?: Department[]; customPermissions?: string[]; isHeadOfDepartment?: Record<string, boolean>; status?: AccountStatus }) => Promise<string | null>;
+  updateSelf: (patch: { userName?: string; phone?: string; photoUrl?: string; preferences?: Partial<UserPreferences> }) => Promise<string | null>;
   deleteUser: (targetUid: string) => Promise<string | null>;
   deleteInvite: (code: string) => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const sessionFromRole = (data: any, user: User): Session => ({
-  userId: data?.userId || user.uid,
-  userName: data?.userName || user.displayName || '',
-  email: data?.email || user.email || '',
-  roleIds: Array.isArray(data?.roleIds)
-    ? data.roleIds.filter((r: unknown): r is string => typeof r === 'string')
-    : [],
-  assignedDepartments: Array.isArray(data?.assignedDepartments)
-    ? data.assignedDepartments.filter(isDepartment)
-    : [],
-  customPermissions: Array.isArray(data?.customPermissions)
-    ? data.customPermissions.filter((p: unknown): p is string => typeof p === 'string')
-    : [],
-  isHeadOfDepartment: data?.isHeadOfDepartment && typeof data.isHeadOfDepartment === 'object'
-    ? data.isHeadOfDepartment
-    : {},
-  status: ['pending', 'active', 'suspended'].includes(data?.status) ? data.status : 'pending',
-  hotelId: data?.hotelId || undefined,
-  photoUrl: user.photoURL || undefined,
-  preferences: { ...DEFAULT_PREFERENCES },
-});
+const sessionFromRole = (data: any, user: User): Session => {
+  const prefs = data?.preferences && typeof data.preferences === 'object' ? data.preferences : {};
+  return {
+    userId: data?.userId || user.uid,
+    userName: data?.userName || user.displayName || '',
+    email: data?.email || user.email || '',
+    roleIds: Array.isArray(data?.roleIds)
+      ? data.roleIds.filter((r: unknown): r is string => typeof r === 'string')
+      : [],
+    assignedDepartments: Array.isArray(data?.assignedDepartments)
+      ? data.assignedDepartments.filter(isDepartment)
+      : [],
+    customPermissions: Array.isArray(data?.customPermissions)
+      ? data.customPermissions.filter((p: unknown): p is string => typeof p === 'string')
+      : [],
+    isHeadOfDepartment: data?.isHeadOfDepartment && typeof data.isHeadOfDepartment === 'object'
+      ? data.isHeadOfDepartment
+      : {},
+    status: ['pending', 'active', 'suspended'].includes(data?.status) ? data.status : 'pending',
+    hotelId: data?.hotelId || undefined,
+    phone: typeof data?.phone === 'string' ? data.phone : '',
+    photoUrl: typeof data?.photoUrl === 'string' && data.photoUrl
+      ? data.photoUrl
+      : (user.photoURL || undefined),
+    preferences: {
+      notificationsEnabled: typeof prefs.notificationsEnabled === 'boolean'
+        ? prefs.notificationsEnabled
+        : DEFAULT_PREFERENCES.notificationsEnabled,
+      compactMode: typeof prefs.compactMode === 'boolean'
+        ? prefs.compactMode
+        : DEFAULT_PREFERENCES.compactMode,
+      language: typeof prefs.language === 'string'
+        ? prefs.language
+        : DEFAULT_PREFERENCES.language,
+    },
+  };
+};
 
 const errMsg = (err: any): string => err?.message || 'Something went wrong.';
 
@@ -248,6 +265,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [refreshUsers]);
 
+  const updateSelf = useCallback(async (patch: { userName?: string; phone?: string; photoUrl?: string; preferences?: Partial<UserPreferences> }): Promise<string | null> => {
+    try {
+      await apiCall('PATCH', '/api/users/me', patch);
+      return null;
+    } catch (err: any) {
+      return errMsg(err);
+    }
+  }, []);
+
   const deleteInvite = useCallback(async (code: string): Promise<string | null> => {
     try {
       await apiCall('DELETE', `/api/invites/${encodeURIComponent(code)}`);
@@ -262,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       session, users, invites, authReady, firebaseUid,
       login, logout, registerOwner, registerStaff, signInWithGoogle,
-      provisionOwner, redeemInvite, generateInvite, updateUser, deleteUser, deleteInvite,
+      provisionOwner, redeemInvite, generateInvite, updateUser, updateSelf, deleteUser, deleteInvite,
     }}>
       {children}
     </AuthContext.Provider>

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
+import '../../data/hom_api_service.dart';
 import '../../data/profile_store.dart';
 import '../../data/role_store.dart';
 import '../../models/role.dart';
@@ -27,6 +28,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final session = RoleStore.current;
     final profile = ProfileStore.load(session.userId);
+    // The session mirrors the live user_roles doc, so name/phone/avatar come
+    // from the server first; the local Hive profile is only an offline cache.
+    final displayName = session.userName.isNotEmpty
+        ? session.userName
+        : (profile?.displayName ?? '');
+    final phone = session.phone.isNotEmpty ? session.phone : (profile?.phone ?? '');
+    final photoUrl = (session.photoUrl?.isNotEmpty ?? false)
+        ? session.photoUrl
+        : profile?.photoUrl;
+    final prefs = session.preferences;
+
+    Future<void> syncPreferences() async {
+      if (profile != null) {
+        profile.preferences.notificationsEnabled = prefs.notificationsEnabled;
+        profile.preferences.compactMode = prefs.compactMode;
+        profile.preferences.language = prefs.language;
+        profile.updatedAt = DateTime.now();
+        await ProfileStore.save(profile);
+      }
+      try {
+        await HomApiService.updateSelfProfile(preferences: {
+          'notificationsEnabled': prefs.notificationsEnabled,
+          'compactMode': prefs.compactMode,
+          'language': prefs.language,
+        });
+      } catch (_) {
+        // Offline — local cache is kept; the next sync will reconcile.
+      }
+      if (mounted) setState(() {});
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -53,13 +84,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: CircleAvatar(
               radius: 48,
               backgroundColor: session.roleAccent.withValues(alpha: 0.12),
-              backgroundImage: (profile?.photoUrl != null &&
-                      profile!.photoUrl!.isNotEmpty)
-                  ? NetworkImage(profile.photoUrl!)
+              backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                  ? NetworkImage(photoUrl)
                   : null,
-              child: (profile?.photoUrl == null || profile!.photoUrl!.isEmpty)
+              child: (photoUrl == null || photoUrl.isEmpty)
                   ? Text(
-                      (profile?.displayName ?? session.userName)[0].toUpperCase(),
+                      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
                       style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.w700,
@@ -71,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 16),
           Center(
             child: Text(
-              profile?.displayName ?? session.userName,
+              displayName,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
           ),
@@ -97,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 12),
                 _detailRow(Icons.email_rounded, 'Email', session.email),
                 const Divider(height: 20),
-                _detailRow(Icons.phone_rounded, 'Phone', profile?.phone ?? ''),
+                _detailRow(Icons.phone_rounded, 'Phone', phone),
                 const Divider(height: 20),
                 _detailRow(Icons.business_rounded, 'Hotel', session.hotelName.isEmpty ? (session.hotelId ?? '') : session.hotelName),
               ]),
@@ -146,26 +176,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Notifications', style: TextStyle(fontSize: 14)),
-                  value: profile?.preferences.notificationsEnabled ?? true,
+                  value: prefs.notificationsEnabled,
                   onChanged: (v) {
-                    if (profile != null) {
-                      profile.preferences.notificationsEnabled = v;
-                      ProfileStore.save(profile);
-                      setState(() {});
-                    }
+                    prefs.notificationsEnabled = v;
+                    syncPreferences();
                   },
                 ),
                 const Divider(height: 4),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Compact Mode', style: TextStyle(fontSize: 14)),
-                  value: profile?.preferences.compactMode ?? false,
+                  value: prefs.compactMode,
                   onChanged: (v) {
-                    if (profile != null) {
-                      profile.preferences.compactMode = v;
-                      ProfileStore.save(profile);
-                      setState(() {});
-                    }
+                    prefs.compactMode = v;
+                    syncPreferences();
                   },
                 ),
                 const Divider(height: 4),
@@ -176,15 +200,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        initialValue: profile?.preferences.language ?? 'en',
+                        initialValue: prefs.language,
                         items: _languages
                             .map((l) => DropdownMenuItem(value: l.code, child: Text(l.label, style: const TextStyle(fontSize: 14))))
                             .toList(),
                         onChanged: (v) {
-                          if (profile != null && v != null) {
-                            profile.preferences.language = v;
-                            ProfileStore.save(profile);
-                            setState(() {});
+                          if (v != null) {
+                            prefs.language = v;
+                            syncPreferences();
                           }
                         },
                         decoration: const InputDecoration(

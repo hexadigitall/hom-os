@@ -14,7 +14,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-50 bg-hom-night/80 backdrop-blur border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-hom-primary flex items-center justify-center font-black text-black">H</div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="HOM" width={32} height={32} className="rounded-lg" />
             <span className="font-black tracking-tight">HOM</span>
             <span className="text-white/40 text-xs tracking-widest hidden sm:inline">HOSPITALITY</span>
           </Link>
@@ -40,7 +41,8 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-2 md:grid-cols-4 gap-8 text-sm">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-lg bg-hom-primary flex items-center justify-center font-black text-black text-sm">H</div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="HOM" width={28} height={28} className="rounded-lg" />
               <span className="font-black">HOM</span>
               <span className="text-white/40 text-xs tracking-widest">HOSPITALITY</span>
             </div>

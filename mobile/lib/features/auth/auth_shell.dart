@@ -93,7 +93,11 @@ class _BrandHeader extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(Icons.hotel_rounded, color: AppColors.primary, size: 32),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Image.asset('assets/logo/logo.png',
+                fit: BoxFit.contain),
+          ),
         ),
         const SizedBox(height: 12),
         const Text(
@@ -140,7 +144,11 @@ class _BrandPanel extends StatelessWidget {
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.hotel_rounded, color: AppColors.ink, size: 22),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Image.asset('assets/logo/logo.png',
+                      fit: BoxFit.contain),
+                ),
               ),
               const SizedBox(width: 12),
               const Text(

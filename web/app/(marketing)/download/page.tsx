@@ -166,6 +166,23 @@ function shortHash(hash: string): string {
   return `${hash.slice(0, 10)}…${hash.slice(-6)}`
 }
 
+function CopyHash({ hash }: { hash: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        navigator.clipboard?.writeText(hash)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+      }}
+      className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-md border border-white/10 text-white/40 hover:text-hom-primary hover:border-hom-primary/40 transition-colors"
+    >
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+  )
+}
+
 export default function DownloadPage() {
   const [release, setRelease] = useState<Release | null>(null)
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading')
@@ -196,49 +213,50 @@ export default function DownloadPage() {
           {status === 'ok' && release && (
             <>Latest release <span className="text-hom-primary font-semibold">{release.tag_name}</span> — published {new Date(release.published_at).toLocaleDateString()}</>
           )}
-      {status === 'ok' && checksumEntries.length > 0 && (
-        <div className="mt-12 max-w-2xl mx-auto rounded-3xl border border-white/5 bg-hom-panel p-6">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">🔒</span>
-            <h2 className="font-bold">Verify your download</h2>
-          </div>
-          <p className="text-xs text-white/40 mb-4">
-            Compare the SHA-256 hash of each file with the values below to confirm your download is complete and unmodified.
-          </p>
-          <div className="grid gap-1 font-mono text-[10px] text-white/35">
-            {checksumEntries.map(([file, hash]) => (
-              <div key={file} className="flex justify-between gap-4">
-                <span className="shrink-0">{file}</span>
-                <span className="break-all">{hash}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="mt-10 max-w-2xl mx-auto rounded-3xl border border-hom-primary/20 bg-hom-primary/5 p-6 text-center">
-        <p className="text-sm font-bold text-hom-primary mb-1">Automatic, in-place updates</p>
-        <p className="text-xs text-white/45">
-          Installed HOM apps check for new versions on launch and prompt you to update.
-          Installing a newer build upgrades your current app in place — your data stays,
-          and you never need to uninstall and reinstall.
-        </p>
-      </div>
-
-      {status === 'error' && (
+          {status === 'error' && (
             <>No artifacts published yet — check <a className="text-hom-primary underline" href={releaseUrl} target="_blank" rel="noreferrer">GitHub Releases</a>.</>
           )}
         </p>
+
+        {status === 'ok' && checksumEntries.length > 0 && (
+          <div className="mt-12 max-w-2xl mx-auto rounded-3xl border border-white/5 bg-hom-panel p-6 text-left">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-xl">🔒</span>
+              <h2 className="font-bold">Verify your download</h2>
+            </div>
+            <p className="text-xs text-white/40 mb-4">
+              Compare the SHA-256 hash of each file with the values below to confirm your download is complete and unmodified.
+            </p>
+            <div className="grid gap-2 font-mono text-[10px] text-white/35">
+              {checksumEntries.map(([file, hash]) => (
+                <div key={file} className="flex items-center gap-3">
+                  <span className="shrink-0">{file}</span>
+                  <span className="break-all flex-1">{hash}</span>
+                  <CopyHash hash={hash} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-10 max-w-2xl mx-auto rounded-3xl border border-hom-primary/20 bg-hom-primary/5 p-6 text-center">
+          <p className="text-sm font-bold text-hom-primary mb-1">Automatic, in-place updates</p>
+          <p className="text-xs text-white/45">
+            Installed HOM apps check for new versions on launch and prompt you to update.
+            Installing a newer build upgrades your current app in place — your data stays,
+            and you never need to uninstall and reinstall.
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-wrap justify-center gap-2 mb-10 text-xs">
-        {(['android', 'windows', 'linux', 'macos', 'web'] as const).map((o) => (
+        {(['all', 'android', 'windows', 'linux', 'macos', 'ios', 'web'] as const).map((o) => (
           <button
             key={o}
             onClick={() => setOs(o)}
             className={`px-4 py-1.5 rounded-full border transition-colors ${os === o ? 'bg-hom-primary text-black border-hom-primary font-bold' : 'border-white/10 text-white/40 hover:border-hom-primary/40'}`}
           >
-            {o[0].toUpperCase() + o.slice(1)}
+            {o === 'all' ? 'All platforms' : o[0].toUpperCase() + o.slice(1)}
           </button>
         ))}
       </div>
@@ -246,43 +264,72 @@ export default function DownloadPage() {
       {status === 'loading' && <div className="text-center text-white/30 py-16">Checking for the latest build…</div>}
 
       {status === 'ok' && (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CARDS.map((c) => {
-            const asset = c.match(release?.assets ?? [])
-            const recommended = c.os.includes(os)
-            const disabled = !asset && !c.qr
-            const sum = asset ? checksums[asset.name] : undefined
-            return (
-              <div
-                key={c.key}
-                className={`rounded-3xl border p-6 flex flex-col transition-all ${recommended ? 'border-hom-primary/50 bg-hom-panel ring-1 ring-hom-primary/30' : 'border-white/5 bg-hom-panel'} ${disabled ? 'opacity-60' : ''}`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="text-3xl">{c.icon}</div>
-                  {recommended && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-hom-primary/15 text-hom-primary">{os === 'ios' && c.key === 'web' ? 'Best on iOS' : `For ${c.os[0]}`}</span>}
-                  {c.badge && !recommended && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/5 text-white/40">{c.badge}</span>}
-                </div>
-                <h3 className="font-bold mb-1">{c.title}</h3>
-                <p className="text-xs text-white/40 mb-4 flex-1">{c.desc}</p>
-                {c.qr && <QrCode value={c.qr} />}
-                {asset && (
-                  <div className="text-xs text-white/30 mb-3 text-center">{asset.name} • {formatBytes(asset.size)}</div>
-                )}
-                {sum && (
-                  <div className="text-[10px] text-white/25 mb-3 text-center font-mono break-all">SHA-256 {shortHash(sum)}</div>
-                )}
-                <a
-                  href={c.qr || asset?.browser_download_url || releaseLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={`mt-auto text-center py-2.5 rounded-xl font-bold text-sm transition-colors ${disabled ? 'pointer-events-none bg-white/5 text-white/30' : 'bg-hom-primary text-black hover:bg-hom-primary/90'}`}
+        <>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {CARDS.filter((c) => os === 'all' || c.key === 'web' || c.os.includes(os)).map((c) => {
+              const asset = c.match(release?.assets ?? [])
+              const recommended = os !== 'all' && c.os.includes(os)
+              const disabled = !asset && !c.qr
+              const sum = asset ? checksums[asset.name] : undefined
+              return (
+                <div
+                  key={c.key}
+                  className={`rounded-3xl border p-6 flex flex-col transition-all ${recommended ? 'border-hom-primary/50 bg-hom-panel ring-1 ring-hom-primary/30' : 'border-white/5 bg-hom-panel'} ${disabled ? 'opacity-60' : ''}`}
                 >
-                  {c.qr ? 'Open Web App' : asset ? 'Download' : c.badge === 'Coming soon' ? 'Coming soon' : 'View Release'}
-                </a>
-              </div>
-            )
-          })}
-        </div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="text-3xl">{c.icon}</div>
+                    {recommended && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-hom-primary/15 text-hom-primary">{os === 'ios' && c.key === 'web' ? 'Best on iOS' : `For ${c.os[0]}`}</span>}
+                    {c.badge && !recommended && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/5 text-white/40">{c.badge}</span>}
+                  </div>
+                  <h3 className="font-bold mb-1">{c.title}</h3>
+                  <p className="text-xs text-white/40 mb-4 flex-1">{c.desc}</p>
+                  {c.qr && <QrCode value={c.qr} />}
+                  {asset && (
+                    <div className="text-xs text-white/30 mb-3 text-center">{asset.name} • {formatBytes(asset.size)}</div>
+                  )}
+                  {sum && (
+                    <div className="text-[10px] text-white/25 mb-3 text-center font-mono break-all">SHA-256 {shortHash(sum)}</div>
+                  )}
+                  {asset ? (
+                    <a
+                      href={asset.browser_download_url}
+                      download
+                      className={`mt-auto text-center py-2.5 rounded-xl font-bold text-sm transition-colors bg-hom-primary text-black hover:bg-hom-primary/90`}
+                    >
+                      Download
+                    </a>
+                  ) : c.qr ? (
+                    <a
+                      href={c.qr}
+                      className="mt-auto text-center py-2.5 rounded-xl font-bold text-sm transition-colors bg-hom-primary text-black hover:bg-hom-primary/90"
+                    >
+                      Open Web App
+                    </a>
+                  ) : c.badge === 'Coming soon' ? (
+                    <span className="mt-auto text-center py-2.5 rounded-xl font-bold text-sm pointer-events-none bg-white/5 text-white/30">
+                      Coming soon
+                    </span>
+                  ) : (
+                    <a
+                      href={releaseLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-auto text-center py-2.5 rounded-xl font-bold text-sm transition-colors bg-hom-primary text-black hover:bg-hom-primary/90"
+                    >
+                      View Release
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          {os !== 'all' && CARDS.filter((c) => c.key !== 'web' && c.os.includes(os)).length === 0 && (
+            <div className="mt-8 max-w-md mx-auto rounded-3xl bg-hom-panel border border-white/5 p-6 text-center text-sm text-white/50">
+              There's no native build for this platform yet — the Web App works everywhere. 
+              <span className="block mt-2"><a href={releaseUrl} target="_blank" rel="noreferrer" className="text-hom-primary underline">See GitHub Releases</a> for the full list.</span>
+            </div>
+          )}
+        </>
       )}
 
       {status === 'error' && (

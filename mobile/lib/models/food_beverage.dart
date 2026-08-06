@@ -1,5 +1,3 @@
-enum MenuCategory { food, drink, bar, wine, special }
-
 enum TableStatus { free, occupied, reserved, cleaning }
 
 enum OrderStatus { open, preparing, served, paid, cancelled }
@@ -7,7 +5,7 @@ enum OrderStatus { open, preparing, served, paid, cancelled }
 class MenuItem {
   String id, name;
   String? description;
-  MenuCategory category;
+  String category;
   double price;
   bool available;
   int sortOrder;
@@ -24,14 +22,14 @@ class MenuItem {
 
   Map<String, dynamic> toJson() => {
     'id': id, 'name': name, 'description': description,
-    'category': category.name, 'price': price,
+    'category': category, 'price': price,
     'available': available, 'sortOrder': sortOrder,
   };
 
   factory MenuItem.fromJson(Map<String, dynamic> j) => MenuItem(
     id: j['id'], name: j['name'],
     description: j['description'],
-    category: MenuCategory.values.byName(j['category']),
+    category: (j['category'] as String?) ?? 'food',
     price: (j['price'] as num).toDouble(),
     available: j['available'] ?? true,
     sortOrder: j['sortOrder'] ?? 0,

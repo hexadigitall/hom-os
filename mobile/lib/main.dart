@@ -1450,7 +1450,11 @@ class _BookingsScreenState extends State<BookingsScreen> {
 
   void _edit(Booking b) {
     final guest = TextEditingController(text: b.guest),
-        phone = TextEditingController(text: b.phone);
+        phone = TextEditingController(text: b.phone),
+        checkin = TextEditingController(text: b.checkin),
+        checkout = TextEditingController(text: b.checkout),
+        amount = TextEditingController(text: b.amount.toString());
+    String room = b.room;
     _showForm(context, 'Edit Booking', [
       TextField(
           controller: guest,
@@ -1458,9 +1462,40 @@ class _BookingsScreenState extends State<BookingsScreen> {
       TextField(
           controller: phone,
           decoration: const InputDecoration(labelText: 'Phone')),
+      StatefulBuilder(
+          builder: (ctx, setSB) => DropdownButtonFormField<String>(
+                initialValue: room,
+                items: HOMData.rooms
+                    .map((r) => DropdownMenuItem(
+                        value: r.number,
+                        child: Text('${r.number} • ${r.type}')))
+                    .toList(),
+                onChanged: (v) => setSB(() => room = v!),
+                decoration: const InputDecoration(labelText: 'Room'),
+              )),
+      TextField(
+          controller: checkin,
+          decoration:
+              const InputDecoration(labelText: 'Check-in (yyyy-mm-dd)')),
+      TextField(
+          controller: checkout,
+          decoration:
+              const InputDecoration(labelText: 'Check-out (yyyy-mm-dd)')),
+      TextField(
+          controller: amount,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Amount (₦)')),
     ], () {
       b.guest = guest.text;
       b.phone = phone.text;
+      b.room = room;
+      b.checkin = checkin.text;
+      b.checkout = checkout.text;
+      b.amount = int.tryParse(amount.text) ?? b.amount;
+      if (b.status != 'checked-out' && b.status != 'cancelled') {
+        final nr = HOMData.rooms.where((rr) => rr.number == room).toList();
+        if (nr.isNotEmpty) nr.first.status = 'occupied';
+      }
       setState(() {});
       HOMData.save();
     });
@@ -1596,6 +1631,66 @@ class RoomsScreen extends StatefulWidget {
 }
 
 class _RoomsScreenState extends State<RoomsScreen> {
+  List<String> _knownRoomTypes() => {
+        'Standard',
+        'Deluxe',
+        'Executive',
+        'Suite',
+        ...HOMData.rooms.map((r) => r.type),
+      }.toList();
+
+  void _promptNewType(BuildContext ctx, StateSetter setSB,
+      void Function(String) onChanged) {
+    final ctl = TextEditingController();
+    showDialog<String>(
+      context: ctx,
+      builder: (dctx) => AlertDialog(
+        title: const Text('New room type'),
+        content: TextField(
+            controller: ctl,
+            autofocus: true,
+            decoration: const InputDecoration(
+                labelText: 'Type name', border: OutlineInputBorder())),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dctx),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final v = ctl.text.trim();
+              if (v.isNotEmpty) onChanged(v);
+              Navigator.pop(dctx);
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _typePicker(String current, void Function(String) onChanged) {
+    final options = _knownRoomTypes();
+    return StatefulBuilder(
+      builder: (ctx, setSB) => DropdownButtonFormField<String>(
+        key: ValueKey('room-type-$current'),
+        initialValue: current,
+        items: [
+          ...options.map((t) => DropdownMenuItem(value: t, child: Text(t))),
+          const DropdownMenuItem(
+              value: '__new__', child: Text('+ New type…')),
+        ],
+        onChanged: (v) {
+          if (v == '__new__') {
+            _promptNewType(ctx, setSB, onChanged);
+          } else if (v != null) {
+            setSB(() => onChanged(v));
+          }
+        },
+        decoration: const InputDecoration(labelText: 'Type'),
+      ),
+    );
+  }
+
   void _add() {
     final num = TextEditingController(), price = TextEditingController();
     String type = 'Deluxe';
@@ -1603,15 +1698,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
       TextField(
           controller: num,
           decoration: const InputDecoration(labelText: 'Room number')),
-      StatefulBuilder(
-          builder: (ctx, setSB) => DropdownButtonFormField<String>(
-                initialValue: type,
-                items: ['Standard', 'Deluxe', 'Executive', 'Suite']
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (v) => setSB(() => type = v!),
-                decoration: const InputDecoration(labelText: 'Type'),
-              )),
+      _typePicker(type, (t) => type = t),
       TextField(
           controller: price,
           keyboardType: TextInputType.number,
@@ -1632,22 +1719,20 @@ class _RoomsScreenState extends State<RoomsScreen> {
   }
 
   void _edit(Room r) {
+    final numCtl = TextEditingController(text: r.number);
     final price = TextEditingController(text: r.price.toString());
     String type = r.type;
     _showForm(context, 'Edit Room ${r.number}', [
-      StatefulBuilder(
-          builder: (ctx, setSB) => DropdownButtonFormField<String>(
-                initialValue: type,
-                items: ['Standard', 'Deluxe', 'Executive', 'Suite']
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                    .toList(),
-                onChanged: (v) => setSB(() => type = v!),
-              )),
+      TextField(
+          controller: numCtl,
+          decoration: const InputDecoration(labelText: 'Room number')),
+      _typePicker(type, (t) => type = t),
       TextField(
           controller: price,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(labelText: 'Price')),
     ], () {
+      if (numCtl.text.trim().isNotEmpty) r.number = numCtl.text.trim();
       r.type = type;
       r.price = int.tryParse(price.text) ?? r.price;
       setState(() {});
@@ -1656,6 +1741,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
   }
 
   void _toggleStatus(Room r) {
+    final statuses = <String>{'available', 'occupied', 'maintenance'}
+      ..addAll(HOMData.rooms.map((rr) => rr.status));
     showModalBottomSheet(
         context: context,
         builder: (ctx) => SafeArea(
@@ -1665,14 +1752,16 @@ class _RoomsScreenState extends State<RoomsScreen> {
                   child: Text('Set Status',
                       style: TextStyle(
                           fontWeight: FontWeight.w800, fontSize: 16))),
-              ...['available', 'occupied', 'maintenance'].map((s) => ListTile(
+              ...statuses.map((s) => ListTile(
                     title: Text(s.toUpperCase()),
                     leading: Icon(
                         s == 'available'
                             ? Icons.check_circle_rounded
                             : s == 'occupied'
                                 ? Icons.person_rounded
-                                : Icons.build_rounded,
+                                : s == 'maintenance'
+                                    ? Icons.build_rounded
+                                    : Icons.flag_rounded,
                         color:
                             s == r.status ? primaryGreen : AppColors.grey500),
                     onTap: () {

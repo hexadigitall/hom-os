@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../main.dart' as app;
 import '../../models/housekeeping.dart';
 import '../../data/housekeeping_store.dart';
 import '../../widgets/hom_widgets.dart';
@@ -222,14 +223,9 @@ class _TasksTab extends StatelessWidget {
                   decoration: const InputDecoration(
                       labelText: 'Room', border: OutlineInputBorder()),
                   items: [
-                    '101',
-                    '102',
-                    '103',
-                    '201',
-                    '202',
-                    'Lobby',
-                    'Pool',
-                    'Restaurant'
+                    ...app.HOMData.rooms.map((r) => r.number).toSet(),
+                    if (!app.HOMData.rooms.any((r) => r.number == room))
+                      room,
                   ]
                       .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                       .toList(),

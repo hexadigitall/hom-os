@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../main.dart' as app;
 import '../../models/expenditure.dart';
 import '../../data/expenditure_store.dart';
 import '../../features/reports/report_engine.dart';
@@ -6,6 +7,7 @@ import '../../utils/role_gate.dart';
 import '../../utils/theme.dart';
 import '../../models/role.dart';
 import '../../data/role_store.dart';
+import '../../widgets/hom_widgets.dart';
 
 class ExpenditureScreen extends StatefulWidget {
   const ExpenditureScreen({super.key});
@@ -45,10 +47,10 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
     final descCtl = TextEditingController(text: existing?.description ?? '');
     final subCtl = TextEditingController(text: existing?.subcategory ?? '');
     final amountCtl = TextEditingController(text: existing != null ? existing.amount.toString() : '');
-    final vendorCtl = TextEditingController(text: existing?.vendor ?? '');
     final paymentCtl = TextEditingController(text: existing?.paymentMethod ?? '');
     final refCtl = TextEditingController(text: existing?.receiptRef ?? '');
     final notesCtl = TextEditingController(text: existing?.notes ?? '');
+    String vendor = existing?.vendor ?? '';
     ExpenditureCategory cat = existing?.category ?? ExpenditureCategory.other;
     final scope = RoleStore.departments;
     Department? dept = existing?.department ?? (scope.isEmpty ? null : scope.first);
@@ -82,7 +84,11 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
               const SizedBox(height: 12),
               TextField(controller: amountCtl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Amount (₦)')),
               const SizedBox(height: 12),
-              TextField(controller: vendorCtl, decoration: const InputDecoration(labelText: 'Vendor')),
+              VendorPickerField(
+                vendorNames: app.HOMData.vendors.map((v) => v.name).toList(),
+                current: vendor,
+                onChanged: (v) => setSB(() => vendor = v),
+              ),
               const SizedBox(height: 12),
               TextField(controller: paymentCtl, decoration: const InputDecoration(labelText: 'Payment Method')),
               const SizedBox(height: 12),
@@ -114,7 +120,7 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
                         id: existing?.id ?? ExpenditureStore.generateId(),
                         date: date, category: cat,
                         subcategory: subCtl.text, description: descCtl.text,
-                        amount: amt, vendor: vendorCtl.text,
+                        amount: amt, vendor: vendor,
                         paymentMethod: paymentCtl.text, receiptRef: refCtl.text,
                         notes: notesCtl.text, department: dept,
                       );

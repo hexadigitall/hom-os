@@ -216,7 +216,8 @@ class _TablesTabState extends State<_TablesTab> {
                 widget.onOrderTap();
               },
             ),
-          if (t.status == TableStatus.occupied)
+          if (t.status != TableStatus.occupied &&
+              FnbStore.orderForTable(t.id) == null)
             ListTile(
               leading: const Icon(Icons.delete_rounded,
                   color: AppColors.red, size: 20),
@@ -224,9 +225,29 @@ class _TablesTabState extends State<_TablesTab> {
                   style: TextStyle(color: AppColors.red),
                   overflow: TextOverflow.ellipsis),
               onTap: () {
-                FnbStore.removeTable(t.id);
                 Navigator.pop(ctx);
-                widget.onOrderTap();
+                showDialog<bool>(
+                  context: context,
+                  builder: (dctx) => AlertDialog(
+                    title: const Text('Remove Table?'),
+                    content: Text(
+                        'Delete ${t.number}? This cannot be undone.'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(dctx, false),
+                          child: const Text('Cancel')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(dctx, true),
+                          child: const Text('Remove',
+                              style: TextStyle(color: AppColors.red))),
+                    ],
+                  ),
+                ).then((confirmed) {
+                  if (confirmed == true) {
+                    FnbStore.removeTable(t.id);
+                    widget.onOrderTap();
+                  }
+                });
               },
             ),
         ]),
@@ -540,6 +561,27 @@ class _TablesTabState extends State<_TablesTab> {
                               setSheetState(() {});
                               widget.onOrderTap();
                             }),
+                      ),
+                    const SizedBox(height: 12),
+                    if (order.status == OrderStatus.open ||
+                        order.status == OrderStatus.preparing)
+                      RoleGate(
+                        requiredPermission: Permission.managePOS,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.red),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              _confirmDeleteOrder(
+                                  context, order, widget.onOrderTap);
+                            },
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                size: 18),
+                            label: const Text('Delete Order'),
+                          ),
+                        ),
                       ),
                   ]),
             ),
@@ -910,6 +952,20 @@ class _ActiveOrders extends StatelessWidget {
                           child: const Text('Cancel',
                               style: TextStyle(color: AppColors.red)),
                         )),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: RoleGate(
+                          requiredPermission: Permission.managePOS,
+                          child: TextButton(
+                            onPressed: () => _confirmDeleteOrder(ctx, order,
+                                () {
+                              Navigator.pop(ctx);
+                              onChange();
+                            }),
+                            child: const Text('Delete',
+                                style: TextStyle(color: AppColors.red)),
+                          ),
+                        )),
                       ]),
                   ]),
             ),
@@ -918,7 +974,46 @@ class _ActiveOrders extends StatelessWidget {
       ),
     );
   }
+
 }
+
+void _confirmDeleteOrder(BuildContext ctx, Order order, VoidCallback onDone) {
+  showDialog<bool>(
+    context: ctx,
+    builder: (dctx) => AlertDialog(
+      title: const Text('Delete Order?'),
+      content: Text(
+          'Delete the order for Table ${order.tableNumber}? This cannot be undone.'),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(dctx, false),
+            child: const Text('Cancel')),
+        TextButton(
+            onPressed: () => Navigator.pop(dctx, true),
+            child: const Text('Delete',
+                style: TextStyle(color: AppColors.red))),
+      ],
+    ),
+  ).then((confirmed) {
+    if (confirmed != true) return;
+    FnbStore.removeOrder(order.id);
+    if (!FnbStore.orders.any((o) => o.tableId == order.tableId)) {
+      final table =
+          FnbStore.tables.where((t) => t.id == order.tableId).firstOrNull;
+      if (table != null)
+        FnbStore.updateTable(
+            order.tableId,
+            RestaurantTable(
+                id: table.id,
+                number: table.number,
+                seats: table.seats,
+                status: TableStatus.free));
+    }
+    onDone();
+  });
+}
+
+
 
 // ─────────────────────── KITCHEN DISPLAY (KDS) ───────────────────────
 
@@ -1041,7 +1136,7 @@ class _MenuTabState extends State<_MenuTab> {
                       leading: CircleAvatar(
                         backgroundColor: _categoryColor(item.category)
                             .withValues(alpha: 0.2),
-                        child: Text(item.category.name[0].toUpperCase(),
+                        child: Text(item.category[0].toUpperCase(),
                             style: TextStyle(
                                 color: _categoryColor(item.category),
                                 fontWeight: FontWeight.w700)),
@@ -1050,7 +1145,7 @@ class _MenuTabState extends State<_MenuTab> {
                           style: const TextStyle(fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis),
                       subtitle: Text(
-                          '${item.category.name}  •  ${item.available ? 'Available' : 'Unavailable'}',
+                          '${item.category}  •  ${item.available ? 'Available' : 'Unavailable'}',
                           style: const TextStyle(fontSize: 11),
                           overflow: TextOverflow.ellipsis),
                       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1095,18 +1190,20 @@ class _MenuTabState extends State<_MenuTab> {
     );
   }
 
-  Color _categoryColor(MenuCategory c) {
+  Color _categoryColor(String c) {
     switch (c) {
-      case MenuCategory.food:
+      case 'food':
         return AppColors.orange;
-      case MenuCategory.drink:
+      case 'drink':
         return AppColors.blue;
-      case MenuCategory.bar:
+      case 'bar':
         return AppColors.purple;
-      case MenuCategory.wine:
+      case 'wine':
         return AppColors.red;
-      case MenuCategory.special:
+      case 'special':
         return AppColors.teal;
+      default:
+        return AppColors.grey600;
     }
   }
 
@@ -1115,8 +1212,41 @@ class _MenuTabState extends State<_MenuTab> {
     final descCtl = TextEditingController(text: item?.description ?? '');
     final priceCtl =
         TextEditingController(text: item?.price.toStringAsFixed(0) ?? '');
-    MenuCategory cat = item?.category ?? MenuCategory.food;
+    String cat = item?.category.isNotEmpty == true
+        ? item!.category
+        : FnbStore.categories.first;
     bool available = item?.available ?? true;
+
+    void pickNewCategory(StateSetter setSheetState) {
+      final ctl = TextEditingController();
+      showDialog<String>(
+        context: context,
+        builder: (dctx) => AlertDialog(
+          title: const Text('New category'),
+          content: TextField(
+              controller: ctl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                  labelText: 'Category name', border: OutlineInputBorder())),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(dctx),
+                child: const Text('Cancel')),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                    dctx, ctl.text.trim().toLowerCase().replaceAll(' ', '_'));
+              },
+              child: const Text('Add'),
+            ),
+          ],
+        ),
+      ).then((value) {
+        if (value != null && value.isNotEmpty) {
+          setSheetState(() => cat = value);
+        }
+      });
+    }
 
     showModalBottomSheet(
       context: context,
@@ -1152,16 +1282,23 @@ class _MenuTabState extends State<_MenuTab> {
                         labelText: 'Price (₦)', border: OutlineInputBorder()),
                     keyboardType: TextInputType.number),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<MenuCategory>(
+                DropdownButtonFormField<String>(
+                  key: ValueKey('menu-cat-$cat'),
                   initialValue: cat,
                   decoration: const InputDecoration(
                       labelText: 'Category', border: OutlineInputBorder()),
-                  items: MenuCategory.values
-                      .map((c) =>
-                          DropdownMenuItem(value: c, child: Text(c.name)))
-                      .toList(),
+                  items: [
+                    ...FnbStore.categories
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                    const DropdownMenuItem(
+                        value: '__new__', child: Text('+ New category…')),
+                  ],
                   onChanged: (v) {
-                    if (v != null) setSheetState(() => cat = v);
+                    if (v == '__new__') {
+                      pickNewCategory(setSheetState);
+                    } else if (v != null) {
+                      setSheetState(() => cat = v);
+                    }
                   },
                 ),
                 SwitchListTile(
@@ -1220,47 +1357,36 @@ class _MenuSelector extends StatefulWidget {
   State<_MenuSelector> createState() => _MenuSelectorState();
 }
 
-class _MenuSelectorState extends State<_MenuSelector>
-    with SingleTickerProviderStateMixin {
-  late TabController _catTab;
-
-  @override
-  void initState() {
-    super.initState();
-    _catTab = TabController(length: MenuCategory.values.length, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _catTab.dispose();
-    super.dispose();
-  }
-
+class _MenuSelectorState extends State<_MenuSelector> {
   @override
   Widget build(BuildContext context) {
+    final cats = FnbStore.categories;
     return Column(children: [
-      TabBar(
-        controller: _catTab,
-        isScrollable: true,
-        indicatorColor: _primary,
-        labelColor: _primary,
-        unselectedLabelColor: AppColors.grey500,
-        tabs: MenuCategory.values
-            .map((c) => Tab(text: c.name.toUpperCase()))
-            .toList(),
+      DefaultTabController(
+        length: cats.length,
+        child: Column(children: [
+          TabBar(
+            isScrollable: true,
+            indicatorColor: _primary,
+            labelColor: _primary,
+            unselectedLabelColor: AppColors.grey500,
+            tabs: cats.map((c) => Tab(text: c.toUpperCase())).toList(),
+          ),
+          SizedBox(
+            height: 300,
+            child: TabBarView(
+                children: cats
+                    .map((c) => _CategoryMenu(category: c, onAdd: widget.onAdd))
+                    .toList()),
+          ),
+        ]),
       ),
-      Expanded(
-          child: TabBarView(
-              controller: _catTab,
-              children: MenuCategory.values
-                  .map((c) => _CategoryMenu(category: c, onAdd: widget.onAdd))
-                  .toList())),
     ]);
   }
 }
 
 class _CategoryMenu extends StatelessWidget {
-  final MenuCategory category;
+  final String category;
   final void Function(MenuItem item, int qty, String? note) onAdd;
   const _CategoryMenu({required this.category, required this.onAdd});
 

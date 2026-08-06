@@ -22,6 +22,7 @@ const VALID_DEPARTMENTS = [
   'procurement', 'accounts', 'humanResources', 'security', 'healthSafety',
 ];
 const VALID_STATUS = ['pending', 'active', 'suspended'];
+const VALID_LANGUAGES = ['en', 'fr', 'es', 'ha', 'yo', 'ig'];
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 const isEmail = (v: unknown): boolean =>
@@ -49,6 +50,15 @@ async function requireAdmin(uid: string): Promise<Record<string, any>> {
   if (!role.roleIds || !role.roleIds.some((r: string) => ADMIN_ROLES.includes(r))) {
     throw new ApiError('Admin access required.', 403);
   }
+  return role;
+}
+
+/** Fetch the caller's role doc; any ACTIVE provisioned user passes. */
+async function requireSelf(uid: string): Promise<Record<string, any>> {
+  const snap = await adminDb().collection('user_roles').doc(uid).get();
+  if (!snap.exists) throw new ApiError('Account not provisioned.', 403);
+  const role = snap.data()!;
+  if (role.status !== 'active') throw new ApiError('Account is not active.', 403);
   return role;
 }
 
@@ -447,5 +457,70 @@ export async function deleteUserRole(uid: string, input: Record<string, any>): P
 
   await adminDb().collection('user_roles').doc(targetUid).delete();
   await adminAuth().deleteUser(targetUid).catch(() => {});
+  return { ok: true };
+}
+
+// ──────────────────── self-service profile ────────────────────
+
+/**
+ * Self-service profile update. ANY active user may edit their own display
+ * name, phone, avatar URL and app preferences. Writes land on the same
+ * `user_roles/{uid}` doc both apps already listen to in realtime, so a change
+ * propagates to every device (mobile + web) instantly.
+ */
+export async function updateSelfProfile(
+  uid: string,
+  input: Record<string, any>,
+): Promise<{ ok: boolean }> {
+  const role = await requireSelf(uid);
+  const updates: Record<string, any> = { updatedAt: serverTimestamp() };
+  const { userName, phone, photoUrl, preferences } = input || {};
+
+  if (userName !== undefined) {
+    const name = String(userName).trim();
+    if (!name || name.length > 80) throw new ApiError('Name must be 1–80 characters.');
+    if (name !== role.userName) updates.userName = name;
+  }
+  if (phone !== undefined) {
+    if (phone !== null && typeof phone !== 'string') {
+      throw new ApiError('Invalid phone.');
+    }
+    updates.phone = phone ? String(phone).trim().slice(0, 40) : '';
+  }
+  if (photoUrl !== undefined) {
+    if (photoUrl !== null && typeof photoUrl !== 'string') {
+      throw new ApiError('Invalid photo URL.');
+    }
+    updates.photoUrl = photoUrl ? String(photoUrl).trim().slice(0, 2000) : '';
+  }
+  if (preferences !== undefined) {
+    if (typeof preferences !== 'object' || preferences === null || Array.isArray(preferences)) {
+      throw new ApiError('Invalid preferences.');
+    }
+    const pref = preferences as Record<string, any>;
+    const patch: Record<string, any> = {};
+    if ('notificationsEnabled' in pref) {
+      if (typeof pref.notificationsEnabled !== 'boolean') throw new ApiError('Invalid preferences.');
+      patch.notificationsEnabled = pref.notificationsEnabled;
+    }
+    if ('compactMode' in pref) {
+      if (typeof pref.compactMode !== 'boolean') throw new ApiError('Invalid preferences.');
+      patch.compactMode = pref.compactMode;
+    }
+    if ('language' in pref) {
+      if (typeof pref.language !== 'string' || !VALID_LANGUAGES.includes(pref.language)) {
+        throw new ApiError('Invalid language.');
+      }
+      patch.language = pref.language;
+    }
+    if (Object.keys(patch).length > 0) updates.preferences = patch;
+  }
+
+  if (Object.keys(updates).length <= 1) return { ok: true };
+
+  await adminDb().collection('user_roles').doc(uid).update(updates);
+  if (updates.userName) {
+    await adminAuth().updateUser(uid, { displayName: updates.userName }).catch(() => {});
+  }
   return { ok: true };
 }

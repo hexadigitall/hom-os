@@ -38,7 +38,21 @@ class FnbStore {
   // ===================== MENU =====================
 
   static List<MenuItem> get menu => List.unmodifiable(_menu);
-  static List<MenuItem> menuByCategory(MenuCategory c) => _menu.where((m) => m.category == c && m.available).toList();
+
+  static const List<String> _defaultCategories = [
+    'food', 'drink', 'bar', 'wine', 'special',
+  ];
+
+  static List<String> get categories {
+    final set = <String>{..._defaultCategories};
+    for (final m in _menu) {
+      if (m.category.isNotEmpty) set.add(m.category);
+    }
+    return set.toList();
+  }
+
+  static List<MenuItem> menuByCategory(String c) =>
+      _menu.where((m) => m.category == c && m.available).toList();
 
   static Future<void> addMenuItem(MenuItem item) async { _menu.add(item); await _save(); }
   static Future<void> updateMenuItem(String id, MenuItem updated) async {
@@ -78,18 +92,18 @@ class FnbStore {
 
   static void _seedMenu() {
     _menu.addAll([
-      MenuItem(id: genMenuId(), name: 'Jollof Rice & Chicken', category: MenuCategory.food, price: 4500, description: 'Smoked jollof with grilled chicken, plantain & coleslaw'),
-      MenuItem(id: genMenuId(), name: 'Egusi Soup & Pounded Yam', category: MenuCategory.food, price: 5500, description: 'Classic egusi with assorted meat & pounded yam'),
-      MenuItem(id: genMenuId(), name: 'Grilled Tilapia', category: MenuCategory.food, price: 6500, description: 'Whole tilapia with chips & garden salad'),
-      MenuItem(id: genMenuId(), name: 'Pepper Soup Goat Meat', category: MenuCategory.food, price: 5000, description: 'Spiced pepper soup with tender goat meat'),
-      MenuItem(id: genMenuId(), name: 'Bottled Water', category: MenuCategory.drink, price: 500),
-      MenuItem(id: genMenuId(), name: 'Maltina', category: MenuCategory.drink, price: 800),
-      MenuItem(id: genMenuId(), name: 'Chapman Mocktail', category: MenuCategory.drink, price: 2500, description: 'Non-alcoholic fruit mocktail'),
-      MenuItem(id: genMenuId(), name: 'Star Lager', category: MenuCategory.bar, price: 1200),
-      MenuItem(id: genMenuId(), name: 'Heineken', category: MenuCategory.bar, price: 1500),
-      MenuItem(id: genMenuId(), name: 'Jameson Whisky (Shot)', category: MenuCategory.bar, price: 3000),
-      MenuItem(id: genMenuId(), name: 'South African Red Wine', category: MenuCategory.wine, price: 15000, description: 'Cabernet Sauvignon — bottle'),
-      MenuItem(id: genMenuId(), name: 'Nigerian Palm Wine', category: MenuCategory.special, price: 2000, description: 'Fresh tapped palm wine — calabash'),
+      MenuItem(id: genMenuId(), name: 'Jollof Rice & Chicken', category: 'food', price: 4500, description: 'Smoked jollof with grilled chicken, plantain & coleslaw'),
+      MenuItem(id: genMenuId(), name: 'Egusi Soup & Pounded Yam', category: 'food', price: 5500, description: 'Classic egusi with assorted meat & pounded yam'),
+      MenuItem(id: genMenuId(), name: 'Grilled Tilapia', category: 'food', price: 6500, description: 'Whole tilapia with chips & garden salad'),
+      MenuItem(id: genMenuId(), name: 'Pepper Soup Goat Meat', category: 'food', price: 5000, description: 'Spiced pepper soup with tender goat meat'),
+      MenuItem(id: genMenuId(), name: 'Bottled Water', category: 'drink', price: 500),
+      MenuItem(id: genMenuId(), name: 'Maltina', category: 'drink', price: 800),
+      MenuItem(id: genMenuId(), name: 'Chapman Mocktail', category: 'drink', price: 2500, description: 'Non-alcoholic fruit mocktail'),
+      MenuItem(id: genMenuId(), name: 'Star Lager', category: 'bar', price: 1200),
+      MenuItem(id: genMenuId(), name: 'Heineken', category: 'bar', price: 1500),
+      MenuItem(id: genMenuId(), name: 'Jameson Whisky (Shot)', category: 'bar', price: 3000),
+      MenuItem(id: genMenuId(), name: 'South African Red Wine', category: 'wine', price: 15000, description: 'Cabernet Sauvignon — bottle'),
+      MenuItem(id: genMenuId(), name: 'Nigerian Palm Wine', category: 'special', price: 2000, description: 'Fresh tapped palm wine — calabash'),
     ]);
   }
 

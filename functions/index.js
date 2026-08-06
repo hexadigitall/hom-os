@@ -23,6 +23,7 @@ const VALID_DEPARTMENTS = [
   'procurement', 'accounts', 'humanResources', 'security', 'healthSafety',
 ];
 const VALID_STATUS = ['pending', 'active', 'suspended'];
+const VALID_LANGUAGES = ['en', 'fr', 'es', 'ha', 'yo', 'ig'];
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 // ───────────────────────── helpers ─────────────────────────
@@ -396,5 +397,79 @@ exports.deleteUserRole = onCall(async (request, context) => {
 
   await db.collection('user_roles').doc(targetUid).delete();
   await auth.deleteUser(targetUid).catch(() => {});
+  return { ok: true };
+});
+
+/**
+ * Self-service profile update. ANY active user may edit their own display
+ * name, phone, avatar URL and app preferences. Writes land on the same
+ * user_roles/{uid} doc both apps listen to in realtime.
+ */
+exports.updateSelfProfile = onCall(async (request, context) => {
+  if (!context.auth) throw new HttpsError('unauthenticated', 'Sign in required.');
+  const uid = context.auth.uid;
+  const snap = await db.collection('user_roles').doc(uid).get();
+  if (!snap.exists) {
+    throw new HttpsError('permission-denied', 'Account not provisioned.');
+  }
+  const role = snap.data();
+  if (role.status !== 'active') {
+    throw new HttpsError('permission-denied', 'Account is not active.');
+  }
+
+  const updates = { updatedAt: serverTimestamp() };
+  const { userName, phone, photoUrl, preferences } = request.data || {};
+
+  if (userName !== undefined) {
+    const name = String(userName).trim();
+    if (!name || name.length > 80) {
+      throw new HttpsError('invalid-argument', 'Name must be 1–80 characters.');
+    }
+    if (name !== role.userName) updates.userName = name;
+  }
+  if (phone !== undefined) {
+    if (phone !== null && typeof phone !== 'string') {
+      throw new HttpsError('invalid-argument', 'Invalid phone.');
+    }
+    updates.phone = phone ? String(phone).trim().slice(0, 40) : '';
+  }
+  if (photoUrl !== undefined) {
+    if (photoUrl !== null && typeof photoUrl !== 'string') {
+      throw new HttpsError('invalid-argument', 'Invalid photo URL.');
+    }
+    updates.photoUrl = photoUrl ? String(photoUrl).trim().slice(0, 2000) : '';
+  }
+  if (preferences !== undefined) {
+    if (typeof preferences !== 'object' || preferences === null || Array.isArray(preferences)) {
+      throw new HttpsError('invalid-argument', 'Invalid preferences.');
+    }
+    const patch = {};
+    if ('notificationsEnabled' in preferences) {
+      if (typeof preferences.notificationsEnabled !== 'boolean') {
+        throw new HttpsError('invalid-argument', 'Invalid preferences.');
+      }
+      patch.notificationsEnabled = preferences.notificationsEnabled;
+    }
+    if ('compactMode' in preferences) {
+      if (typeof preferences.compactMode !== 'boolean') {
+        throw new HttpsError('invalid-argument', 'Invalid preferences.');
+      }
+      patch.compactMode = preferences.compactMode;
+    }
+    if ('language' in preferences) {
+      if (typeof preferences.language !== 'string' || !VALID_LANGUAGES.includes(preferences.language)) {
+        throw new HttpsError('invalid-argument', 'Invalid language.');
+      }
+      patch.language = preferences.language;
+    }
+    if (Object.keys(patch).length > 0) updates.preferences = patch;
+  }
+
+  if (Object.keys(updates).length <= 1) return { ok: true };
+
+  await db.collection('user_roles').doc(uid).update(updates);
+  if (updates.userName) {
+    await auth.updateUser(uid, { displayName: updates.userName }).catch(() => {});
+  }
   return { ok: true };
 });

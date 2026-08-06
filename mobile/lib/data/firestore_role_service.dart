@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'role_store.dart';
 import '../models/role.dart';
+import '../models/user_profile.dart' show UserPreferences;
 
 /// Cloud (Firestore) role document — the real-time source of truth for
 /// assignments. Zero-trust: an unknown/missing role NEVER falls back to an
@@ -50,6 +51,17 @@ class FirestoreRoleService {
     ));
   }
 
+  static UserPreferences _preferences(dynamic v) {
+    final raw = v as Map<String, dynamic>? ?? {};
+    return UserPreferences(
+      notificationsEnabled: raw['notificationsEnabled'] is bool
+          ? raw['notificationsEnabled'] as bool
+          : true,
+      compactMode: raw['compactMode'] is bool ? raw['compactMode'] as bool : false,
+      language: raw['language']?.toString() ?? 'en',
+    );
+  }
+
   /// Zero-Trust session builder. Unknown roles resolve to nothing; an account
   /// with no resolvable roles is `pending`, never an admin.
   static Session buildSessionFromMap(Map<String, dynamic> data) {
@@ -70,6 +82,9 @@ class FirestoreRoleService {
       status: status,
       hotelId: data['hotelId']?.toString(),
       hotelName: data['hotelName']?.toString() ?? '',
+      phone: data['phone']?.toString() ?? '',
+      photoUrl: data['photoUrl']?.toString(),
+      preferences: _preferences(data['preferences']),
     );
   }
 

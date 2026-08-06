@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/role.dart';
+import '../models/user_profile.dart' show UserPreferences;
 import 'role_store.dart';
 import 'user_store.dart';
 import 'firestore_role_service.dart';
@@ -110,6 +111,13 @@ class AuthService {
         status: status,
         hotelId: data['hotelId']?.toString(),
         hotelName: data['hotelName']?.toString() ?? '',
+        phone: data['phone']?.toString() ?? '',
+        photoUrl: data['photoUrl']?.toString(),
+        preferences: UserPreferences(
+          notificationsEnabled: data['preferences']?['notificationsEnabled'] ?? true,
+          compactMode: data['preferences']?['compactMode'] ?? false,
+          language: data['preferences']?['language']?.toString() ?? 'en',
+        ),
       );
       RoleStore.setSession(session);
       return true;
@@ -336,6 +344,13 @@ class AuthService {
       'status': session.status.name,
       'hotelId': session.hotelId,
       'hotelName': session.hotelName,
+      'phone': session.phone,
+      'photoUrl': session.photoUrl,
+      'preferences': {
+        'notificationsEnabled': session.preferences.notificationsEnabled,
+        'compactMode': session.preferences.compactMode,
+        'language': session.preferences.language,
+      },
     };
     await _box?.put('session', jsonEncode(data));
   }

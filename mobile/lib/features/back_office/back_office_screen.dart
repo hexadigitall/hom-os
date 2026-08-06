@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../main.dart' as app;
 import '../../models/back_office.dart';
 import '../../models/expenditure.dart';
 import '../../data/back_office_store.dart';
@@ -229,11 +230,74 @@ class _ProcurementTab extends StatelessWidget {
     );
   }
 
+  Widget _vendorPicker(String current, void Function(String) onChanged) {
+    final names = app.HOMData.vendors.map((v) => v.name).toSet().toList();
+    if (names.isEmpty) {
+      return TextField(
+        controller: TextEditingController(text: current),
+        decoration: const InputDecoration(
+            labelText: 'Vendor Name', border: OutlineInputBorder()),
+        onChanged: onChanged,
+      );
+    }
+    return StatefulBuilder(
+      builder: (ctx, setSB) => DropdownButtonFormField<String>(
+        key: ValueKey('po-vendor-$current'),
+        initialValue: current,
+        items: [
+          ...names.map((n) => DropdownMenuItem(value: n, child: Text(n))),
+          const DropdownMenuItem(
+              value: '__new__', child: Text('+ New vendor…')),
+        ],
+        onChanged: (v) {
+          if (v == '__new__') {
+            final ctl = TextEditingController(text: current);
+            showDialog<String>(
+              context: ctx,
+              builder: (dctx) => AlertDialog(
+                title: const Text('New vendor'),
+                content: TextField(
+                    controller: ctl,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                        labelText: 'Vendor name',
+                        border: OutlineInputBorder())),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(dctx),
+                      child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () {
+                      final val = ctl.text.trim();
+                      if (val.isNotEmpty) {
+                        onChanged(val);
+                        setSB(() {});
+                      }
+                      Navigator.pop(dctx);
+                    },
+                    child: const Text('Add'),
+                  ),
+                ],
+              ),
+            );
+          } else if (v != null) {
+            onChanged(v);
+            setSB(() {});
+          }
+        },
+        decoration: const InputDecoration(
+            labelText: 'Vendor Name', border: OutlineInputBorder()),
+      ),
+    );
+  }
+
   void _showForm(BuildContext context) {
-    final vendorCtl = TextEditingController();
     final itemsCtl = TextEditingController();
     final amtCtl = TextEditingController();
     final notesCtl = TextEditingController();
+    String vendor = app.HOMData.vendors.isNotEmpty
+        ? app.HOMData.vendors.first.name
+        : '';
     final scope = RoleStore.departments;
     Department? dept = scope.isEmpty ? null : scope.first;
 
@@ -254,11 +318,9 @@ class _ProcurementTab extends StatelessWidget {
                           style: TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 16)),
                       const SizedBox(height: 12),
-                      TextField(
-                          controller: vendorCtl,
-                          decoration: const InputDecoration(
-                              labelText: 'Vendor Name',
-                              border: OutlineInputBorder())),
+                      _vendorPicker(vendor, (v) {
+                        setSB(() => vendor = v);
+                      }),
                       const SizedBox(height: 12),
                       TextField(
                           controller: itemsCtl,
@@ -303,11 +365,10 @@ class _ProcurementTab extends StatelessWidget {
                               padding:
                                   const EdgeInsets.symmetric(vertical: 14)),
                           onPressed: () {
-                            if (vendorCtl.text.isEmpty || itemsCtl.text.isEmpty)
-                              return;
+                            if (vendor.isEmpty || itemsCtl.text.isEmpty) return;
                             final po = ProcurementOrder(
                               id: 'bo_${DateTime.now().millisecondsSinceEpoch}',
-                              vendorName: vendorCtl.text,
+                              vendorName: vendor,
                               items: itemsCtl.text,
                               notes:
                                   notesCtl.text.isEmpty ? null : notesCtl.text,
@@ -329,10 +390,10 @@ class _ProcurementTab extends StatelessWidget {
   }
 
   void _editForm(BuildContext context, ProcurementOrder po) {
-    final vendorCtl = TextEditingController(text: po.vendorName);
     final itemsCtl = TextEditingController(text: po.items);
     final amtCtl = TextEditingController(text: po.amount.toStringAsFixed(0));
     final notesCtl = TextEditingController(text: po.notes ?? '');
+    String vendor = po.vendorName;
     final scope = RoleStore.departments;
     Department? dept = po.department ?? (scope.isEmpty ? null : scope.first);
 
@@ -360,11 +421,9 @@ class _ProcurementTab extends StatelessWidget {
                           style: TextStyle(
                               fontWeight: FontWeight.w800, fontSize: 16)),
                       const SizedBox(height: 12),
-                      TextField(
-                          controller: vendorCtl,
-                          decoration: const InputDecoration(
-                              labelText: 'Vendor Name',
-                              border: OutlineInputBorder())),
+                      _vendorPicker(vendor, (v) {
+                        setSB(() => vendor = v);
+                      }),
                       const SizedBox(height: 12),
                       TextField(
                           controller: itemsCtl,
@@ -409,11 +468,10 @@ class _ProcurementTab extends StatelessWidget {
                               padding:
                                   const EdgeInsets.symmetric(vertical: 14)),
                           onPressed: () {
-                            if (vendorCtl.text.isEmpty || itemsCtl.text.isEmpty)
-                              return;
+                            if (vendor.isEmpty || itemsCtl.text.isEmpty) return;
                             final updated = ProcurementOrder(
                               id: po.id,
-                              vendorName: vendorCtl.text,
+                              vendorName: vendor,
                               items: itemsCtl.text,
                               notes:
                                   notesCtl.text.isEmpty ? null : notesCtl.text,

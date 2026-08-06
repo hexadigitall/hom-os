@@ -67,7 +67,8 @@ export default function AboutPage() {
       </section>
 
       <section className="rounded-3xl bg-hom-panel border border-white/5 p-8 flex flex-col md:flex-row md:items-center gap-6">
-        <div className="w-14 h-14 rounded-xl bg-hom-primary flex items-center justify-center font-black text-black text-2xl">H</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="HOM" width={56} height={56} className="rounded-xl" />
         <div className="flex-1">
           <p className="font-bold">HOM Hospitality — hom.com.ng</p>
           <p className="text-xs text-white/40 mt-1">

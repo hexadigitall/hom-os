@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
   UserCircle, Mail, Phone, Building2, ShieldCheck, LogOut, Save,
   Lock, CheckCircle2, Bell, Rows3, Globe, Camera,
@@ -9,7 +9,6 @@ import { useAuth } from '../../../lib/auth';
 import {
   Department, Department as Dept, DEPARTMENT_LABEL, ACCOUNT_STATUS_LABEL,
   findRoleById, effectivePermissions, hasIdentity, isManagement,
-  DEFAULT_PREFERENCES, UserPreferences,
 } from '../../../lib/rbac';
 import { Card, SectionHeader, Btn, Field, TextInput, Select, EmptyState, FieldGrid } from '../ui';
 
@@ -40,46 +39,23 @@ function DetailRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-interface Profile {
-  phone: string;
-  photoUrl: string;
-  preferences: UserPreferences;
-}
-
-const loadProfile = (): Profile => {
-  try {
-    const raw = localStorage.getItem('hom_web_profile');
-    if (raw) {
-      const p = JSON.parse(raw);
-      return {
-        phone: p?.phone || '',
-        photoUrl: p?.photoUrl || '',
-        preferences: { ...DEFAULT_PREFERENCES, ...(p?.preferences || {}) },
-      };
-    }
-  } catch { /* ignore */ }
-  return { phone: '', photoUrl: '', preferences: { ...DEFAULT_PREFERENCES } };
-};
-
 function ProfileForm({ onSaved }: { onSaved: (msg: string) => void }) {
-  const { session, updateUser } = useAuth();
-  const cached = useMemo(loadProfile, []);
+  const { session, updateSelf } = useAuth();
   const [name, setName] = useState(session.userName);
-  const [phone, setPhone] = useState(cached.phone);
-  const [photoUrl, setPhotoUrl] = useState(cached.photoUrl);
+  const [phone, setPhone] = useState(session.phone || '');
+  const [photoUrl, setPhotoUrl] = useState(session.photoUrl || '');
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     if (!name.trim()) return;
     setSaving(true);
     try {
-      if (name.trim() !== session.userName && session.userId) {
-        const error = await updateUser(session.userId, { userName: name.trim() });
-        if (error) { alert(error); return; }
-      }
-      try {
-        localStorage.setItem('hom_web_profile', JSON.stringify({ phone: phone.trim(), photoUrl: photoUrl.trim(), preferences: cached.preferences }));
-      } catch { /* ignore */ }
+      const error = await updateSelf({
+        userName: name.trim(),
+        phone: phone.trim(),
+        photoUrl: photoUrl.trim(),
+      });
+      if (error) { alert(error); return; }
       onSaved('Profile updated.');
     } finally {
       setSaving(false);
@@ -131,20 +107,17 @@ function Toggle({ label, icon, active, onChange }: {
 }
 
 function PreferencesForm({ onSaved }: { onSaved: (msg: string) => void }) {
-  const cached = useMemo(loadProfile, []);
-  const [notifications, setNotifications] = useState(cached.preferences.notificationsEnabled);
-  const [compact, setCompact] = useState(cached.preferences.compactMode);
-  const [language, setLanguage] = useState(cached.preferences.language);
+  const { session, updateSelf } = useAuth();
+  const [notifications, setNotifications] = useState(session.preferences?.notificationsEnabled ?? true);
+  const [compact, setCompact] = useState(session.preferences?.compactMode ?? false);
+  const [language, setLanguage] = useState(session.preferences?.language ?? 'en');
 
-  const save = () => {
-    try {
-      localStorage.setItem('hom_web_profile', JSON.stringify({
-        phone: cached.phone,
-        photoUrl: cached.photoUrl,
-        preferences: { notificationsEnabled: notifications, compactMode: compact, language },
-      }));
-      onSaved('Preferences saved.');
-    } catch { /* ignore */ }
+  const save = async () => {
+    const error = await updateSelf({
+      preferences: { notificationsEnabled: notifications, compactMode: compact, language },
+    });
+    if (error) { alert(error); return; }
+    onSaved('Preferences saved.');
   };
 
   return (
@@ -174,7 +147,6 @@ function PreferencesForm({ onSaved }: { onSaved: (msg: string) => void }) {
 export function AccountModule() {
   const { session, logout } = useAuth();
   const [saved, setSaved] = useState('');
-  const cached = useMemo(loadProfile, []);
 
   if (!hasIdentity(session)) {
     return <EmptyState text="You are not signed in." />;
@@ -191,8 +163,8 @@ export function AccountModule() {
   const flash = (m: string) => { setSaved(m); window.setTimeout(() => setSaved(''), 2500); };
 
   const initials = (session.userName || 'U').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-  const avatar = session.photoUrl || cached.photoUrl
-    ? <img src={session.photoUrl || cached.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 border-hom-primary shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+  const avatar = session.photoUrl
+    ? <img src={session.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover border-2 border-hom-primary shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
     : <div className="h-16 w-16 rounded-full bg-hom-primary text-white flex items-center justify-center text-xl font-black shrink-0">{initials}</div>;
 
   return (
@@ -223,7 +195,7 @@ export function AccountModule() {
             </div>
             <div className="mt-3 space-y-1">
               <DetailRow icon={<Mail size={15} />} label="Email" value={session.email} />
-              <DetailRow icon={<Phone size={15} />} label="Phone" value={cached.phone} />
+              <DetailRow icon={<Phone size={15} />} label="Phone" value={session.phone || ''} />
               <DetailRow icon={<Building2 size={15} />} label="Hotel" value={session.hotelId || ''} />
             </div>
           </div>

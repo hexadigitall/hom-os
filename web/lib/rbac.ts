@@ -289,6 +289,7 @@ export interface Session {
   isHeadOfDepartment: Record<string, boolean>;
   status: AccountStatus;
   hotelId?: string;
+  phone?: string;
   photoUrl?: string;
   preferences?: UserPreferences;
 }

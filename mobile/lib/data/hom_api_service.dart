@@ -229,4 +229,22 @@ class HomApiService {
   static Future<void> deleteUserRole(String targetUid) async {
     await _call('DELETE', '/api/users/${Uri.encodeComponent(targetUid)}');
   }
+
+  // ──────────────────── self-service profile ────────────────────
+
+  /// Update the signed-in user's own profile (name, phone, avatar,
+  /// preferences). Available to every active account, not just admins.
+  static Future<void> updateSelfProfile({
+    String? userName,
+    String? phone,
+    String? photoUrl,
+    Map<String, dynamic>? preferences,
+  }) async {
+    await _call('PATCH', '/api/users/me', {
+      if (userName != null) 'userName': userName,
+      if (phone != null) 'phone': phone,
+      if (photoUrl != null) 'photoUrl': photoUrl,
+      if (preferences != null) 'preferences': preferences,
+    });
+  }
 }

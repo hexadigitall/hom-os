@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'dart:ui' show Color;
 import '../models/role.dart';
+import '../models/user_profile.dart' show UserPreferences;
 
 /// Reactive, additive permission context for the signed-in user.
 ///
@@ -30,6 +31,12 @@ class Session {
   String? hotelId;
   String hotelName;
 
+  /// Self-service profile fields — mirrored from the `user_roles` doc so
+  /// name/phone/avatar/preferences stay uniform across every device.
+  String phone;
+  String? photoUrl;
+  UserPreferences preferences;
+
   Session({
     required this.userId,
     required this.userName,
@@ -41,7 +48,10 @@ class Session {
     this.status = AccountStatus.pending,
     this.hotelId,
     this.hotelName = '',
-  });
+    this.phone = '',
+    this.photoUrl,
+    UserPreferences? preferences,
+  }) : preferences = preferences ?? UserPreferences();
 
   /// Backward-compatible constructor for a single primary role.
   Session.withRole({
@@ -55,9 +65,13 @@ class Session {
     this.status = AccountStatus.active,
     this.hotelId,
     this.hotelName = '',
+    this.phone = '',
+    this.photoUrl,
+    UserPreferences? preferences,
   }) : roleIds = [role.id],
        assignedDepartments = assignedDepartments ??
-           (role.department != null ? [role.department!] : const []);
+           (role.department != null ? [role.department!] : const []),
+       preferences = preferences ?? UserPreferences();
 
   /// Zero-trust sentinel — no identity, no roles, no permissions.
   factory Session.empty() => Session(

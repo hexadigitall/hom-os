@@ -38,6 +38,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name cannot be empty.')),
+      );
+      return;
+    }
+
     final session = widget.session;
     final profile = widget.profile ??
         UserProfile(
@@ -51,23 +59,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           hotelName: session?.hotelName ?? '',
           createdAt: DateTime.now(),
         );
-    profile.displayName = _nameCtrl.text;
-    profile.phone = _phoneCtrl.text;
+    profile.displayName = name;
+    profile.phone = _phoneCtrl.text.trim();
     profile.photoUrl = _photoCtrl.text.trim().isEmpty ? null : _photoCtrl.text.trim();
     profile.updatedAt = DateTime.now();
     await ProfileStore.save(profile);
 
-    // Best-effort server name sync (only works for management-level accounts;
-    // the callable requires admin. Staff keep their name locally.)
-    if (session != null && _nameCtrl.text.trim().isNotEmpty &&
-        _nameCtrl.text.trim() != session.userName) {
-      HomApiService.updateUserRole(
-        targetUid: session.userId,
-        userName: _nameCtrl.text.trim(),
-      ).catchError((_) {});
+    // Server-authoritative sync: every active account can update its own
+    // profile, so changes propagate to every device in realtime. On failure
+    // we keep the local cache and surface the offline state instead of
+    // silently swallowing it.
+    var synced = true;
+    if (session != null) {
+      try {
+        await HomApiService.updateSelfProfile(
+          userName: name,
+          phone: _phoneCtrl.text.trim(),
+          photoUrl: profile.photoUrl ?? '',
+        );
+      } catch (_) {
+        synced = false;
+      }
     }
 
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    if (!synced) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Saved on this device — will sync to your other devices when you are back online.')),
+      );
+    }
+    Navigator.pop(context);
   }
 
   @override
