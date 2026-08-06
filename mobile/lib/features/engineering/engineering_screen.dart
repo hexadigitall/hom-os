@@ -34,37 +34,40 @@ class _EngineeringScreenState extends State<EngineeringScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Engineering & Power'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: _primary,
-          labelColor: _primary,
-          unselectedLabelColor: AppColors.grey500,
-          tabs: const [
-            Tab(
-                text: 'Dashboard',
-                icon: Icon(Icons.dashboard_rounded, size: 15)),
-            Tab(text: 'Generators', icon: Icon(Icons.power, size: 15)),
-            Tab(text: 'Maintenance', icon: Icon(Icons.build_rounded, size: 15)),
-            Tab(
-                text: 'Fuel & Tanks',
-                icon: Icon(Icons.local_gas_station_rounded, size: 15)),
-            Tab(text: 'Grid & Cost', icon: Icon(Icons.bolt_rounded, size: 15)),
-            Tab(
-                text: 'Water Treatment',
-                icon: Icon(Icons.water_drop_rounded, size: 15)),
-          ],
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: _primary,
+            labelColor: _primary,
+            unselectedLabelColor: AppColors.grey500,
+            tabs: const [
+              Tab(
+                  text: 'Dashboard',
+                  icon: Icon(Icons.dashboard_rounded, size: 15)),
+              Tab(text: 'Generators', icon: Icon(Icons.power, size: 15)),
+              Tab(text: 'Maintenance', icon: Icon(Icons.build_rounded, size: 15)),
+              Tab(
+                  text: 'Fuel & Tanks',
+                  icon: Icon(Icons.local_gas_station_rounded, size: 15)),
+              Tab(text: 'Grid & Cost', icon: Icon(Icons.bolt_rounded, size: 15)),
+              Tab(
+                  text: 'Water Treatment',
+                  icon: Icon(Icons.water_drop_rounded, size: 15)),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(controller: _tabController, children: [
-        _DashboardTab(onChange: () => setState(() {})),
-        _GeneratorsTab(onChange: () => setState(() {})),
-        _MaintenanceTab(onChange: () => setState(() {})),
-        _FuelTanksTab(onChange: () => setState(() {})),
-        _GridCostTab(onChange: () => setState(() {})),
-        _WaterTab(onChange: () => setState(() {})),
+        Expanded(
+            child: TabBarView(controller: _tabController, children: [
+          _DashboardTab(onChange: () => setState(() {})),
+          _GeneratorsTab(onChange: () => setState(() {})),
+          _MaintenanceTab(onChange: () => setState(() {})),
+          _FuelTanksTab(onChange: () => setState(() {})),
+          _GridCostTab(onChange: () => setState(() {})),
+          _WaterTab(onChange: () => setState(() {})),
+        ])),
       ]),
     );
   }

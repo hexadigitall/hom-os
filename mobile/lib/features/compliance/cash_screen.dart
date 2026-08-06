@@ -122,7 +122,7 @@ class _CashScreenState extends State<CashScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cash Transactions'),
+        title: const Text('Cash Transactions', maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           if (thresholdCount > 0)
             Container(

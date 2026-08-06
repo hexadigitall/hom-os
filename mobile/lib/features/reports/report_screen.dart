@@ -128,7 +128,6 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reports')),
       body: Column(children: [
         Container(
           padding: const EdgeInsets.all(12),

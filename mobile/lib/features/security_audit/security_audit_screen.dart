@@ -33,31 +33,34 @@ class _SecurityAuditScreenState extends State<SecurityAuditScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Security & Audit'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: _primary,
-          labelColor: _primary,
-          unselectedLabelColor: AppColors.grey500,
-          tabs: const [
-            Tab(
-                text: 'Night Audit',
-                icon: Icon(Icons.nightlight_round, size: 15)),
-            Tab(text: 'Security', icon: Icon(Icons.security_rounded, size: 15)),
-            Tab(
-                text: 'Visitors',
-                icon: Icon(Icons.person_pin_rounded, size: 15)),
-            Tab(text: 'Shifts', icon: Icon(Icons.swap_horiz_rounded, size: 15)),
-          ],
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: _primary,
+            labelColor: _primary,
+            unselectedLabelColor: AppColors.grey500,
+            tabs: const [
+              Tab(
+                  text: 'Night Audit',
+                  icon: Icon(Icons.nightlight_round, size: 15)),
+              Tab(text: 'Security', icon: Icon(Icons.security_rounded, size: 15)),
+              Tab(
+                  text: 'Visitors',
+                  icon: Icon(Icons.person_pin_rounded, size: 15)),
+              Tab(text: 'Shifts', icon: Icon(Icons.swap_horiz_rounded, size: 15)),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(controller: _tabController, children: [
-        _NightAuditTab(onChange: () => setState(() {})),
-        _SecurityTab(onChange: () => setState(() {})),
-        _VisitorsTab(onChange: () => setState(() {})),
-        _ShiftTab(onChange: () => setState(() {})),
+        Expanded(
+            child: TabBarView(controller: _tabController, children: [
+          _NightAuditTab(onChange: () => setState(() {})),
+          _SecurityTab(onChange: () => setState(() {})),
+          _VisitorsTab(onChange: () => setState(() {})),
+          _ShiftTab(onChange: () => setState(() {})),
+        ])),
       ]),
     );
   }

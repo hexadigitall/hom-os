@@ -37,29 +37,32 @@ class _BackOfficeScreenState extends State<BackOfficeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Back Office & Supply Chain'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: _primary,
-          labelColor: _primary,
-          unselectedLabelColor: AppColors.grey500,
-          tabs: const [
-            Tab(
-                text: 'Procurement',
-                icon: Icon(Icons.receipt_long_rounded, size: 15)),
-            Tab(
-                text: 'Payroll',
-                icon: Icon(Icons.account_balance_wallet_rounded, size: 15)),
-            Tab(text: 'Tax Config', icon: Icon(Icons.tune_rounded, size: 15)),
-          ],
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: _primary,
+            labelColor: _primary,
+            unselectedLabelColor: AppColors.grey500,
+            tabs: const [
+              Tab(
+                  text: 'Procurement',
+                  icon: Icon(Icons.receipt_long_rounded, size: 15)),
+              Tab(
+                  text: 'Payroll',
+                  icon: Icon(Icons.account_balance_wallet_rounded, size: 15)),
+              Tab(text: 'Tax Config', icon: Icon(Icons.tune_rounded, size: 15)),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(controller: _tabController, children: [
-        _ProcurementTab(onChange: () => setState(() {})),
-        _PayrollTab(onChange: () => setState(() {})),
-        _TaxConfigTab(onChange: () => setState(() {})),
+        Expanded(
+            child: TabBarView(controller: _tabController, children: [
+          _ProcurementTab(onChange: () => setState(() {})),
+          _PayrollTab(onChange: () => setState(() {})),
+          _TaxConfigTab(onChange: () => setState(() {})),
+        ])),
       ]),
     );
   }

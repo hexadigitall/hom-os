@@ -65,7 +65,7 @@ class _UploadScreenState extends State<UploadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload Expenditure')),
+      appBar: AppBar(title: const Text('Upload Expenditure', maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(
           child: Padding(

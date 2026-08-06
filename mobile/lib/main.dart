@@ -542,6 +542,44 @@ class _HomeShellState extends State<HomeShell> {
     return found.isNotEmpty ? found.first.label : 'Overview';
   }
 
+  // Full contextual header title for the active tab. Feature screens use
+  // their short label in the shell nav, so expand the header back to the
+  // complete feature name.
+  String get _fullHeaderLabel {
+    switch (_currentLabel) {
+      case 'Reconciliation':
+        return 'Payments & Reconciliation';
+      case 'Back Office':
+        return 'Back Office & Supply Chain';
+      case 'Engineering':
+        return 'Engineering & Power';
+      case 'Housekeeping':
+        return 'Housekeeping & Assets';
+      case 'F&B':
+        return 'F&B Operations';
+      case 'Expenses':
+        return 'Expenditure';
+      default:
+        return _currentLabel;
+    }
+  }
+
+  // Ultra-narrow fallback: drop modifiers rather than truncate mid-word.
+  String get _abbrevHeaderLabel {
+    switch (_fullHeaderLabel) {
+      case 'Payments & Reconciliation':
+        return 'Reconciliation';
+      case 'Back Office & Supply Chain':
+        return 'Back Office';
+      case 'Engineering & Power':
+        return 'Engineering';
+      case 'Housekeeping & Assets':
+        return 'Housekeeping';
+      default:
+        return _fullHeaderLabel;
+    }
+  }
+
   // Role identity badge in the header. Owner and Hotel Manager both hold
   // full access, so they are told apart by label + colour rather than by
   // the (identical) footer menu.
@@ -550,6 +588,118 @@ class _HomeShellState extends State<HomeShell> {
     if (ids.contains('super_admin')) return 'Owner';
     if (ids.contains('hotel_manager')) return 'Manager';
     return 'Staff';
+  }
+
+  Widget _headerProfileBtn() => IconButton(
+        onPressed: () {
+          final currentRoute = ModalRoute.of(context)?.settings.name;
+          if (currentRoute != '/profile') {
+            Navigator.pushNamed(context, '/profile');
+          }
+        },
+        icon: const Icon(Icons.person_outline_rounded, size: 22),
+        constraints: const BoxConstraints(),
+      );
+
+  Widget _headerBell(int unread) => Stack(clipBehavior: Clip.none, children: [
+        IconButton(
+            onPressed: _showNotifications,
+            icon: const Icon(Icons.notifications_outlined, size: 22),
+            constraints: const BoxConstraints()),
+        if (unread > 0)
+          Positioned(
+            right: 2,
+            top: 2,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                  color: AppColors.red, shape: BoxShape.circle),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text('$unread',
+                  style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800),
+                  textAlign: TextAlign.center),
+            ),
+          ),
+      ]);
+
+  Widget _headerRoleBadge() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+            color: RoleStore.current.roleAccent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20)),
+        child: Text(_roleBadgeLabel,
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: RoleStore.current.roleAccent)),
+      );
+
+  Widget _headerLiveBadge() => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+            color: primaryGreen.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20)),
+        child: const Text('LIVE',
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w800, color: primaryGreen)),
+      );
+
+  // Adaptive shell header: single row on wide viewports, two-level stack
+  // (brand + full-width title above, badges/actions below) on narrow phones.
+  Widget _headerTitle(int unread) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isNarrow = width <= 400;
+    final label = width < 340 ? _abbrevHeaderLabel : _fullHeaderLabel;
+    final logo = Image.asset('assets/logo/logo.png',
+        height: isNarrow ? 24 : 26,
+        errorBuilder: (c, e, s) => const SizedBox.shrink());
+    const titleStyle =
+        TextStyle(fontWeight: FontWeight.w800, fontSize: 18);
+
+    if (!isNarrow) {
+      return Row(children: [
+        logo,
+        const SizedBox(width: 10),
+        Flexible(
+            child: Text(label,
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle)),
+        const Spacer(),
+        _headerProfileBtn(),
+        _headerBell(unread),
+        const SizedBox(width: 4),
+        _headerRoleBadge(),
+        const SizedBox(width: 4),
+        _headerLiveBadge(),
+      ]);
+    }
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(children: [
+          logo,
+          const SizedBox(width: 10),
+          Expanded(
+              child: Text(label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: titleStyle)),
+        ]),
+        const SizedBox(height: 4),
+        Row(children: [
+          _headerRoleBadge(),
+          const SizedBox(width: 4),
+          _headerLiveBadge(),
+          const Spacer(),
+          _headerBell(unread),
+          _headerProfileBtn(),
+        ]),
+      ],
+    );
   }
 
   void _showMoreSheet() {
@@ -706,76 +856,8 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: LayoutBuilder(
-          builder: (ctx, constraints) => Row(children: [
-            Image.asset('assets/logo/logo.png',
-                height: 26, errorBuilder: (c, e, s) => const SizedBox.shrink()),
-            const SizedBox(width: 10),
-            Flexible(
-                child: Text('HOM — $_currentLabel',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis)),
-            const Spacer(),
-            IconButton(
-              onPressed: () {
-                final currentRoute = ModalRoute.of(context)?.settings.name;
-                if (currentRoute != '/profile') {
-                  Navigator.pushNamed(context, '/profile');
-                }
-              },
-              icon: const Icon(Icons.person_outline_rounded, size: 22),
-              constraints: const BoxConstraints(),
-            ),
-            Stack(clipBehavior: Clip.none, children: [
-              IconButton(
-                  onPressed: _showNotifications,
-                  icon: const Icon(Icons.notifications_outlined, size: 22),
-                  constraints: const BoxConstraints()),
-              if (unread > 0)
-                Positioned(
-                  right: 2,
-                  top: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                        color: AppColors.red, shape: BoxShape.circle),
-                    constraints:
-                        const BoxConstraints(minWidth: 18, minHeight: 18),
-                    child: Text('$unread',
-                        style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.w800),
-                        textAlign: TextAlign.center),
-                  ),
-                ),
-            ]),
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                  color: RoleStore.current.roleAccent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20)),
-              child: Text(_roleBadgeLabel,
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: RoleStore.current.roleAccent)),
-            ),
-            const SizedBox(width: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                  color: primaryGreen.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20)),
-              child: const Text('LIVE',
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: primaryGreen)),
-            ),
-          ]),
-        ),
+        toolbarHeight: MediaQuery.sizeOf(context).width <= 400 ? 88 : null,
+        title: _headerTitle(unread),
       ),
       body: Column(
         children: [

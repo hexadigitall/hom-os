@@ -21,7 +21,6 @@ class ComplianceScreen extends StatelessWidget {
     final fireLatest = ComplianceStore.latestFireCert;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Compliance')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Text('Regulatory & Compliance', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primaryDark)),
         const SizedBox(height: 4),

@@ -47,6 +47,19 @@ const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; pe
   { id: 'account', label: 'My Account', icon: UserCircle, module: AccountModule, perm: PERMISSIONS.viewReports, always: true },
 ];
 
+// Full contextual header titles: nav uses short labels, the module header
+// expands them back to the complete feature name (mirrors the mobile shell).
+const FULL_LABEL: Record<string, string> = {
+  reconciliation: 'Payments & Reconciliation',
+  back_office: 'Back Office & Supply Chain',
+  engineering: 'Engineering & Power',
+  housekeeping: 'Housekeeping & Assets',
+  fnb: 'F&B Operations',
+  expenses: 'Expenditure',
+};
+const headerTitle = (id?: string, fallback = 'HOM') =>
+  id ? (FULL_LABEL[id] ?? NAV.find((n) => n.id === id)?.label ?? fallback) : fallback;
+
 // Nav grouped by the six HOM pillars (see lib/rbac.ts) + system/channels, so
 // menu items are scannable by department instead of one flat list.
 const GROUPS: { label: string; items: string[] }[] = [
@@ -119,9 +132,9 @@ function DashboardInner() {
             <button className="md:hidden p-2 -ml-2" onClick={() => setMobileNavOpen(true)} aria-label="Open menu">
               <Menu size={20} />
             </button>
-            <h1 className="font-bold capitalize flex items-center gap-2 min-w-0 truncate">
+            <h1 title={headerTitle(current?.id)} className="font-bold capitalize flex items-center gap-2 min-w-0 truncate">
               {current && (() => { const Icon = current.icon; return <Icon size={20} className="shrink-0" style={{ color: accent }} />; })()}
-              <span className="truncate">{current?.label || 'HOM'}</span>
+              <span className="truncate">{headerTitle(current?.id)}</span>
             </h1>
           </div>
           <div className="flex items-center gap-2 min-w-0">

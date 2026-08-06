@@ -153,20 +153,22 @@ class _ExpenditureScreenState extends State<ExpenditureScreen> {
   Widget build(BuildContext context) {
     final records = _records;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Expenditure'),
-        actions: [
-          if (records.isNotEmpty)
-            RoleGate(
-              requiredPermission: Permission.createExpenditure,
-              child: TextButton(
-                onPressed: () { ExpenditureStore.clear(); setState(() {}); },
-                child: const Text('Clear All', style: TextStyle(color: AppColors.redAccent)),
-              ),
-            ),
-        ],
-      ),
       body: Column(children: [
+        if (records.isNotEmpty)
+          Container(
+            color: AppColors.white,
+            padding: const EdgeInsets.fromLTRB(16, 0, 8, 0),
+            child: Row(children: [
+              const Spacer(),
+              RoleGate(
+                requiredPermission: Permission.createExpenditure,
+                child: TextButton(
+                  onPressed: () { ExpenditureStore.clear(); setState(() {}); },
+                  child: const Text('Clear All', style: TextStyle(color: AppColors.redAccent)),
+                ),
+              ),
+            ]),
+          ),
         Container(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           color: AppColors.white,

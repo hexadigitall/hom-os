@@ -130,7 +130,7 @@ class _TaxScreenState extends State<TaxScreen> {
     final reports = ComplianceStore.taxReports;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('State Consumption Tax')),
+      appBar: AppBar(title: const Text('State Consumption Tax', maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Text('Configured States',
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),

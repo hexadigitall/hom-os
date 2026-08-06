@@ -42,35 +42,32 @@ class _WhatsAppScreenState extends State<WhatsAppScreen>
     final sentToday = WhatsAppStore.sentTodayCount;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('WhatsApp'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.whatsapp.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.check_circle,
-                      size: 14, color: AppColors.whatsapp),
-                  const SizedBox(width: 4),
-                  Text('$sentToday sent',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.whatsapp)),
-                ]),
-              ),
-            ),
-          ),
-        ],
-      ),
       body: Column(children: [
+        Container(
+          color: AppColors.white,
+          padding: const EdgeInsets.fromLTRB(12, 6, 16, 0),
+          child: Row(children: [
+            const Spacer(),
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.whatsapp.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.check_circle,
+                    size: 14, color: AppColors.whatsapp),
+                const SizedBox(width: 4),
+                Text('$sentToday sent',
+                    style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.whatsapp)),
+              ]),
+            ),
+          ]),
+        ),
         _dashboardRow(contacts.length, sentToday),
         TabBar(
           controller: _tabCtrl,

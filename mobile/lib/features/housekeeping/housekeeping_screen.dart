@@ -34,33 +34,36 @@ class _HousekeepingScreenState extends State<HousekeepingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Housekeeping & Assets'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: _primary,
-          labelColor: _primary,
-          unselectedLabelColor: AppColors.grey500,
-          tabs: const [
-            Tab(
-                text: 'Tasks',
-                icon: Icon(Icons.cleaning_services_rounded, size: 15)),
-            Tab(
-                text: 'Laundry',
-                icon: Icon(Icons.local_laundry_service_rounded, size: 15)),
-            Tab(
-                text: 'Lost & Found',
-                icon: Icon(Icons.search_rounded, size: 15)),
-            Tab(text: 'Linen', icon: Icon(Icons.bed_rounded, size: 15)),
-          ],
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            indicatorColor: _primary,
+            labelColor: _primary,
+            unselectedLabelColor: AppColors.grey500,
+            tabs: const [
+              Tab(
+                  text: 'Tasks',
+                  icon: Icon(Icons.cleaning_services_rounded, size: 15)),
+              Tab(
+                  text: 'Laundry',
+                  icon: Icon(Icons.local_laundry_service_rounded, size: 15)),
+              Tab(
+                  text: 'Lost & Found',
+                  icon: Icon(Icons.search_rounded, size: 15)),
+              Tab(text: 'Linen', icon: Icon(Icons.bed_rounded, size: 15)),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(controller: _tabController, children: [
-        _TasksTab(onChange: () => setState(() {})),
-        _LaundryTab(onChange: () => setState(() {})),
-        _LostFoundTab(onChange: () => setState(() {})),
-        _LinenTab(onChange: () => setState(() {})),
+        Expanded(
+            child: TabBarView(controller: _tabController, children: [
+          _TasksTab(onChange: () => setState(() {})),
+          _LaundryTab(onChange: () => setState(() {})),
+          _LostFoundTab(onChange: () => setState(() {})),
+          _LinenTab(onChange: () => setState(() {})),
+        ])),
       ]),
     );
   }

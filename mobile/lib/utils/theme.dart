@@ -113,6 +113,11 @@ class AppTheme {
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.textPrimary,
       elevation: 0.5,
+      titleTextStyle: TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: 18,
+        color: AppColors.textPrimary,
+      ),
     ),
     cardTheme: CardThemeData(
       elevation: 0,

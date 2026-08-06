@@ -122,7 +122,7 @@ class _ScumlScreenState extends State<ScumlScreen> {
     final records = ComplianceStore.scumlTransactions;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SCUML'),
+        title: const Text('SCUML', maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           if (records.isNotEmpty)
             IconButton(onPressed: _exportCsv, icon: const Icon(Icons.file_download_rounded), tooltip: 'Export CSV'),

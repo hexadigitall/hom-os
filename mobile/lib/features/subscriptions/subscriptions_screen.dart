@@ -205,22 +205,21 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final monthlyTotal = SubscriptionStore.totalMonthlyCost;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Subscriptions'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: Text('₦${_fmtShort(monthlyTotal)}/mo',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                      color: AppColors.primary)),
-            ),
-          ),
-        ],
-      ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      body: Column(children: [
+        Container(
+          color: AppColors.white,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: Row(children: [
+            const Spacer(),
+            Text('₦${_fmtShort(monthlyTotal)}/mo',
+                style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: AppColors.primary)),
+          ]),
+        ),
+        Expanded(
+            child: ListView(padding: const EdgeInsets.all(16), children: [
         // Summary cards
         Row(children: [
           _summaryCard(
@@ -349,6 +348,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     ]),
               ),
             )),
+        ]),
+      ),
       ]),
       floatingActionButton: RoleGate(
         requiredPermission: Permission.manageSubscriptions,

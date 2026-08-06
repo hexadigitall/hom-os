@@ -112,7 +112,7 @@ class _FireScreenState extends State<FireScreen> {
     final latest = ComplianceStore.latestFireCert;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Fire Service Certificates')),
+      appBar: AppBar(title: const Text('Fire Service Certificates', maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         if (latest != null) ...[
           Container(

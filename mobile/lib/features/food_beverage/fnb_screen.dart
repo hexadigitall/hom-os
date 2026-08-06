@@ -36,28 +36,31 @@ class _FnbScreenState extends State<FnbScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('F&B Operations'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _primary,
-          labelColor: _primary,
-          unselectedLabelColor: AppColors.grey500,
-          tabs: const [
-            Tab(
-                text: 'Tables',
-                icon: Icon(Icons.table_restaurant_rounded, size: 16)),
-            Tab(
-                text: 'Orders',
-                icon: Icon(Icons.receipt_long_rounded, size: 16)),
-            Tab(text: 'Menu', icon: Icon(Icons.menu_book_rounded, size: 16)),
-          ],
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: TabBar(
+            controller: _tabController,
+            indicatorColor: _primary,
+            labelColor: _primary,
+            unselectedLabelColor: AppColors.grey500,
+            tabs: const [
+              Tab(
+                  text: 'Tables',
+                  icon: Icon(Icons.table_restaurant_rounded, size: 16)),
+              Tab(
+                  text: 'Orders',
+                  icon: Icon(Icons.receipt_long_rounded, size: 16)),
+              Tab(text: 'Menu', icon: Icon(Icons.menu_book_rounded, size: 16)),
+            ],
+          ),
         ),
-      ),
-      body: TabBarView(controller: _tabController, children: [
-        _TablesTab(onOrderTap: () => setState(() {})),
-        _OrdersTab(onChange: () => setState(() {})),
-        _MenuTab(onChange: () => setState(() {})),
+        Expanded(
+            child: TabBarView(controller: _tabController, children: [
+          _TablesTab(onOrderTap: () => setState(() {})),
+          _OrdersTab(onChange: () => setState(() {})),
+          _MenuTab(onChange: () => setState(() {})),
+        ])),
       ]),
     );
   }

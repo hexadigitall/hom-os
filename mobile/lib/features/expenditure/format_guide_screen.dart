@@ -11,7 +11,7 @@ class FormatGuideScreen extends StatelessWidget {
     final codePad = const EdgeInsets.all(12);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('File Format Guide')),
+      appBar: AppBar(title: const Text('File Format Guide', maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         Card(
           child: Padding(

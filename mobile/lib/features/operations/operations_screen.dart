@@ -40,7 +40,6 @@ class _OperationsScreenState extends State<OperationsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Operations')),
       body: Column(children: [
         TabBar(
           controller: _tabCtrl,

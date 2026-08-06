@@ -40,54 +40,63 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
   Widget build(BuildContext context) {
     final notifications = _notifications;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notifications'),
-        actions: [
-          if (NotificationStore.unreadCount > 0)
-            TextButton(
-              onPressed: () { NotificationStore.markAllRead(); setState(() {}); },
-              child: const Text('Mark All Read'),
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (NotificationStore.unreadCount > 0)
+                  TextButton(
+                    onPressed: () { NotificationStore.markAllRead(); setState(() {}); },
+                    child: const Text('Mark All Read'),
+                  ),
+                if (notifications.isNotEmpty)
+                  IconButton(
+                    onPressed: () { NotificationStore.clear(); setState(() {}); },
+                    icon: const Icon(Icons.delete_sweep_rounded),
+                  ),
+              ],
             ),
-          if (notifications.isNotEmpty)
-            IconButton(
-              onPressed: () { NotificationStore.clear(); setState(() {}); },
-              icon: const Icon(Icons.delete_sweep_rounded),
+            TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.primary,
+              labelColor: AppColors.primary,
+              unselectedLabelColor: AppColors.grey500,
+              tabs: const [
+                Tab(text: 'All', icon: Icon(Icons.all_inclusive_rounded, size: 16)),
+                Tab(text: 'Alarms', icon: Icon(Icons.warning_rounded, size: 16)),
+                Tab(text: 'Operational', icon: Icon(Icons.sync_rounded, size: 16)),
+                Tab(text: 'Deadlines', icon: Icon(Icons.schedule_rounded, size: 16)),
+              ],
             ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          labelColor: AppColors.primary,
-          unselectedLabelColor: AppColors.grey500,
-          tabs: const [
-            Tab(text: 'All', icon: Icon(Icons.all_inclusive_rounded, size: 16)),
-            Tab(text: 'Alarms', icon: Icon(Icons.warning_rounded, size: 16)),
-            Tab(text: 'Operational', icon: Icon(Icons.sync_rounded, size: 16)),
-            Tab(text: 'Deadlines', icon: Icon(Icons.schedule_rounded, size: 16)),
-          ],
+          ]),
         ),
-      ),
-      body: notifications.isEmpty
-          ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.notifications_none_rounded, size: 64, color: AppColors.grey300),
-              const SizedBox(height: 12),
-              Text('No notifications', style: TextStyle(color: AppColors.grey500)),
-            ]))
-          : ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: notifications.length,
-              itemBuilder: (ctx, i) {
-                final n = notifications[i];
-                return _NotificationCard(
-                  notification: n,
-                  onTap: () {
-                    NotificationStore.markRead(n.id);
-                    setState(() {});
+        Expanded(
+          child: notifications.isEmpty
+              ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.notifications_none_rounded, size: 64, color: AppColors.grey300),
+                  const SizedBox(height: 12),
+                  Text('No notifications', style: TextStyle(color: AppColors.grey500)),
+                ]))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: notifications.length,
+                  itemBuilder: (ctx, i) {
+                    final n = notifications[i];
+                    return _NotificationCard(
+                      notification: n,
+                      onTap: () {
+                        NotificationStore.markRead(n.id);
+                        setState(() {});
+                      },
+                      onDelete: () { NotificationStore.remove(n.id); setState(() {}); },
+                    );
                   },
-                  onDelete: () { NotificationStore.remove(n.id); setState(() {}); },
-                );
-              },
-            ),
+                ),
+        ),
+      ]),
     );
   }
 }

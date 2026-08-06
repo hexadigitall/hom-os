@@ -106,7 +106,7 @@ class _LgaScreenState extends State<LgaScreen> {
     final latest = ComplianceStore.latestInspection;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('LGA Health & Safety')),
+      appBar: AppBar(title: const Text('LGA Health & Safety', maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         if (latest != null) ...[
           Container(

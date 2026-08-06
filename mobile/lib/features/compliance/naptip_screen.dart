@@ -99,7 +99,7 @@ class _NaptipScreenState extends State<NaptipScreen> {
   Widget build(BuildContext context) {
     final alerts = ComplianceStore.naptipAlerts;
     return Scaffold(
-      appBar: AppBar(title: const Text('NAPTIP Alerts')),
+      appBar: AppBar(title: const Text('NAPTIP Alerts', maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: alerts.isEmpty
           ? Center(
               child: Column(mainAxisSize: MainAxisSize.min, children: [

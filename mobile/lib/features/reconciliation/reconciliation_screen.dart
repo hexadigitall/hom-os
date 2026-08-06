@@ -40,37 +40,34 @@ class _ReconciliationScreenState extends State<ReconciliationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Payments & Reconciliation'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(42),
-          child: Container(
-            color: AppColors.white,
-            child: TabBar(
-              controller: _tabCtrl,
-              indicatorColor: _primaryGreen,
-              labelColor: _primaryGreen,
-              unselectedLabelColor: AppColors.grey600,
-              labelStyle:
-                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-              unselectedLabelStyle: const TextStyle(fontSize: 12),
-              tabs: const [
-                Tab(text: 'Bank Stmts'),
-                Tab(text: 'Virtual Accts'),
-                Tab(text: 'POS'),
-              ],
-            ),
+      body: Column(children: [
+        Material(
+          color: AppColors.white,
+          child: TabBar(
+            controller: _tabCtrl,
+            indicatorColor: _primaryGreen,
+            labelColor: _primaryGreen,
+            unselectedLabelColor: AppColors.grey600,
+            labelStyle:
+                const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            tabs: const [
+              Tab(text: 'Bank Stmts'),
+              Tab(text: 'Virtual Accts'),
+              Tab(text: 'POS'),
+            ],
           ),
         ),
-      ),
-      body: TabBarView(
-        controller: _tabCtrl,
-        children: [
-          _BankStatementsTab(parent: this),
-          _VirtualAccountsTab(parent: this),
-          _PosTab(parent: this),
-        ],
-      ),
+        Expanded(
+            child: TabBarView(
+          controller: _tabCtrl,
+          children: [
+            _BankStatementsTab(parent: this),
+            _VirtualAccountsTab(parent: this),
+            _PosTab(parent: this),
+          ],
+        )),
+      ]),
     );
   }
 }
