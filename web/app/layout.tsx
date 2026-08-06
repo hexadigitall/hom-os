@@ -1,4 +1,5 @@
 import "./globals.css";
+import SwRegister from "./sw-register";
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://hom.com.ng"),
   title: "HOM — The Hotel Operating System for Nigerian Hotels | Hexadigitall",
@@ -22,5 +23,5 @@ export const metadata = {
   },
 };
 export default function RootLayout({children}: {children: React.ReactNode}) {
-  return <html lang="en"><head><link rel="icon" href="/favicon.ico" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" /></head><body className="bg-hom-background text-hom-ink">{children}</body></html>
+  return <html lang="en"><head><link rel="icon" href="/favicon.ico" /><link rel="apple-touch-icon" href="/apple-touch-icon.png" /></head><body className="bg-hom-background text-hom-ink">{children}<SwRegister /></body></html>
 }

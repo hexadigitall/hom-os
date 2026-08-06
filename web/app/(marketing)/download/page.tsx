@@ -85,7 +85,7 @@ const CARDS: Card[] = [
   {
     key: 'macos',
     title: 'macOS',
-    desc: 'Mac build for Apple silicon and Intel. Upgrades replace your existing HOM app.',
+    desc: 'Mac build for Apple silicon and Intel. Currently unsigned — on first launch, right-click the app and choose Open to bypass Gatekeeper. Upgrades replace your existing HOM app.',
     icon: '🍎',
     os: ['macos'],
     match: (a) => a.find((x) => /^HOM-macOS/i.test(x.name)),
@@ -100,15 +100,6 @@ const CARDS: Card[] = [
     match: () => undefined,
     qr: 'https://app.hom.com.ng',
     badge: 'No install',
-  },
-  {
-    key: 'ios',
-    title: 'iOS',
-    desc: 'iOS app is coming soon. Until then, use the Web App on iPhone and iPad — add it to your home screen.',
-    icon: '📱',
-    os: ['ios'],
-    match: () => undefined,
-    badge: 'Coming soon',
   },
 ]
 
