@@ -10,6 +10,7 @@ import {
   seedBankTransactions, seedMatches, seedVirtualAccounts, seedPosTerminals, seedPosSettlements, seedBookings, seedExpenditure,
 } from '@/lib/seed';
 import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { parseBankCsv } from '@/lib/bankparser';
@@ -48,7 +49,7 @@ function BankTab() {
   const txns = useScopedCollection<BankTransaction>('rec_bank_txns', seedBankTransactions, session);
   const matches = useScopedCollection<ReconciliationMatch>('rec_matches', seedMatches, session);
   const splits = useScopedCollection<SplitPayment>('rec_split_payments', () => [], session);
-  const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
+  const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
   const exp = useScopedCollection<ExpenditureRecord>('expenditure_records', seedExpenditure, session);
   const [filter, setFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
   const [search, setSearch] = useState('');

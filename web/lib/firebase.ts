@@ -4,7 +4,12 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { FirebaseApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import type { Auth, User } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  CACHE_SIZE_UNLIMITED,
+} from 'firebase/firestore';
 import type { Firestore } from 'firebase/firestore';
 
 // Firebase web app config (project hom-os) — mirrors mobile/lib/firebase_options.dart.
@@ -19,6 +24,7 @@ const FIREBASE_CONFIG = {
 };
 
 let appInstance: FirebaseApp | null = null;
+let dbInstance: Firestore | null = null;
 
 export function getAppInstance(): FirebaseApp {
   if (appInstance) return appInstance;
@@ -35,7 +41,16 @@ export function getAuthInstance(): Auth {
 }
 
 export function getFirestoreInstance(): Firestore {
-  return getFirestore(getAppInstance());
+  if (dbInstance) return dbInstance;
+  // Persistent IndexedDB cache: reads and queued writes keep working offline,
+  // and sync automatically on reconnection (offline-first business data).
+  dbInstance = initializeFirestore(getAppInstance(), {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    }),
+  });
+  return dbInstance;
 }
 
 /**

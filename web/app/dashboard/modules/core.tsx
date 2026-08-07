@@ -13,6 +13,7 @@ import {
 } from '@/lib/seed';
 
 import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate, daysBetween } from '@/lib/format';
@@ -76,7 +77,7 @@ export function OverviewModule() {
 
 export function BookingsModule() {
   const { session } = useAuth();
-  const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
+  const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
   const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
   const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);

@@ -75,5 +75,23 @@ service cloud.firestore {
     match /invites/{code} {
       allow read, write: if false; // Cloud Functions only
     }
+
+    // ─────────────────────── business data ───────────────────────
+
+    // Offline-first business records (bookings, inventory, fnb, hk, eng, ...)
+    // live under each hotel. This is the ONE deliberate exception to the
+    // "clients never write" rule: Firestore's client SDKs need to queue these
+    // writes locally so staff can work offline. Safety comes from structure:
+    //   - the path can only ever point at the CALLER's own hotel, so
+    //     cross-hotel reads/writes are impossible even with a buggy client
+    //   - the caller must be signed in, active AND a member of that hotel
+    //   - identity (user_roles/hotels/invites) remains server-authoritative
+    // Conflict handling is field-level last-write-wins + server timestamps.
+    match /hotels/{hotelId}/{collection}/{docId} {
+      allow read, create, update, delete:
+        if signedIn()
+        && isActive(request.auth.uid)
+        && sameHotel(roleDoc(request.auth.uid).hotelId, hotelId);
+    }
   }
 }

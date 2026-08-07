@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -5,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:app_links/app_links.dart';
 import 'firebase_options.dart';
 import 'features/expenditure/expenditure_screen.dart';
@@ -46,6 +48,7 @@ import 'utils/theme.dart';
 import 'data/profile_store.dart';
 import 'data/role_store.dart';
 import 'data/update_service.dart';
+import 'data/sync_service.dart';
 import 'models/role.dart';
 import 'models/hotel_user.dart';
 import 'models/expenditure.dart';
@@ -137,6 +140,8 @@ void main() async {
 
   await HOMData.load();
   _trace('HOMData.load ok');
+  HOMData.attach();
+  _trace('HOMData.attach ok');
   await ExpenditureStore.load();
   _trace('ExpenditureStore ok');
   await ComplianceStore.load();
@@ -1306,6 +1311,10 @@ class HOMData {
       bookings.clear();
       bookings.addAll(b);
     }
+    final syncMeta =
+        PersistenceService.load<Map<String, dynamic>>(
+            'hom_sync_meta_bookings', (v) => Map<String, dynamic>.from(v as Map));
+    if (syncMeta != null) _lastPushedBookings = syncMeta;
     final f = PersistenceService.loadList('hom_fuel_logs', FuelLog.fromJson);
     if (f != null) {
       fuelLogs.clear();
@@ -1348,6 +1357,92 @@ class HOMData {
         'hom_vendors', vendors, (e) => e.toJson());
     await PersistenceService.saveList(
         'hom_purchase_orders', purchaseOrders, (e) => e.toJson());
+    await _syncBookings();
+  }
+
+  // ===================== CLOUD SYNC (BOOKINGS) =====================
+  // Firestore is the master for the `bookings` collection once a session is
+  // active; the Hive list stays as the offline cache + live UI state. The
+  // sync is driven by the session's hotel id (identity remains
+  // server-authoritative) and Firestore's local persistence queues any write
+  // made while offline, so the next reconnection syncs it automatically.
+
+  static StreamSubscription<List<Map<String, dynamic>>>? _bookingsSub;
+  static String? _bookingsHotelId;
+  static Map<String, dynamic> _lastPushedBookings = const {};
+
+  /// Follows the session: subscribe to the cloud bookings collection when a
+  /// hotel is active, cancel when signed out or the hotel changes.
+  static void attach() {
+    RoleStore.sessionNotifier.addListener(_onSessionChanged);
+    _onSessionChanged();
+  }
+
+  static void _onSessionChanged() {
+    final hotel = RoleStore.current.hotelId;
+    if (hotel == null || hotel.isEmpty) {
+      _bookingsSub?.cancel();
+      _bookingsSub = null;
+      _bookingsHotelId = null;
+      return;
+    }
+    if (_bookingsHotelId == hotel) return;
+    _bookingsHotelId = hotel;
+    _startBookingsSync();
+  }
+
+  static Future<void> _startBookingsSync() async {
+    try {
+      // One-time backfill: when the cloud collection is empty, push the local
+      // data so Firestore becomes the master copy for this hotel.
+      _lastPushedBookings = await SyncService.backfill(
+        'bookings',
+        bookings.map((e) => e.toJson()).toList(),
+      );
+      await PersistenceService.save(
+          'hom_sync_meta_bookings', _lastPushedBookings);
+
+      _bookingsSub?.cancel();
+      _bookingsSub = SyncService.watch('bookings').listen((docs) {
+        final sorted = List<Map<String, dynamic>>.of(docs)
+          ..sort((a, b) => _docTime(b).compareTo(_docTime(a)));
+        final cloud = <Booking>[];
+        for (final d in sorted) {
+          try {
+            cloud.add(Booking.fromJson(d));
+          } catch (_) {/* skip malformed docs */}
+        }
+        final cloudIds = cloud.map((b) => b.id).toSet();
+        // Cloud is authoritative; keep local-only items (pending offline
+        // writes) visible until they reach the cloud.
+        final localOnly = bookings.where((b) => !cloudIds.contains(b.id)).toList();
+        bookings
+          ..clear()
+          ..addAll([...cloud, ...localOnly]);
+        PersistenceService.saveList('hom_bookings', bookings, (e) => e.toJson());
+      });
+    } catch (_) {
+      // No network / not provisioned — stay local-only for this run.
+    }
+  }
+
+  static Future<void> _syncBookings() async {
+    if (!SyncService.enabled) return;
+    try {
+      _lastPushedBookings = await SyncService.pushDiff(
+        'bookings',
+        bookings.map((e) => e.toJson()).toList(),
+        _lastPushedBookings,
+      );
+      await PersistenceService.save(
+          'hom_sync_meta_bookings', _lastPushedBookings);
+    } catch (_) {/* offline — the write is queued by Firestore */}
+  }
+
+  static DateTime _docTime(Map<String, dynamic> d) {
+    final t = d['createdAt'];
+    if (t is Timestamp) return t.toDate();
+    return DateTime.fromMillisecondsSinceEpoch(0);
   }
 }
 
