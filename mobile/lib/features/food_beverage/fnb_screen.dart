@@ -1362,36 +1362,143 @@ class _MenuTabState extends State<_MenuTab> {
 // ─────────────────────── MENU SELECTOR (for order creation) ───────────────────────
 
 class _MenuSelector extends StatefulWidget {
-  final void Function(MenuItem item, int qty, String? note) onAdd;
-  final ScrollController scrollController;
-  const _MenuSelector({required this.onAdd, required this.scrollController});
+  final Order order;
+  final VoidCallback? onChange;
+  const _MenuSelector({required this.order, this.onChange});
   @override
   State<_MenuSelector> createState() => _MenuSelectorState();
 }
 
 class _MenuSelectorState extends State<_MenuSelector> {
+  void _add(MenuItem item, int qty, String? note) {
+    setState(() {
+      widget.order.items.add(OrderItem(
+        menuItemId: item.id,
+        name: item.name,
+        quantity: qty,
+        unitPrice: item.price,
+        note: note,
+      ));
+    });
+    FnbStore.updateOrder(widget.order.id, widget.order);
+    widget.onChange?.call();
+  }
+
+  void _remove(OrderItem it) {
+    setState(() => widget.order.items.remove(it));
+    FnbStore.updateOrder(widget.order.id, widget.order);
+    widget.onChange?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cats = FnbStore.categories;
-    return Column(children: [
-      DefaultTabController(
-        length: cats.length,
-        child: Column(children: [
-          TabBar(
-            isScrollable: true,
-            indicatorColor: _primary,
-            labelColor: _primary,
-            unselectedLabelColor: AppColors.grey500,
-            tabs: cats.map((c) => Tab(text: c.toUpperCase())).toList(),
+    final items = widget.order.items;
+    final count = items.fold<int>(0, (a, i) => a + i.quantity);
+    final total = items.fold<double>(0, (a, i) => a + i.quantity * i.unitPrice);
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Add Items',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(
+              count == 0
+                  ? 'Nothing added yet'
+                  : '$count item${count == 1 ? '' : 's'} in this order',
+              style: const TextStyle(fontSize: 11, color: AppColors.grey600),
+            ),
+          ],
+        ),
+      ),
+      if (items.isNotEmpty)
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 132),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            children: [
+              for (final it in items)
+                ListTile(
+                  dense: true,
+                  visualDensity: VisualDensity.compact,
+                  leading: IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.close, size: 16),
+                    color: AppColors.grey500,
+                    onPressed: () => _remove(it),
+                  ),
+                  title: Text('${it.quantity}x ${it.name}',
+                      style: const TextStyle(fontSize: 13),
+                      overflow: TextOverflow.ellipsis),
+                  trailing: Text(
+                    '₦${(it.quantity * it.unitPrice).toStringAsFixed(0)}',
+                    style: const TextStyle(
+                        fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                ),
+            ],
           ),
-          SizedBox(
-            height: 300,
-            child: TabBarView(
-                children: cats
-                    .map((c) => _CategoryMenu(category: c, onAdd: widget.onAdd))
-                    .toList()),
-          ),
-        ]),
+        ),
+      if (cats.isEmpty)
+        const Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(
+              child:
+                  Text('Menu is empty — add items in the Menu tab first.')),
+        )
+      else
+        DefaultTabController(
+          length: cats.length,
+          child: Column(children: [
+            TabBar(
+              isScrollable: true,
+              indicatorColor: _primary,
+              labelColor: _primary,
+              unselectedLabelColor: AppColors.grey500,
+              tabs: cats.map((c) => Tab(text: c.toUpperCase())).toList(),
+            ),
+            SizedBox(
+              height: 260,
+              child: TabBarView(
+                  children: cats
+                      .map((c) => _CategoryMenu(category: c, onAdd: _add))
+                      .toList()),
+            ),
+          ]),
+        ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Total',
+                    style: TextStyle(fontSize: 11, color: AppColors.grey600)),
+                Text('₦${total.toStringAsFixed(0)}',
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: _primary)),
+              ],
+            ),
+            const Spacer(),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: _primary,
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 12)),
+              onPressed: () => Navigator.pop(context),
+              child: Text(count == 0
+                  ? 'Close'
+                  : 'Confirm Order — ₦${total.toStringAsFixed(0)}'),
+            ),
+          ],
+        ),
       ),
     ]);
   }
@@ -1711,24 +1818,13 @@ void _showAddItemsForOrder(BuildContext context, Order order,
       padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
       child: SafeArea(
         child: DraggableScrollableSheet(
-          initialChildSize: 0.85,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.98,
           expand: false,
-          builder: (ctx, scrollController) => _MenuSelector(
-            onAdd: (item, qty, note) {
-              order.items.add(OrderItem(
-                menuItemId: item.id,
-                name: item.name,
-                quantity: qty,
-                unitPrice: item.price,
-                note: note,
-              ));
-              FnbStore.updateOrder(order.id, order);
-              onChange?.call();
-              (ctx as Element).markNeedsBuild();
-            },
-            scrollController: scrollController,
+          builder: (ctx, scrollController) => SingleChildScrollView(
+            controller: scrollController,
+            child: _MenuSelector(order: order, onChange: onChange),
           ),
         ),
       ),

@@ -314,7 +314,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
   const { session } = useAuth();
   const menuItems = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(order.items.length === 0);
   const [payMethod, setPayMethod] = useState('cash');
 
   const sendToKitchen = () => {
@@ -369,7 +369,12 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
 
       {adding && (
         <div className="mt-4">
-          <h4 className="font-bold text-sm mb-2">Add Items</h4>
+          <h4 className="font-bold text-sm mb-2 flex items-center justify-between">
+            <span>Add Items</span>
+            <span className="text-[10px] font-medium text-zinc-400">
+              {order.items.length} item{order.items.length === 1 ? '' : 's'} added • {naira(orderTotal(order))}
+            </span>
+          </h4>
           <div className="divide-y rounded-xl border max-h-56 overflow-y-auto">
             {menuItems.items.filter(m => m.available).map(m => (
               <div key={m.id} className="flex items-center justify-between px-3 py-2 text-sm">
