@@ -1274,6 +1274,13 @@ class _MaintenanceTab extends StatelessWidget {
                                             scheduledDate: t.scheduledDate,
                                             completedDate: DateTime.now(),
                                             completed: true));
+                                    FeedStore.log(
+                                      dept: 'engineering',
+                                      action: 'maintenance.completed',
+                                      message:
+                                          'Maintenance complete — ${t.equipmentName} (${t.priority.name})',
+                                      refId: t.id,
+                                    );
                                     onChange();
                                   },
                                 )),
@@ -1437,6 +1444,15 @@ class _MaintenanceTab extends StatelessWidget {
                       } else {
                         EngineeringStore.addTask(updated);
                       }
+                      FeedStore.log(
+                        dept: 'engineering',
+                        action:
+                            task == null ? 'maintenance.created' : 'maintenance.updated',
+                        message: task == null
+                            ? 'Maintenance scheduled — ${updated.equipmentName} (${updated.priority.name})'
+                            : 'Maintenance updated — ${updated.equipmentName} (${updated.priority.name})',
+                        refId: updated.id,
+                      );
                       Navigator.pop(ctx);
                       onChange();
                     },

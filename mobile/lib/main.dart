@@ -2107,6 +2107,12 @@ class _RoomsScreenState extends State<RoomsScreen> {
                       Navigator.pop(ctx);
                       setState(() {});
                       HOMData.save();
+                      FeedStore.log(
+                        dept: 'reception',
+                        action: 'room.status',
+                        message: 'Room ${r.number} marked $s',
+                        refId: r.id,
+                      );
                     },
                   )),
             ])));

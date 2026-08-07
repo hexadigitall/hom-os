@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/security_audit.dart';
 import '../../data/security_audit_store.dart';
+import '../../data/feed_store.dart';
 import '../../widgets/hom_widgets.dart';
 import '../../models/role.dart';
 import '../../utils/role_gate.dart';
@@ -886,6 +887,13 @@ class _VisitorsTab extends StatelessWidget {
                                             checkIn: v.checkIn,
                                             checkOut: DateTime.now(),
                                             active: false));
+                                    FeedStore.log(
+                                      dept: 'security',
+                                      action: 'visitor.checkedOut',
+                                      message:
+                                          '${v.visitorName} checked out — badge ${v.badgeNumber ?? '—'}',
+                                      refId: v.id,
+                                    );
                                     onChange();
                                   },
                                 )),
@@ -1055,6 +1063,12 @@ class _VisitorsTab extends StatelessWidget {
                       badgeNumber: badgeCtl.text.isEmpty ? null : badgeCtl.text,
                       notes: notesCtl.text.isEmpty ? null : notesCtl.text,
                     ));
+                    FeedStore.log(
+                      dept: 'security',
+                      action: 'visitor.checkedIn',
+                      message:
+                          '${nameCtl.text} checked in — ${purposeCtl.text} (host: ${hostCtl.text})',
+                    );
                     Navigator.pop(ctx);
                     onChange();
                   },
