@@ -26,10 +26,10 @@ import {
 
 export function OverviewModule() {
   const { session } = useAuth();
-  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
   const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
   const diesel = useScopedCollection<Diesel>('hom_diesel', seedDiesel, session);
-  const inventory = useScopedCollection<InventoryItem>('hom_inventory', seedInventory, session);
+  const inventory = useSyncedCollection<InventoryItem>('inventory', 'hom_inventory', seedInventory, session);
 
   const t = today();
   const dieselToday = diesel.items.filter(d => d.date === t).reduce((a, d) => a + d.liters, 0);
@@ -78,7 +78,7 @@ export function OverviewModule() {
 export function BookingsModule() {
   const { session } = useAuth();
   const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
-  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
   const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Booking | null>(null);
@@ -169,7 +169,7 @@ function BookingForm({ rooms, initial, depts, onSave, onCancel }: { rooms: Room[
 
 export function RoomsModule() {
   const { session } = useAuth();
-  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
   const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Room | null>(null);
@@ -303,7 +303,7 @@ function DieselForm({ initial, depts, onSave, onCancel }: { initial: Diesel | nu
 
 export function InventoryModule() {
   const { session } = useAuth();
-  const inventory = useScopedCollection<InventoryItem>('hom_inventory', seedInventory, session);
+  const inventory = useSyncedCollection<InventoryItem>('inventory', 'hom_inventory', seedInventory, session);
   const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<InventoryItem | null>(null);
@@ -367,7 +367,7 @@ function InventoryForm({ initial, depts, onSave, onCancel }: { initial: Inventor
 
 export function StaffModule() {
   const { session } = useAuth();
-  const staff = useScopedCollection<Staff>('hom_staff', seedStaff, session);
+  const staff = useSyncedCollection<Staff>('staff', 'hom_staff', seedStaff, session);
   const depts = tagFor(session, 'humanResources');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Staff | null>(null);
@@ -444,8 +444,8 @@ export function VendorsModule() {
   const canManageVendors = hasPermission(session, PERMISSIONS.manageVendors);
   const canManagePOs = hasPermission(session, PERMISSIONS.managePurchaseOrders);
   const depts = tagFor(session, 'procurement');
-  const vendors = useScopedCollection<Vendor>('hom_vendors', seedVendors, session);
-  const pos = useScopedCollection<PurchaseOrder>('hom_purchase_orders', seedPOs, session);
+  const vendors = useSyncedCollection<Vendor>('vendors', 'hom_vendors', seedVendors, session);
+  const pos = useSyncedCollection<PurchaseOrder>('purchase_orders', 'hom_purchase_orders', seedPOs, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<any>(null);
 

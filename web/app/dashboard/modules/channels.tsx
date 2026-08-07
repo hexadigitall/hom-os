@@ -6,6 +6,7 @@ import { CreditCard, MessageCircle, Globe, AlertTriangle, Trash2, Plus, Edit3, C
 import { Card, MetricCard, SectionHeader, Btn, IconBtn, Field, TextInput, Select, TextArea, FieldGrid, EmptyState } from '../ui';
 import { load } from '@/lib/storage';
 import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { Room } from '@/lib/types';
 import { seedRooms } from '@/lib/seed';
 import { useAuth } from '@/lib/auth';
@@ -171,7 +172,7 @@ export function WhatsAppModule() {
 
 export function BookingComModule() {
   const { session } = useAuth();
-  const rooms = useScopedCollection<Room>('hom_rooms', seedRooms, session);
+  const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
   const [external, setExternal] = useState<ExternalBooking[]>([]);
 
   useEffect(() => {

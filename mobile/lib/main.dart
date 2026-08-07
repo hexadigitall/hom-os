@@ -1311,10 +1311,6 @@ class HOMData {
       bookings.clear();
       bookings.addAll(b);
     }
-    final syncMeta =
-        PersistenceService.load<Map<String, dynamic>>(
-            'hom_sync_meta_bookings', (v) => Map<String, dynamic>.from(v as Map));
-    if (syncMeta != null) _lastPushedBookings = syncMeta;
     final f = PersistenceService.loadList('hom_fuel_logs', FuelLog.fromJson);
     if (f != null) {
       fuelLogs.clear();
@@ -1357,22 +1353,28 @@ class HOMData {
         'hom_vendors', vendors, (e) => e.toJson());
     await PersistenceService.saveList(
         'hom_purchase_orders', purchaseOrders, (e) => e.toJson());
-    await _syncBookings();
+    await _syncNow();
   }
 
-  // ===================== CLOUD SYNC (BOOKINGS) =====================
-  // Firestore is the master for the `bookings` collection once a session is
-  // active; the Hive list stays as the offline cache + live UI state. The
-  // sync is driven by the session's hotel id (identity remains
-  // server-authoritative) and Firestore's local persistence queues any write
-  // made while offline, so the next reconnection syncs it automatically.
+  // ===================== CLOUD SYNC =====================
+  // Firestore is the master for these collections once a session is active;
+  // the Hive lists stay as offline caches + live UI state. The sync follows
+  // the session's hotel id (identity remains server-authoritative) and
+  // Firestore's local persistence queues any write made while offline, so the
+  // next reconnection syncs it automatically.
+  //
+  // NOTE: `fuel_logs` is intentionally NOT synced yet — the mobile FuelLog
+  // and web Diesel models have different field names (quantity/fuelType vs
+  // liters/genHours), so the schemas must be unified before the two platforms
+  // can share that collection.
 
-  static StreamSubscription<List<Map<String, dynamic>>>? _bookingsSub;
-  static String? _bookingsHotelId;
-  static Map<String, dynamic> _lastPushedBookings = const {};
+  static final List<StreamSubscription<List<Map<String, dynamic>>>> _syncSubs =
+      [];
+  static String? _syncHotelId;
+  static final Map<String, Map<String, dynamic>> _metas = {};
 
-  /// Follows the session: subscribe to the cloud bookings collection when a
-  /// hotel is active, cancel when signed out or the hotel changes.
+  /// Follows the session: subscribe to the cloud collections when a hotel is
+  /// active, cancel when signed out or the hotel changes.
   static void attach() {
     RoleStore.sessionNotifier.addListener(_onSessionChanged);
     _onSessionChanged();
@@ -1381,63 +1383,111 @@ class HOMData {
   static void _onSessionChanged() {
     final hotel = RoleStore.current.hotelId;
     if (hotel == null || hotel.isEmpty) {
-      _bookingsSub?.cancel();
-      _bookingsSub = null;
-      _bookingsHotelId = null;
+      for (final s in _syncSubs) {
+        s.cancel();
+      }
+      _syncSubs.clear();
+      _syncHotelId = null;
       return;
     }
-    if (_bookingsHotelId == hotel) return;
-    _bookingsHotelId = hotel;
-    _startBookingsSync();
+    if (_syncHotelId == hotel) return;
+    _syncHotelId = hotel;
+    _startSync();
   }
 
-  static Future<void> _startBookingsSync() async {
+  static Future<void> _startSync() async {
     try {
-      // One-time backfill: when the cloud collection is empty, push the local
+      // One-time backfill: when a cloud collection is empty, push the local
       // data so Firestore becomes the master copy for this hotel.
-      _lastPushedBookings = await SyncService.backfill(
-        'bookings',
-        bookings.map((e) => e.toJson()).toList(),
-      );
-      await PersistenceService.save(
-          'hom_sync_meta_bookings', _lastPushedBookings);
-
-      _bookingsSub?.cancel();
-      _bookingsSub = SyncService.watch('bookings').listen((docs) {
-        final sorted = List<Map<String, dynamic>>.of(docs)
-          ..sort((a, b) => _docTime(b).compareTo(_docTime(a)));
-        final cloud = <Booking>[];
-        for (final d in sorted) {
-          try {
-            cloud.add(Booking.fromJson(d));
-          } catch (_) {/* skip malformed docs */}
-        }
-        final cloudIds = cloud.map((b) => b.id).toSet();
-        // Cloud is authoritative; keep local-only items (pending offline
-        // writes) visible until they reach the cloud.
-        final localOnly = bookings.where((b) => !cloudIds.contains(b.id)).toList();
-        bookings
-          ..clear()
-          ..addAll([...cloud, ...localOnly]);
-        PersistenceService.saveList('hom_bookings', bookings, (e) => e.toJson());
-      });
+      await Future.wait([
+        _backfill('rooms', rooms, (e) => e.toJson()),
+        _backfill('bookings', bookings, (e) => e.toJson()),
+        _backfill('inventory', inventory, (e) => e.toJson()),
+        _backfill('staff', staff, (e) => e.toJson()),
+        _backfill('vendors', vendors, (e) => e.toJson()),
+        _backfill('purchase_orders', purchaseOrders, (e) => e.toJson()),
+      ]);
+      for (final s in _syncSubs) {
+        s.cancel();
+      }
+      _syncSubs.clear();
+      _syncSubs.addAll([
+        _listen('rooms', rooms, Room.fromJson, (e) => e.toJson(), 'hom_rooms'),
+        _listen('bookings', bookings, Booking.fromJson, (e) => e.toJson(), 'hom_bookings'),
+        _listen('inventory', inventory, InventoryItem.fromJson, (e) => e.toJson(), 'hom_inventory'),
+        _listen('staff', staff, StaffMember.fromJson, (e) => e.toJson(), 'hom_staff'),
+        _listen('vendors', vendors, Vendor.fromJson, (e) => e.toJson(), 'hom_vendors'),
+        _listen('purchase_orders', purchaseOrders, PurchaseOrder.fromJson, (e) => e.toJson(), 'hom_purchase_orders'),
+      ]);
     } catch (_) {
       // No network / not provisioned — stay local-only for this run.
     }
   }
 
-  static Future<void> _syncBookings() async {
-    if (!SyncService.enabled) return;
+  static Future<void> _backfill<T>(String cloud, List<T> target,
+      Map<String, dynamic> Function(T) toJson) async {
     try {
-      _lastPushedBookings = await SyncService.pushDiff(
-        'bookings',
-        bookings.map((e) => e.toJson()).toList(),
-        _lastPushedBookings,
-      );
-      await PersistenceService.save(
-          'hom_sync_meta_bookings', _lastPushedBookings);
+      final pushed = await SyncService.backfill(cloud, target.map(toJson).toList());
+      _metas[cloud] = pushed;
+      PersistenceService.save('hom_sync_meta_$cloud', pushed);
+    } catch (_) {}
+  }
+
+  static StreamSubscription<List<Map<String, dynamic>>> _listen<T>(
+    String cloud,
+    List<T> target,
+    T Function(Map<String, dynamic>) fromJson,
+    Map<String, dynamic> Function(T) toJson,
+    String cacheKey,
+  ) {
+    return SyncService.watch(cloud).listen((docs) {
+      final sorted = List<Map<String, dynamic>>.of(docs)
+        ..sort((a, b) => _docTime(b).compareTo(_docTime(a)));
+      final cloudItems = <T>[];
+      for (final d in sorted) {
+        try {
+          cloudItems.add(fromJson(d));
+        } catch (_) {/* skip malformed docs */}
+      }
+      final cloudIds = cloudItems.map((e) => (e as dynamic).id as String).toSet();
+      // Cloud is authoritative; keep local-only items (pending offline writes)
+      // visible until they reach the cloud.
+      final localOnly =
+          target.where((e) => !cloudIds.contains((e as dynamic).id)).toList();
+      target
+        ..clear()
+        ..addAll([...cloudItems, ...localOnly]);
+      PersistenceService.saveList(cacheKey, target, toJson);
+    });
+  }
+
+  static Future<void> _syncNow() async {
+    if (!SyncService.enabled) return;
+    await Future.wait([
+      _push('rooms', rooms, (e) => e.toJson()),
+      _push('bookings', bookings, (e) => e.toJson()),
+      _push('inventory', inventory, (e) => e.toJson()),
+      _push('staff', staff, (e) => e.toJson()),
+      _push('vendors', vendors, (e) => e.toJson()),
+      _push('purchase_orders', purchaseOrders, (e) => e.toJson()),
+    ]);
+  }
+
+  static Future<void> _push<T>(String cloud, List<T> target,
+      Map<String, dynamic> Function(T) toJson) async {
+    try {
+      final next =
+          await SyncService.pushDiff(cloud, target.map(toJson).toList(), _meta(cloud));
+      _metas[cloud] = next;
+      PersistenceService.save('hom_sync_meta_$cloud', next);
     } catch (_) {/* offline — the write is queued by Firestore */}
   }
+
+  static Map<String, dynamic> _meta(String cloud) =>
+      _metas[cloud] ??=
+          PersistenceService.load<Map<String, dynamic>>(
+                  'hom_sync_meta_$cloud', (v) => Map<String, dynamic>.from(v as Map)) ??
+              const {};
 
   static DateTime _docTime(Map<String, dynamic> d) {
     final t = d['createdAt'];
