@@ -6,11 +6,13 @@ import {
   NightAuditLog, SecurityIncident, VisitorPass, ShiftHandover,
   IncidentType, IncidentStatus, ShiftType,
 } from '@/lib/types';
-import { seedNightAudits, seedIncidents, seedVisitors, seedShifts } from '@/lib/seed';
+import { seedNightAudits, seedIncidents, seedVisitors, seedShifts, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate } from '@/lib/format';
+import { postActivity } from '@/lib/activity';
+import { ActivityLog } from '@/lib/types';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 type SubTab = 'nightaudit' | 'security' | 'visitors' | 'shifts';
@@ -223,6 +225,7 @@ function IncidentForm({ initial, depts, onSave, onCancel }: { initial: SecurityI
 function VisitorsTab() {
   const { session } = useAuth();
   const visitors = useSyncedCollection<VisitorPass>('sa_visitors', 'sa_visitors', seedVisitors, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<VisitorPass | null>(null);
   const depts = tagFor(session, 'security');
@@ -243,7 +246,8 @@ function VisitorsTab() {
       </div>
       {showForm && (
         <VisitorForm initial={editItem} depts={depts} onSave={(v) => {
-          if (editItem) visitors.replace(v.id, v); else visitors.add(v);
+          if (editItem) visitors.replace(v.id, v);
+          else { visitors.add(v); postActivity(feed, session, { dept: 'security', action: 'visitor.checkedIn', message: `${v.visitorName} checked in — ${v.purpose} (host: ${v.hostName})`, refId: v.id }); }
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}
@@ -258,7 +262,7 @@ function VisitorsTab() {
               </div>
               <div className="flex items-center gap-2">
                 <StatusChip status={v.checkOut ? 'checked-out' : 'active'} label={v.checkOut ? 'Checked Out' : 'On Premises'} />
-                {!v.checkOut && <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => visitors.update(v.id, { checkOut: nowISO() })}><Check size={12} /> Check Out</Btn>}
+                {!v.checkOut && <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => { visitors.update(v.id, { checkOut: nowISO() }); postActivity(feed, session, { dept: 'security', action: 'visitor.checkedOut', message: `${v.visitorName} checked out — badge ${v.badgeNumber}`, refId: v.id }); }}><Check size={12} /> Check Out</Btn>}
                 <IconBtn onClick={() => { setEditItem(v); setShowForm(true); }}><Edit3 size={14} /></IconBtn>
                 <IconBtn tone="red" onClick={() => visitors.remove(v.id)}><Trash2 size={14} /></IconBtn>
               </div>

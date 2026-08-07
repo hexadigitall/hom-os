@@ -11,6 +11,7 @@ import 'package:app_links/app_links.dart';
 import 'firebase_options.dart';
 import 'features/expenditure/expenditure_screen.dart';
 import 'features/food_beverage/fnb_screen.dart';
+import 'features/feed/feed_screen.dart';
 import 'features/reports/report_screen.dart';
 import 'features/compliance/compliance_screen.dart';
 import 'features/subscriptions/subscriptions_screen.dart';
@@ -44,6 +45,7 @@ import 'data/user_store.dart';
 import 'data/whatsapp_store.dart';
 import 'data/persistence_service.dart';
 import 'data/payment_store.dart';
+import 'data/feed_store.dart';
 import 'utils/theme.dart';
 import 'data/profile_store.dart';
 import 'data/role_store.dart';
@@ -153,6 +155,8 @@ void main() async {
   _trace('NotificationStore ok');
   await FnbStore.load();
   _trace('FnbStore ok');
+  await FeedStore.load();
+  _trace('FeedStore ok');
   await EngineeringStore.load();
   _trace('EngineeringStore ok');
   await HousekeepingStore.load();
@@ -439,6 +443,7 @@ class _HomeShellState extends State<HomeShell> {
     const HousekeepingScreen(),
     const BackOfficeScreen(),
     const SecurityAuditScreen(),
+    const FeedScreen(),
   ];
 
   @override
@@ -514,6 +519,8 @@ class _HomeShellState extends State<HomeShell> {
         Icons.account_balance_rounded, Permission.viewBackOffice),
     _TabDef(18, const SecurityAuditScreen(), 'Security & Audit',
         Icons.security_rounded, Permission.viewSecurityAudit),
+    _TabDef(19, const FeedScreen(), 'Activity', Icons.rss_feed_rounded,
+        Permission.viewActivityFeed),
   ];
 
   // Tabs the current role can see
@@ -565,6 +572,8 @@ class _HomeShellState extends State<HomeShell> {
         return 'Housekeeping & Assets';
       case 'F&B':
         return 'F&B Operations';
+      case 'Activity':
+        return 'Activity Feed';
       case 'Expenses':
         return 'Expenditure';
       default:
@@ -1661,21 +1670,26 @@ class _BookingsScreenState extends State<BookingsScreen> {
     ], () {
       if (guest.text.isEmpty) return;
       final r = HOMData.rooms.firstWhere((rr) => rr.number == room);
-      HOMData.bookings.insert(
-          0,
-          Booking(
-            id: _uid(),
-            guest: guest.text,
-            phone: phone.text,
-            room: room,
-            checkin: checkin.text,
-            checkout: checkout.text,
-            status: 'confirmed',
-            amount: r.price,
-          ));
+      final booking = Booking(
+        id: _uid(),
+        guest: guest.text,
+        phone: phone.text,
+        room: room,
+        checkin: checkin.text,
+        checkout: checkout.text,
+        status: 'confirmed',
+        amount: r.price,
+      );
+      HOMData.bookings.insert(0, booking);
       r.status = 'occupied';
       setState(() {});
       HOMData.save();
+      FeedStore.log(
+        dept: 'reception',
+        action: 'booking.created',
+        message: 'New booking — ${booking.guest} in Room ${booking.room}',
+        refId: booking.id,
+      );
     });
   }
 
@@ -1738,6 +1752,12 @@ class _BookingsScreenState extends State<BookingsScreen> {
     if (r.isNotEmpty) r.first.status = 'available';
     setState(() {});
     HOMData.save();
+    FeedStore.log(
+      dept: 'reception',
+      action: 'booking.checkedOut',
+      message: 'Checked out ${b.guest} — Room ${b.room}',
+      refId: b.id,
+    );
   }
 
   void _cancel(Booking b) {
@@ -1746,6 +1766,12 @@ class _BookingsScreenState extends State<BookingsScreen> {
     if (r.isNotEmpty) r.first.status = 'available';
     setState(() {});
     HOMData.save();
+    FeedStore.log(
+      dept: 'reception',
+      action: 'booking.cancelled',
+      message: 'Cancelled booking — ${b.guest} (Room ${b.room})',
+      refId: b.id,
+    );
   }
 
   @override

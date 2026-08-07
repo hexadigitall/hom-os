@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/engineering.dart';
 import '../../data/engineering_store.dart';
+import '../../data/feed_store.dart';
 import '../../main.dart' as app;
 import '../../widgets/hom_widgets.dart';
 import '../../models/role.dart';
@@ -328,6 +329,13 @@ class _GeneratorsTab extends StatelessWidget {
                                           currentLoadKva: g.currentLoadKva,
                                           status: next,
                                           lastServiceDate: g.lastServiceDate));
+                                  FeedStore.log(
+                                    dept: 'engineering',
+                                    action: 'generator.status',
+                                    message:
+                                        '${g.name} switched to ${next.name}',
+                                    refId: g.id,
+                                  );
                                   onChange();
                                 }
                                 if (v == 'delete') {

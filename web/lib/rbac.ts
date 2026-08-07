@@ -114,6 +114,7 @@ export const PERMISSIONS = {
   manageShiftScheduling: 'manageShiftScheduling', manageClockIn: 'manageClockIn', manageCasualWorkers: 'manageCasualWorkers',
   processPAYE: 'processPAYE', processPension: 'processPension',
   viewOperations: 'viewOperations',
+  viewActivityFeed: 'viewActivityFeed',
   manageSubscriptions: 'manageSubscriptions', manageWhatsApp: 'manageWhatsApp', sendAutomatedWhatsApp: 'sendAutomatedWhatsApp',
   sendWhatsAppPayslips: 'sendWhatsAppPayslips', manageUsers: 'manageUsers',
 
@@ -169,6 +170,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.viewBackOffice, P.viewExpenditure, P.viewReconciliation,
       P.viewFuel, P.viewReports, P.viewRevPAR, P.viewNightAudit,
       P.viewCompliance, P.captureGuestNIN,
+      P.viewActivityFeed,
     ],
   },
   {
@@ -185,6 +187,8 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.manageKeycards,
       P.manageConciergeShuttles, P.manageConciergeLuggage,
       P.manageConciergeTours, P.manageConciergeCarRental,
+      // Pillar 4 — room-service F&B orders at the front desk
+      P.managePOS, P.manageSplitChecks, P.manageTableManagement,
       // Pillar 5 — WhatsApp
       P.manageWhatsApp, P.sendAutomatedWhatsApp,
       // Pillar 6 — security audit + shift & compliance
@@ -193,6 +197,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.captureGuestNIN, P.logCashTransactions,
       // Cross-pillar
       P.viewOperations,
+      P.viewActivityFeed,
     ],
   },
   {
@@ -222,6 +227,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.manageLGAHealthPermits, P.manageFireServiceCertificates,
       // System
       P.manageSubscriptions,
+      P.viewActivityFeed,
     ],
   },
   {
@@ -237,6 +243,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.manageLaundry, P.manageGuestDryCleaning,
       // Cross-pillar
       P.viewOperations,
+      P.viewActivityFeed,
     ],
   },
   {
@@ -251,6 +258,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.createExpenditure,
       // Cross-pillar
       P.viewOperations,
+      P.viewActivityFeed,
     ],
   },
   {
@@ -268,6 +276,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.viewSecurityAudit,
       // Cross-pillar
       P.viewOperations, P.viewCompliance,
+      P.viewActivityFeed,
     ],
   },
 ];

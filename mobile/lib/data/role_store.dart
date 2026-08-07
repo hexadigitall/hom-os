@@ -202,6 +202,7 @@ class RoleStore {
       Permission.viewFuel, Permission.viewReports,
       Permission.viewRevPAR, Permission.viewNightAudit,
       Permission.viewCompliance, Permission.captureGuestNIN,
+      Permission.viewActivityFeed,
     },
   );
 
@@ -221,6 +222,9 @@ class RoleStore {
       Permission.manageKeycards,
       Permission.manageConciergeShuttles, Permission.manageConciergeLuggage,
       Permission.manageConciergeTours, Permission.manageConciergeCarRental,
+      // Pillar 4 — room-service F&B orders at the front desk
+      Permission.managePOS, Permission.manageSplitChecks,
+      Permission.manageTableManagement,
       // Pillar 5 — WhatsApp
       Permission.manageWhatsApp, Permission.sendAutomatedWhatsApp,
       // Pillar 6 — security audit + shift & compliance
@@ -229,6 +233,7 @@ class RoleStore {
       Permission.captureGuestNIN, Permission.logCashTransactions,
       // Cross-pillar
       Permission.viewOperations,
+      Permission.viewActivityFeed,
     },
   );
 
@@ -265,6 +270,7 @@ class RoleStore {
       Permission.manageFireServiceCertificates,
       // System
       Permission.manageSubscriptions,
+      Permission.viewActivityFeed,
     },
   );
 
@@ -282,6 +288,7 @@ class RoleStore {
       Permission.manageLaundry, Permission.manageGuestDryCleaning,
       // Cross-pillar
       Permission.viewOperations,
+      Permission.viewActivityFeed,
     },
   );
 
@@ -299,6 +306,7 @@ class RoleStore {
       Permission.createExpenditure,
       // Cross-pillar
       Permission.viewOperations,
+      Permission.viewActivityFeed,
     },
   );
 
@@ -318,6 +326,7 @@ class RoleStore {
       Permission.viewSecurityAudit,
       // Cross-pillar
       Permission.viewOperations, Permission.viewCompliance,
+      Permission.viewActivityFeed,
     },
   );
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle } from 'lucide-react';
+import { Menu, X, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Rss, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle } from 'lucide-react';
 import { OverviewModule, BookingsModule, RoomsModule, DieselModule, InventoryModule, StaffModule, VendorsModule } from './modules/core';
 import { ExpensesModule } from './modules/expenses';
 import { SubscriptionsModule } from './modules/subscriptions';
@@ -17,12 +17,14 @@ import { ComplianceModule } from './modules/compliance';
 import { PaystackModule, WhatsAppModule, BookingComModule } from './modules/channels';
 import { AccountsModule } from './modules/accounts';
 import { AccountModule } from './modules/account';
+import { FeedModule } from './modules/feed';
 import { AuthProvider, useAuth } from '../../lib/auth';
 import { AuthGate } from './auth';
 import { Permission, PERMISSIONS, hasPermission, primaryRole, hasIdentity, roleAccent } from '../../lib/rbac';
 
 const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; perm: Permission; always?: boolean }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, module: OverviewModule, perm: PERMISSIONS.viewReports },
+  { id: 'activity', label: 'Activity', icon: Rss, module: FeedModule, perm: PERMISSIONS.viewActivityFeed },
   { id: 'bookings', label: 'Bookings', icon: CalendarCheck, module: BookingsModule, perm: PERMISSIONS.viewBookings },
   { id: 'rooms', label: 'Rooms', icon: BedDouble, module: RoomsModule, perm: PERMISSIONS.viewRooms },
   { id: 'operations', label: 'Operations', icon: Activity, module: OperationsModule, perm: PERMISSIONS.viewOperations },
@@ -56,6 +58,7 @@ const FULL_LABEL: Record<string, string> = {
   housekeeping: 'Housekeeping & Assets',
   fnb: 'F&B Operations',
   expenses: 'Expenditure',
+  activity: 'Activity Feed',
 };
 const headerTitle = (id?: string, fallback = 'HOM') =>
   id ? (FULL_LABEL[id] ?? NAV.find((n) => n.id === id)?.label ?? fallback) : fallback;
@@ -63,7 +66,7 @@ const headerTitle = (id?: string, fallback = 'HOM') =>
 // Nav grouped by the six HOM pillars (see lib/rbac.ts) + system/channels, so
 // menu items are scannable by department instead of one flat list.
 const GROUPS: { label: string; items: string[] }[] = [
-  { label: 'Front Office', items: ['overview', 'bookings', 'rooms', 'operations'] },
+  { label: 'Front Office', items: ['overview', 'activity', 'bookings', 'rooms', 'operations'] },
   { label: 'Housekeeping & Assets', items: ['housekeeping', 'inventory'] },
   { label: 'Engineering & Utilities', items: ['engineering', 'diesel'] },
   { label: 'F&B & Banqueting', items: ['fnb'] },

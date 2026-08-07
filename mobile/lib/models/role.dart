@@ -118,6 +118,8 @@ enum Permission {
   processPAYE, processPension,
   // Operations (cross-pillar)
   viewOperations,
+  // Activity feed (cross-pillar)
+  viewActivityFeed,
   // Subscriptions, WhatsApp, System
   manageSubscriptions, manageWhatsApp, sendAutomatedWhatsApp,
   sendWhatsAppPayslips, manageUsers,

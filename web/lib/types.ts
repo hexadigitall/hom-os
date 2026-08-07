@@ -146,11 +146,21 @@ export interface RestaurantTable { id: string; number: string; seats: number; st
 export type OrderItemStatus = 'pending' | 'preparing' | 'ready' | 'served';
 export interface OrderItem { id: string; menuItemId: string; name: string; quantity: number; unitPrice: number; status: OrderItemStatus; note?: string }
 export type OrderStatus = 'open' | 'preparing' | 'served' | 'paid' | 'cancelled';
+export type OrderType = 'dineIn' | 'roomService' | 'takeaway';
 export interface Order {
   id: string; tableId: string; items: OrderItem[]; status: OrderStatus;
   discount?: number; paymentMethod?: string; note?: string;
   openedAt: string; closedAt?: string; servedBy?: string; departments?: Department[];
+  orderType?: OrderType; roomNumber?: string;
 }
+export const orderLocation = (o: Order): string => {
+  if (o.orderType === 'roomService') {
+    const room = (o.roomNumber || '').trim();
+    return room ? `Room ${room}` : 'Room Service';
+  }
+  if (o.orderType === 'takeaway') return 'Takeaway';
+  return 'Dine-in';
+};
 
 // ─── Engineering ─────────────────────────────────────────────────────────────
 
@@ -270,3 +280,27 @@ export interface ShiftHandover {
   notes?: string; closedAt?: string; closedBy?: string;
   departments?: Department[];
 }
+
+// ─── Shared Activity Feed ────────────────────────────────────────────────────
+
+/**
+ * One entry in the hotel-wide, real-time activity feed. Written by the acting
+ * staff member's own client and synced under `hotels/{hotelId}/activity_logs`
+ * so every department sees one live stream of hotel activity.
+ *
+ * Deliberately has no `departments` scope field: the feed is shared hotel-wide,
+ * so `scopedRecords` keeps every entry visible to all active staff.
+ */
+export interface ActivityLog {
+  id: string;
+  /** Department badge, e.g. `restaurants`, `housekeeping`, `engineering`. */
+  dept: Department;
+  /** Stable verb id, e.g. `order.created`, `order.paid`. */
+  action: string;
+  /** Human-readable summary, e.g. `Order T3 — 2x Jollof sent to kitchen`. */
+  message: string;
+  actor: string;
+  refId?: string;
+  createdAt: string;
+}
+

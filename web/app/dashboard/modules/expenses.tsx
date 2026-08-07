@@ -5,16 +5,19 @@ import { Plus, Trash2, Edit3, Upload } from 'lucide-react';
 import {
   ExpenditureRecord, ExpenditureCategory, PaymentMethod, EXPENSE_CATEGORIES,
 } from '@/lib/types';
-import { seedExpenditure } from '@/lib/seed';
+import { seedExpenditure, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { DEPARTMENT_LABEL, scopeOptions, type Department } from '@/lib/rbac';
 import { useAuth } from '@/lib/auth';
 import { today, uid, naira, fmtDate } from '@/lib/format';
+import { postActivity } from '@/lib/activity';
+import { ActivityLog } from '@/lib/types';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 export function ExpensesModule() {
   const { session } = useAuth();
   const exp = useSyncedCollection<ExpenditureRecord>('expenditure', 'expenditure_records', seedExpenditure, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = scopeOptions(session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ExpenditureRecord | null>(null);
@@ -86,7 +89,8 @@ export function ExpensesModule() {
       </div>
       {showForm && (
         <ExpenseForm initial={editItem} depts={depts} onSave={(e) => {
-          if (editItem) exp.replace(e.id, e); else exp.add(e);
+          if (editItem) exp.replace(e.id, e);
+          else { exp.add(e); postActivity(feed, session, { dept: 'accounts', action: 'expense.logged', message: `${e.category} expense ${naira(e.amount)}${e.vendor ? ` — ${e.vendor}` : ''} (${e.paymentMethod})`, refId: e.id }); }
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}

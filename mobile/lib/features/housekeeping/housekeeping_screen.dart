@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../main.dart' as app;
 import '../../models/housekeeping.dart';
 import '../../data/housekeeping_store.dart';
+import '../../data/feed_store.dart';
 import '../../widgets/hom_widgets.dart';
 import '../../models/role.dart';
 import '../../utils/role_gate.dart';
@@ -147,6 +148,13 @@ class _TasksTab extends StatelessWidget {
                                           scheduledDate: t.scheduledDate,
                                           completedDate: DateTime.now(),
                                           completed: true));
+                                  FeedStore.log(
+                                    dept: 'housekeeping',
+                                    action: 'task.completed',
+                                    message:
+                                        'Completed housekeeping task — Room ${t.roomNumber} (${t.priorityLabel})',
+                                    refId: t.id,
+                                  );
                                   onChange();
                                 },
                               )),

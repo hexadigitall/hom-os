@@ -4,6 +4,8 @@ enum TableStatus { free, occupied, reserved, cleaning }
 
 enum OrderStatus { open, preparing, served, paid, cancelled }
 
+enum OrderType { dineIn, roomService, takeaway }
+
 class MenuItem {
   String id, name;
   String? description;
@@ -103,6 +105,8 @@ class OrderItem {
 
 class Order {
   String id, tableId, tableNumber, serverName;
+  OrderType orderType;
+  String? roomNumber;
   DateTime createdAt;
   List<OrderItem> items;
   OrderStatus status;
@@ -115,6 +119,8 @@ class Order {
     required this.tableId,
     required this.tableNumber,
     required this.serverName,
+    this.orderType = OrderType.dineIn,
+    this.roomNumber,
     DateTime? createdAt,
     List<OrderItem>? items,
     this.status = OrderStatus.open,
@@ -127,6 +133,18 @@ class Order {
   double get subtotal => items.fold(0.0, (s, i) => s + i.total);
   double get total => subtotal - (discount ?? 0);
 
+  /// Human-readable serving location: room number for room service, table
+  /// number for dine-in, otherwise a takeaway placeholder.
+  String get locationLabel {
+    if (orderType == OrderType.roomService) {
+      final room = (roomNumber ?? '').trim();
+      return room.isEmpty ? 'Room Service' : 'Room $room';
+    }
+    if (orderType == OrderType.takeaway) return 'Takeaway';
+    final t = tableNumber.trim();
+    return t.isEmpty ? 'Dine-in' : 'Table $t';
+  }
+
   int get preparingCount => items.where((i) => i.status == 'preparing').length;
   int get readyCount => items.where((i) => i.status == 'ready').length;
   int get servedCount => items.where((i) => i.status == 'served').length;
@@ -138,6 +156,8 @@ class Order {
         'tableNumber': tableNumber,
         'serverName': serverName,
         'servedBy': serverName,
+        'orderType': orderType.name,
+        'roomNumber': roomNumber,
         'openedAt': createdAt.toIso8601String(),
         'items': items.map((i) => i.toJson()).toList(),
         'status': status.name,
@@ -157,9 +177,12 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> j) => Order(
         id: j['id'],
-        tableId: j['tableId'],
+        tableId: j['tableId'] ?? '',
         tableNumber: j['tableNumber'] ?? '',
         serverName: j['servedBy'] ?? j['serverName'] ?? '',
+        orderType: safeEnum(
+            j['orderType'] ?? j['order_source'], OrderType.values, OrderType.dineIn),
+        roomNumber: j['roomNumber'],
         createdAt: _parseOpenedAt(j),
         items: (j['items'] as List)
             .map((e) => OrderItem.fromJson(e))

@@ -7,7 +7,7 @@ import {
   Generator, MaintenanceTask, WaterTreatmentLog, TankDipLog, GridTariffConfig,
   HousekeepingTask, LaundryItem, LostFoundItem, LinenDamage,
   ProcurementOrder, PayrollRecord, TaxConfiguration, NightAuditLog,
-  SecurityIncident, VisitorPass, ShiftHandover,
+  SecurityIncident, VisitorPass, ShiftHandover, ActivityLog,
 } from './types';
 import { today, addDays, addMonths } from './format';
 import { makeRng } from './storage';
@@ -273,6 +273,12 @@ export const seedTables = (): RestaurantTable[] => [
 ];
 
 export const seedOrders = (): Order[] => [];
+
+export const seedActivity = (): ActivityLog[] => [
+  { id: 'act_seed_1', dept: 'restaurants', action: 'order.created', message: 'Order T1 opened — table 2-seater assigned', actor: 'HOM Setup', createdAt: new Date().toISOString() },
+  { id: 'act_seed_2', dept: 'housekeeping', action: 'task.completed', message: 'Room 101 turn-down marked complete', actor: 'HOM Setup', createdAt: new Date(Date.now() - 3600_000).toISOString() },
+  { id: 'act_seed_3', dept: 'engineering', action: 'generator.started', message: 'Main DG started — load 320 kVA', actor: 'HOM Setup', createdAt: new Date(Date.now() - 7200_000).toISOString() },
+];
 
 // ─── Engineering ─────────────────────────────────────────────────────────────
 

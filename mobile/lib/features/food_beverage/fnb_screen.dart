@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
 import '../../models/food_beverage.dart';
 import '../../data/fnb_store.dart';
+import '../../data/feed_store.dart';
 import '../../data/role_store.dart';
 import '../../utils/role_gate.dart';
 import '../../models/role.dart';
 import '../../widgets/hom_widgets.dart';
 import '../../utils/theme.dart';
+import '../../main.dart' as app;
 
 final Color _primary = AppColors.primary;
+
+String _feedLocation(Order o) => o.locationLabel;
+
+void _feedOrder(String action, Order o, String verb) {
+  FeedStore.log(
+    dept: 'restaurants',
+    action: action,
+    message: '$verb order at ${_feedLocation(o)} (${o.serverName})',
+    refId: o.id,
+  );
+}
 
 class FnbScreen extends StatefulWidget {
   const FnbScreen({super.key});
@@ -398,6 +411,7 @@ class _TablesTabState extends State<_TablesTab> {
                                 : nameCtl.text.trim(),
                           );
                           FnbStore.addOrder(order);
+                          _feedOrder('order.created', order, 'New');
                           FnbStore.updateTable(
                               t.id,
                               RestaurantTable(
@@ -421,37 +435,7 @@ class _TablesTabState extends State<_TablesTab> {
   }
 
   void _showAddItems(BuildContext context, Order order) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: SafeArea(
-          child: DraggableScrollableSheet(
-            initialChildSize: 0.85,
-            minChildSize: 0.4,
-            maxChildSize: 0.95,
-            expand: false,
-            builder: (ctx, scrollController) => _MenuSelector(
-              onAdd: (item, qty, note) {
-                order.items.add(OrderItem(
-                  menuItemId: item.id,
-                  name: item.name,
-                  quantity: qty,
-                  unitPrice: item.price,
-                  note: note,
-                ));
-                FnbStore.updateOrder(order.id, order);
-                (ctx as Element).markNeedsBuild();
-              },
-              scrollController: scrollController,
-            ),
-          ),
-        ),
-      ),
-    );
+    _showAddItemsForOrder(context, order, onChange: widget.onOrderTap);
   }
 
   void _showOrderDetail(BuildContext context, Order order) {
@@ -471,7 +455,7 @@ class _TablesTabState extends State<_TablesTab> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Order — Table ${order.tableNumber}',
+                    Text('Order — ${order.locationLabel}',
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 16)),
                     Text('Server: ${order.serverName}  •  ${order.status.name}',
@@ -536,7 +520,9 @@ class _TablesTabState extends State<_TablesTab> {
                               }
                               order.status = OrderStatus.preparing;
                               FnbStore.updateOrder(order.id, order);
+                              _feedOrder('order.kitchen', order, 'Sent to kitchen');
                               setSheetState(() {});
+                              widget.onOrderTap();
                             },
                             child: const Text('Send to Kitchen'),
                           )),
@@ -561,6 +547,7 @@ class _TablesTabState extends State<_TablesTab> {
                                         status: TableStatus.free));
                               order.status = OrderStatus.paid;
                               FnbStore.updateOrder(order.id, order);
+                              _feedOrder('order.paid', order, 'Paid');
                               setSheetState(() {});
                               widget.onOrderTap();
                             }),
@@ -737,25 +724,37 @@ class _OrdersTabState extends State<_OrdersTab>
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      TabBar(
-        controller: _subTabController,
-        indicatorColor: _primary,
-        labelColor: _primary,
-        unselectedLabelColor: AppColors.grey500,
-        tabs: const [
-          Tab(text: 'Active Orders', icon: Icon(Icons.receipt, size: 14)),
-          Tab(
-              text: 'Kitchen View (KDS)',
-              icon: Icon(Icons.restaurant, size: 14)),
-        ],
+    return Scaffold(
+      floatingActionButton: RoleGate(
+        requiredPermission: Permission.managePOS,
+        child: FloatingActionButton(
+          backgroundColor: _primary,
+          foregroundColor: AppColors.white,
+          tooltip: 'New Order',
+          child: const Icon(Icons.add),
+          onPressed: () => _openNewOrderSheet(context, onChange: widget.onChange),
+        ),
       ),
-      Expanded(
-          child: TabBarView(controller: _subTabController, children: [
-        _ActiveOrders(onChange: widget.onChange),
-        _KdsView(onChange: widget.onChange),
-      ])),
-    ]);
+      body: Column(children: [
+        TabBar(
+          controller: _subTabController,
+          indicatorColor: _primary,
+          labelColor: _primary,
+          unselectedLabelColor: AppColors.grey500,
+          tabs: const [
+            Tab(text: 'Active Orders', icon: Icon(Icons.receipt, size: 14)),
+            Tab(
+                text: 'Kitchen View (KDS)',
+                icon: Icon(Icons.restaurant, size: 14)),
+          ],
+        ),
+        Expanded(
+            child: TabBarView(controller: _subTabController, children: [
+          _ActiveOrders(onChange: widget.onChange),
+          _KdsView(onChange: widget.onChange),
+        ])),
+      ]),
+    );
   }
 }
 
@@ -780,13 +779,13 @@ class _ActiveOrders extends StatelessWidget {
           leading: CircleAvatar(
             backgroundColor:
                 o.status == OrderStatus.preparing ? AppColors.orange : _primary,
-            child: Text(o.tableNumber,
+            child: Text(_shortLocation(o),
                 style: const TextStyle(
                     color: AppColors.white,
                     fontWeight: FontWeight.w700,
                     fontSize: 12)),
           ),
-          title: Text('Table ${o.tableNumber} — ₦${o.total.toStringAsFixed(0)}',
+          title: Text('${o.locationLabel} — ₦${o.total.toStringAsFixed(0)}',
               overflow: TextOverflow.ellipsis),
           subtitle: Text(
               '${o.serverName}  •  ${o.items.length} items  •  ${o.status.name}',
@@ -821,7 +820,7 @@ class _ActiveOrders extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Order — Table ${order.tableNumber}',
+                    Text('Order — ${order.locationLabel}',
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 16)),
                     Text('Server: ${order.serverName}  •  ${order.status.name}',
@@ -908,6 +907,7 @@ class _ActiveOrders extends StatelessWidget {
                               }
                               order.status = OrderStatus.preparing;
                               FnbStore.updateOrder(order.id, order);
+                              _feedOrder('order.kitchen', order, 'Sent to kitchen');
                               setSheetState(() {});
                               onChange();
                             },
@@ -936,6 +936,7 @@ class _ActiveOrders extends StatelessWidget {
                                           seats: table.seats,
                                           status: TableStatus.free));
                                 FnbStore.updateOrder(order.id, order);
+                                _feedOrder('order.paid', order, 'Paid');
                                 Navigator.pop(ctx);
                                 onChange();
                               },
@@ -986,7 +987,7 @@ void _confirmDeleteOrder(BuildContext ctx, Order order, VoidCallback onDone) {
     builder: (dctx) => AlertDialog(
       title: const Text('Delete Order?'),
       content: Text(
-          'Delete the order for Table ${order.tableNumber}? This cannot be undone.'),
+          'Delete the order for ${order.locationLabel}? This cannot be undone.'),
       actions: [
         TextButton(
             onPressed: () => Navigator.pop(dctx, false),
@@ -1000,6 +1001,7 @@ void _confirmDeleteOrder(BuildContext ctx, Order order, VoidCallback onDone) {
   ).then((confirmed) {
     if (confirmed != true) return;
     FnbStore.removeOrder(order.id);
+    _feedOrder('order.deleted', order, 'Deleted');
     if (!FnbStore.orders.any((o) => o.tableId == order.tableId)) {
       final table =
           FnbStore.tables.where((t) => t.id == order.tableId).firstOrNull;
@@ -1045,7 +1047,7 @@ class _KdsView extends StatelessWidget {
               Row(children: [
                 const Icon(Icons.restaurant, size: 18, color: AppColors.orange),
                 const SizedBox(width: 8),
-                Text('Table ${o.tableNumber}',
+                Text(o.locationLabel,
                     style: const TextStyle(
                         fontWeight: FontWeight.w800, fontSize: 16)),
                 const Spacer(),
@@ -1483,5 +1485,253 @@ Widget statusBadge(String text, {Color? color}) {
         borderRadius: BorderRadius.circular(8)),
     child: Text(text,
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: c)),
+  );
+}
+
+/// Short avatar label for an order: room number, `TA` for takeaway, otherwise
+/// the table number.
+String _shortLocation(Order o) {
+  if (o.orderType == OrderType.roomService) {
+    final room = (o.roomNumber ?? '').trim();
+    return room.isEmpty ? 'RS' : room;
+  }
+  if (o.orderType == OrderType.takeaway) return 'TA';
+  return o.tableNumber.trim().isEmpty ? 'DI' : o.tableNumber;
+}
+
+String _orderTypeLabel(OrderType t) {
+  switch (t) {
+    case OrderType.dineIn:
+      return 'Dine-in';
+    case OrderType.roomService:
+      return 'Room Service';
+    case OrderType.takeaway:
+      return 'Takeaway';
+  }
+}
+
+class _OrderTypeChip extends StatelessWidget {
+  final OrderType type;
+  final bool selected;
+  final VoidCallback onTap;
+  const _OrderTypeChip({
+    required this.type,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? _primary : AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: selected ? _primary : AppColors.grey300, width: 1.2),
+        ),
+        child: Text(_orderTypeLabel(type),
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: selected ? AppColors.white : AppColors.grey700)),
+      ),
+    );
+  }
+}
+
+/// Bottom-sheet that lets staff punch in a brand-new order: pick the order
+/// type (dine-in table, room-service room, or takeaway), tag the server and
+/// jump straight into the menu selector.
+void _openNewOrderSheet(BuildContext context, {VoidCallback? onChange}) {
+  final nameCtl = TextEditingController(text: RoleStore.current.userName);
+  final roomCtl = TextEditingController();
+  OrderType type = OrderType.dineIn;
+  final freeTables =
+      FnbStore.tables.where((t) => t.status == TableStatus.free).toList();
+  RestaurantTable? table = freeTables.isNotEmpty ? freeTables.first : null;
+
+  final activeRooms = <String>{
+    for (final b in app.HOMData.bookings)
+      if (b.status == 'checked-in' && b.room.trim().isNotEmpty) b.room.trim(),
+  }.toList()
+    ..sort();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheetState) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('New Order',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 16)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: OrderType.values
+                        .map((t) => _OrderTypeChip(
+                              type: t,
+                              selected: type == t,
+                              onTap: () => setSheetState(() => type = t),
+                            ))
+                        .toList(),
+                  ),
+                  const SizedBox(height: 12),
+                  if (type == OrderType.dineIn) ...[
+                    if (freeTables.isEmpty)
+                      const Text('No free tables right now.',
+                          style: TextStyle(color: AppColors.grey600))
+                    else
+                      DropdownButtonFormField<RestaurantTable>(
+                        initialValue: table,
+                        decoration: const InputDecoration(
+                            labelText: 'Table',
+                            border: OutlineInputBorder()),
+                        items: freeTables
+                            .map((t) => DropdownMenuItem(
+                                value: t,
+                                child:
+                                    Text('${t.number} (${t.seats} seats)')))
+                            .toList(),
+                        onChanged: (v) =>
+                            setSheetState(() => table = v ?? table),
+                      ),
+                  ],
+                  if (type == OrderType.roomService) ...[
+                    TextField(
+                        controller: roomCtl,
+                        decoration: const InputDecoration(
+                            labelText: 'Room Number',
+                            hintText: 'e.g. 102',
+                            border: OutlineInputBorder())),
+                    if (activeRooms.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text('In-house:',
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.grey600)),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 6,
+                        children: activeRooms
+                            .map((r) => ActionChip(
+                                  label: Text(r,
+                                      style: const TextStyle(fontSize: 11)),
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () =>
+                                      setSheetState(() => roomCtl.text = r),
+                                ))
+                            .toList(),
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 12),
+                  TextField(
+                      controller: nameCtl,
+                      decoration: const InputDecoration(
+                          labelText: 'Server Name',
+                          border: OutlineInputBorder())),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: RoleGate(
+                      requiredPermission: Permission.managePOS,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: _primary,
+                            foregroundColor: AppColors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14)),
+                        onPressed: () {
+                          if (type == OrderType.dineIn && table == null) return;
+                          final order = Order(
+                            id: FnbStore.genOrderId(),
+                            tableId: type == OrderType.dineIn
+                                ? (table?.id ?? '')
+                                : '',
+                            tableNumber: type == OrderType.dineIn
+                                ? (table?.number ?? '')
+                                : '',
+                            serverName: nameCtl.text.trim().isEmpty
+                                ? 'Staff'
+                                : nameCtl.text.trim(),
+                            orderType: type,
+                            roomNumber: type == OrderType.roomService
+                                ? roomCtl.text.trim()
+                                : null,
+                          );
+                          FnbStore.addOrder(order);
+                          _feedOrder('order.created', order, 'New');
+                          if (type == OrderType.dineIn && table != null) {
+                            final t = table!;
+                            FnbStore.updateTable(
+                                t.id,
+                                RestaurantTable(
+                                    id: t.id,
+                                    number: t.number,
+                                    seats: t.seats,
+                                    status: TableStatus.occupied));
+                          }
+                          Navigator.pop(ctx);
+                          onChange?.call();
+                          _showAddItemsForOrder(context, order,
+                              onChange: onChange);
+                        },
+                        child: const Text('Create & Add Items'),
+                      ),
+                    ),
+                  ),
+                ]),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Menu selector used while punching items into a freshly created order.
+void _showAddItemsForOrder(BuildContext context, Order order,
+    {VoidCallback? onChange}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (ctx) => Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+      child: SafeArea(
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.85,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (ctx, scrollController) => _MenuSelector(
+            onAdd: (item, qty, note) {
+              order.items.add(OrderItem(
+                menuItemId: item.id,
+                name: item.name,
+                quantity: qty,
+                unitPrice: item.price,
+                note: note,
+              ));
+              FnbStore.updateOrder(order.id, order);
+              onChange?.call();
+              (ctx as Element).markNeedsBuild();
+            },
+            scrollController: scrollController,
+          ),
+        ),
+      ),
+    ),
   );
 }

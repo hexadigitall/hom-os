@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit3, UtensilsCrossed, Receipt, BookOpen, Flame, Check, X } from 'lucide-react';
 import {
   MenuItem, RestaurantTable, Order, OrderItem, TableStatus, MenuCategory, OrderItemStatus,
+  OrderType, orderLocation, ActivityLog,
 } from '@/lib/types';
-import { seedMenu, seedTables, seedOrders } from '@/lib/seed';
+import { seedMenu, seedTables, seedOrders, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira } from '@/lib/format';
+import { postActivity } from '@/lib/activity';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 type SubTab = 'tables' | 'orders' | 'menu';
@@ -58,6 +60,7 @@ function TablesTab() {
   const { session } = useAuth();
   const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
   const orders = useSyncedCollection<Order>('fnb_orders', 'fnb_orders', seedOrders, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'restaurants');
   const [showForm, setShowForm] = useState(false);
   const [editTable, setEditTable] = useState<RestaurantTable | null>(null);
@@ -106,10 +109,19 @@ function TablesTab() {
       </div>
 
       {createFor && (
-        <NewOrderForm table={createFor} menu={[]} onSave={(name) => {
-          const order: Order = { id: uid('fnb'), tableId: createFor.id, items: [], status: 'open', openedAt: nowISO(), servedBy: name, departments: depts };
+        <NewOrderForm table={createFor} onSave={(opts) => {
+          const order: Order = {
+            id: uid('fnb'), tableId: createFor.id, items: [], status: 'open',
+            openedAt: nowISO(), servedBy: opts.serverName, departments: depts,
+            orderType: opts.orderType, roomNumber: opts.roomNumber || undefined,
+          };
           orders.add(order);
-          tables.update(createFor.id, { status: 'occupied' });
+          if (opts.orderType === 'dineIn') tables.update(createFor.id, { status: 'occupied' });
+          postActivity(feed, session, {
+            dept: 'restaurants', action: 'order.created',
+            message: `New ${opts.orderType === 'dineIn' ? 'dine-in' : opts.orderType === 'roomService' ? 'room-service' : 'takeaway'} order at ${createFor.number} (${opts.serverName})`,
+            refId: order.id,
+          });
           setViewOrder(order);
           setCreateFor(null);
         }} onCancel={() => setCreateFor(null)} />
@@ -127,13 +139,31 @@ const orderTotal = (o: Order) => {
   return subtotal - (o.discount || 0);
 };
 
-function NewOrderForm({ table, menu, onSave, onCancel }: { table: RestaurantTable; menu: MenuItem[]; onSave: (serverName: string) => void; onCancel: () => void }) {
+function NewOrderForm({ table, onSave, onCancel }: { table: RestaurantTable | null; onSave: (opts: { serverName: string; orderType: OrderType; roomNumber: string }) => void; onCancel: () => void }) {
   const [server, setServer] = useState('');
+  const [type, setType] = useState<OrderType>('dineIn');
+  const [room, setRoom] = useState('');
+  const title = table ? `New Order — Table ${table.number}` : 'New Order';
+  const orderTypes: OrderType[] = ['dineIn', 'roomService', 'takeaway'];
   return (
-    <FormCard title={`New Order — Table ${table.number}`} onCancel={onCancel}>
+    <FormCard title={title} onCancel={onCancel}>
+      <Field label="Order Type">
+        <div className="flex gap-1.5 flex-wrap">
+          {orderTypes.map(t => (
+            <button key={t} onClick={() => setType(t)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold ${type === t ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
+              {t === 'dineIn' ? 'Dine-in' : t === 'roomService' ? 'Room Service' : 'Takeaway'}
+            </button>
+          ))}
+        </div>
+      </Field>
+      {table && type === 'dineIn' && <p className="text-xs text-zinc-500 -mt-1">Serving at {table.number} ({table.seats} seats)</p>}
+      {type === 'roomService' && (
+        <Field label="Room Number"><TextInput value={room} onChange={e => setRoom(e.target.value)} placeholder="e.g. 102" /></Field>
+      )}
       <Field label="Server Name"><TextInput value={server} onChange={e => setServer(e.target.value)} placeholder="Server name" /></Field>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => onSave(server.trim() || 'Staff')}>Create & Add Items</Btn>
+        <Btn onClick={() => onSave({ serverName: server.trim() || 'Staff', orderType: type, roomNumber: room.trim() })}>Create & Add Items</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -146,19 +176,43 @@ function OrdersTab() {
   const { session } = useAuth();
   const orders = useSyncedCollection<Order>('fnb_orders', 'fnb_orders', seedOrders, session);
   const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const [view, setView] = useState<Order | null>(null);
   const [kds, setKds] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const active = orders.items.filter(o => o.status !== 'paid' && o.status !== 'cancelled');
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1.5">
-        <button onClick={() => setKds(false)}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold ${!kds ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}>Active Orders ({active.length})</button>
-        <button onClick={() => setKds(true)}
-          className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 ${kds ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}><Flame size={12} /> Kitchen View (KDS)</button>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex gap-1.5">
+          <button onClick={() => setKds(false)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold ${!kds ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}>Active Orders ({active.length})</button>
+          <button onClick={() => setKds(true)}
+            className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 ${kds ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}><Flame size={12} /> Kitchen View (KDS)</button>
+        </div>
+        {!kds && <Btn onClick={() => { setCreating(true); setView(null); }}><Plus size={14} /> New Order</Btn>}
       </div>
+
+      {creating && (
+        <NewOrderForm table={null} onSave={(opts) => {
+          const order: Order = {
+            id: uid('fnb'), tableId: opts.orderType === 'dineIn' ? (tables.items.find(t => t.status === 'free')?.id || '') : '',
+            items: [], status: 'open', openedAt: nowISO(), servedBy: opts.serverName,
+            orderType: opts.orderType, roomNumber: opts.roomNumber || undefined,
+          };
+          orders.add(order);
+          if (order.tableId) tables.update(order.tableId, { status: 'occupied' });
+          postActivity(feed, session, {
+            dept: 'restaurants', action: 'order.created',
+            message: `New ${opts.orderType === 'dineIn' ? 'dine-in' : opts.orderType === 'roomService' ? 'room-service' : 'takeaway'} order at ${displayLocation(tables, order)} (${opts.serverName})`,
+            refId: order.id,
+          });
+          setCreating(false);
+          setView(order);
+        }} onCancel={() => setCreating(false)} />
+      )}
 
       {!kds && (
         <>
@@ -168,7 +222,7 @@ function OrdersTab() {
               <Card key={o.id} className="p-5">
                 <div className="flex justify-between items-start gap-2">
                   <div>
-                    <div className="font-bold">{tableNumber(tables.items, o.tableId)}</div>
+                    <div className="font-bold">{displayLocation(tables, o)}</div>
                     <div className="text-[10px] text-zinc-500">{o.servedBy} • {o.status}</div>
                   </div>
                   <StatusChip status={o.status} />
@@ -204,7 +258,7 @@ function OrdersTab() {
             return (
               <Card key={o.id} className="p-5 border-2 border-amber-200 bg-amber-50/40">
                 <div className="flex justify-between items-center mb-3">
-                  <div className="font-black">{tableNumber(tables.items, o.tableId)}</div>
+                  <div className="font-black">{displayLocation(tables, o)}</div>
                   <StatusChip status={o.status} />
                 </div>
                 <div className="space-y-2">
@@ -238,6 +292,12 @@ function OrdersTab() {
 
 const tableNumber = (tables: RestaurantTable[], id: string) => tables.find(t => t.id === id)?.number || id;
 
+const displayLocation = (tables: { items: RestaurantTable[] }, o: Order) => {
+  if (o.orderType === 'roomService') return orderLocation(o);
+  if (o.orderType === 'takeaway') return 'Takeaway';
+  return `Table ${tableNumber(tables.items, o.tableId)}`;
+};
+
 const ITEM_NEXT: Record<OrderItemStatus, OrderItemStatus | null> = {
   pending: 'preparing', preparing: 'ready', ready: 'served', served: null,
 };
@@ -253,22 +313,37 @@ function advanceItem(orders: any, order: Order, item: OrderItem) {
 function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; tables: any; orders: any; menu: Record<string, never>; onClose: () => void }) {
   const { session } = useAuth();
   const menuItems = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const [adding, setAdding] = useState(false);
   const [payMethod, setPayMethod] = useState('cash');
 
   const sendToKitchen = () => {
     const items = order.items.map(x => x.status === 'pending' ? { ...x, status: 'preparing' as OrderItemStatus } : x);
     orders.update(order.id, { items, status: 'preparing' });
+    postActivity(feed, session, {
+      dept: 'kitchen', action: 'order.kitchen',
+      message: `Order at ${displayLocation(tables, order)} sent to kitchen`,
+      refId: order.id,
+    });
+  };
+
+  const freeTable = (orderId: string) => {
+    if (orderId) tables.update(orderId, { status: 'free' });
   };
 
   const payOrder = () => {
-    tables.update(order.tableId, { status: 'free' });
+    freeTable(order.tableId);
     orders.update(order.id, { status: 'paid', paymentMethod: payMethod, closedAt: nowISO() });
+    postActivity(feed, session, {
+      dept: 'restaurants', action: 'order.paid',
+      message: `Order at ${displayLocation(tables, order)} paid via ${payMethod} (${naira(orderTotal(order))})`,
+      refId: order.id,
+    });
     onClose();
   };
 
   return (
-    <FormCard title={`Order — Table ${tableNumber(tables.items, order.tableId)}`} onCancel={onClose}>
+    <FormCard title={`Order — ${displayLocation(tables, order)}`} onCancel={onClose}>
       <div className="text-xs text-zinc-500 mb-3">Server: {order.servedBy} • {order.status} • Opened {order.openedAt.slice(0, 10)}</div>
       <div className="divide-y rounded-xl border">
         {order.items.map((it, i) => (
@@ -333,9 +408,27 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
           </Select>
         )}
         {order.status !== 'paid' && order.status !== 'cancelled' && (
-          <Btn color="outline" className="!text-red-500" onClick={() => { orders.update(order.id, { status: 'cancelled' }); tables.update(order.tableId, { status: 'free' }); onClose(); }}><X size={14} /> Cancel Order</Btn>
+          <Btn color="outline" className="!text-red-500" onClick={() => {
+            orders.update(order.id, { status: 'cancelled' });
+            freeTable(order.tableId);
+            postActivity(feed, session, {
+              dept: 'restaurants', action: 'order.cancelled',
+              message: `Order at ${displayLocation(tables, order)} cancelled`,
+              refId: order.id,
+            });
+            onClose();
+          }}><X size={14} /> Cancel Order</Btn>
         )}
-        <Btn color="outline" className="!text-red-500" onClick={() => { orders.remove(order.id); tables.update(order.tableId, { status: 'free' }); onClose(); }}><Trash2 size={14} /> Delete Order</Btn>
+        <Btn color="outline" className="!text-red-500" onClick={() => {
+          orders.remove(order.id);
+          freeTable(order.tableId);
+          postActivity(feed, session, {
+            dept: 'restaurants', action: 'order.deleted',
+            message: `Order at ${displayLocation(tables, order)} deleted`,
+            refId: order.id,
+          });
+          onClose();
+        }}><Trash2 size={14} /> Delete Order</Btn>
       </div>
     </FormCard>
   );

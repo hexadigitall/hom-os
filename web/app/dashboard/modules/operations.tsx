@@ -3,11 +3,13 @@
 import { useState } from 'react';
 import { Plus, Trash2, Edit3, TrendingUp, MoonStar, PackageX, AlertTriangle } from 'lucide-react';
 import { DailyRevenue, CashDrop, HousekeepingLoss, TOTAL_ROOMS, ShiftName } from '@/lib/types';
-import { seedRevenues, seedCashDrops, seedLosses } from '@/lib/seed';
+import { seedRevenues, seedCashDrops, seedLosses, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, uid, naira, fmtDate, addDays, monthStart } from '@/lib/format';
+import { postActivity } from '@/lib/activity';
+import { ActivityLog } from '@/lib/types';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 type SubTab = 'revpar' | 'nightaudit' | 'housekeeping';
@@ -45,6 +47,7 @@ export function OperationsModule() {
 function RevParTab() {
   const { session } = useAuth();
   const revs = useSyncedCollection<DailyRevenue>('ops_revenues', 'ops_revenues', seedRevenues, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<DailyRevenue | null>(null);
@@ -75,7 +78,8 @@ function RevParTab() {
       </div>
       {showForm && (
         <RevenueForm initial={editItem} depts={depts} onSave={(r) => {
-          if (editItem) revs.replace(r.id, r); else revs.add(r);
+          if (editItem) revs.replace(r.id, r);
+          else { revs.add(r); postActivity(feed, session, { dept: 'accounts', action: 'revpar.logged', message: `Daily revenue logged — ${fmtDate(r.date)} ${naira(r.totalRevenue)} (${r.roomsSold} rooms sold)`, refId: r.id }); }
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}
@@ -148,6 +152,7 @@ function RevenueForm({ initial, depts, onSave, onCancel }: { initial: DailyReven
 function NightAuditTab() {
   const { session } = useAuth();
   const drops = useSyncedCollection<CashDrop>('ops_cash_drops', 'ops_cash_drops', seedCashDrops, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<CashDrop | null>(null);
@@ -177,7 +182,8 @@ function NightAuditTab() {
       )}
       {showForm && (
         <DropForm initial={editItem} depts={depts} onSave={(c) => {
-          if (editItem) drops.replace(c.id, c); else drops.add(c);
+          if (editItem) drops.replace(c.id, c);
+          else { drops.add(c); postActivity(feed, session, { dept: 'accounts', action: 'cashdrop.logged', message: `${c.shift} cash drop ${fmtDate(c.date)} — ${naira(c.actualAmount)} (${c.status})`, refId: c.id }); }
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}
@@ -242,6 +248,7 @@ const LOSS_COLORS: Record<string, string> = {
 function LossesTab() {
   const { session } = useAuth();
   const losses = useSyncedCollection<HousekeepingLoss>('ops_losses', 'ops_losses', seedLosses, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<HousekeepingLoss | null>(null);
@@ -276,7 +283,8 @@ function LossesTab() {
       </div>
       {showForm && (
         <LossForm initial={editItem} depts={depts} onSave={(l) => {
-          if (editItem) losses.replace(l.id, l); else losses.add(l);
+          if (editItem) losses.replace(l.id, l);
+          else { losses.add(l); postActivity(feed, session, { dept: 'housekeeping', action: 'loss.logged', message: `${l.quantity}x ${l.item} lost in Room ${l.roomNumber || '—'} (${naira(l.quantity * l.unitCost)})`, refId: l.id }); }
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}

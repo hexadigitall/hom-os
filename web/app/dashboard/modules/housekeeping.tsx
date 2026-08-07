@@ -5,12 +5,14 @@ import { Plus, Trash2, Edit3, Check, Search, Bed, Droplet, HelpCircle } from 'lu
 import {
   HousekeepingTask, LaundryItem, LostFoundItem, LinenDamage,
   HousekeepingPriority, LaundryType, LaundryStatus, LostFoundCategory, LinenCategory, LinenCondition,
+  ActivityLog,
 } from '@/lib/types';
-import { seedHkTasks, seedLaundry, seedLostFound, seedLinen } from '@/lib/seed';
+import { seedHkTasks, seedLaundry, seedLostFound, seedLinen, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
+import { postActivity } from '@/lib/activity';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 type SubTab = 'tasks' | 'laundry' | 'lostfound' | 'linen';
@@ -54,10 +56,14 @@ const HK_PRIORITY_LABEL: Record<HousekeepingPriority, string> = {
 function TasksTab() {
   const { session } = useAuth();
   const tasks = useSyncedCollection<HousekeepingTask>('hk_tasks', 'hk_tasks', seedHkTasks, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<HousekeepingTask | null>(null);
   const [showDone, setShowDone] = useState(false);
+
+  const logTask = (message: string, refId: string) =>
+    postActivity(feed, session, { dept: 'housekeeping', action: 'task.completed', message, refId });
 
   const t = today();
   const pending = tasks.items.filter(x => !x.completed);
@@ -98,7 +104,7 @@ function TasksTab() {
               <div className="flex items-center gap-2">
                 <StatusChip status={task.completed ? 'completed' : 'pending'} label={task.completed ? 'Done' : 'Pending'} />
                 {!task.completed && (
-                  <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => tasks.update(task.id, { completed: true, completedAt: nowISO() })}>Complete</Btn>
+                  <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => { tasks.update(task.id, { completed: true, completedAt: nowISO() }); logTask(`Completed housekeeping task — Room ${task.roomNumber} (${HK_PRIORITY_LABEL[task.priority]})`, task.id); }}>Complete</Btn>
                 )}
                 {task.completed && (
                   <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => tasks.update(task.id, { completed: false, completedAt: undefined })}>Reopen</Btn>

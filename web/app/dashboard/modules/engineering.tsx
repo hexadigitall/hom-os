@@ -4,15 +4,16 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit3, Power, Wrench, Fuel, Zap, Droplets, Gauge, AlertTriangle, Timer } from 'lucide-react';
 import {
   Generator, MaintenanceTask, TankDipLog, GridTariffConfig, WaterTreatmentLog,
-  GeneratorStatus, MaintenancePriority, EquipmentType, GridBand,
+  GeneratorStatus, MaintenancePriority, EquipmentType, GridBand, ActivityLog,
 } from '@/lib/types';
 import {
-  seedGenerators, seedMaintenance, seedTankDips, seedTariffs, seedWater,
+  seedGenerators, seedMaintenance, seedTankDips, seedTariffs, seedWater, seedActivity,
 } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
+import { postActivity } from '@/lib/activity';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, DateInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
 
 type SubTab = 'dashboard' | 'generators' | 'maintenance' | 'fuel' | 'grid' | 'water';
@@ -102,9 +103,20 @@ function EngDashboard() {
 function GeneratorsTab() {
   const { session } = useAuth();
   const gens = useSyncedCollection<Generator>('eng_generators', 'eng_generators', seedGenerators, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Generator | null>(null);
   const depts = tagFor(session, 'engineering');
+
+  const setStatus = (g: Generator, s: GeneratorStatus) => {
+    gens.update(g.id, { status: s });
+    const verb = s === 'running' ? 'started' : s === 'idle' ? 'stopped' : s === 'fault' ? 'flagged with fault' : 'taken off for maintenance';
+    postActivity(feed, session, {
+      dept: 'engineering', action: 'generator.status',
+      message: `${g.name} ${verb}`,
+      refId: g.id,
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -129,7 +141,7 @@ function GeneratorsTab() {
             {g.lastServiceDate && <div className="text-xs text-zinc-400 mt-3">Last service: {fmtDate(g.lastServiceDate)}</div>}
             <div className="mt-4 flex gap-1.5 flex-wrap">
               {(['running', 'idle', 'maintenance', 'fault'] as GeneratorStatus[]).map(s => (
-                <button key={s} onClick={() => gens.update(g.id, { status: s })}
+                <button key={s} onClick={() => setStatus(g, s)}
                   className={`text-[10px] px-2 py-1 rounded-full border font-medium ${g.status === s ? 'bg-hom-primary text-white border-hom-primary' : 'hover:bg-zinc-50'}`}>{s}</button>
               ))}
               <IconBtn onClick={() => { setEditItem(g); setShowForm(true); }}><Edit3 size={14} /></IconBtn>
@@ -186,6 +198,7 @@ const PRIORITY_COLOR: Record<MaintenancePriority, string> = {
 function MaintenanceTab() {
   const { session } = useAuth();
   const tasks = useSyncedCollection<MaintenanceTask>('eng_maintenance', 'eng_maintenance', seedMaintenance, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MaintenanceTask | null>(null);
   const [showDone, setShowDone] = useState(false);
@@ -233,7 +246,7 @@ function MaintenanceTab() {
               <div className="flex items-center gap-2">
                 <StatusChip status={task.completed ? 'completed' : 'pending'} label={task.completed ? 'Done' : 'Open'} />
                 {!task.completed && (
-                  <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => tasks.update(task.id, { completed: true, completedAt: nowISO() })}>Complete</Btn>
+                  <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => { tasks.update(task.id, { completed: true, completedAt: nowISO() }); postActivity(feed, session, { dept: 'engineering', action: 'maintenance.completed', message: `Maintenance complete — ${task.equipmentName} (${task.priority})`, refId: task.id }); }}>Complete</Btn>
                 )}
                 {task.completed && (
                   <Btn color="outline" className="!px-3 !py-1 !text-[11px]" onClick={() => tasks.update(task.id, { completed: false, completedAt: undefined })}>Reopen</Btn>

@@ -6,10 +6,10 @@ import {
   Send, Package, Store,
 } from 'lucide-react';
 import {
-  Room, Booking, Diesel, InventoryItem, Staff, Vendor, PurchaseOrder,
+  Room, Booking, Diesel, InventoryItem, Staff, Vendor, PurchaseOrder, ActivityLog,
 } from '@/lib/types';
 import {
-  seedRooms, seedBookings, seedDiesel, seedInventory, seedStaff, seedVendors, seedPOs,
+  seedRooms, seedBookings, seedDiesel, seedInventory, seedStaff, seedVendors, seedPOs, seedActivity,
 } from '@/lib/seed';
 
 import { useSyncedCollection } from '@/lib/synced';
@@ -18,6 +18,7 @@ import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac'
 import { today, addDays, uid, naira, fmtDate, daysBetween } from '@/lib/format';
 import { sendWhatsApp, bookingConfirmationTemplate, payslipTemplate } from '@/lib/whatsapp';
 import { appendWhatsAppLog } from '@/lib/whatsapplog';
+import { postActivity } from '@/lib/activity';
 import {
   Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput,
   NumberInput, DateInput, Select, FormCard, EmptyState, FieldGrid, paye, pension, netPay,
@@ -78,10 +79,14 @@ export function BookingsModule() {
   const { session } = useAuth();
   const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
   const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Booking | null>(null);
   const [search, setSearch] = useState('');
+
+  const logBooking = (action: string, message: string, refId: string) =>
+    postActivity(feed, session, { dept: 'reception', action, message, refId });
 
   return (
     <div className="space-y-4">
@@ -93,7 +98,10 @@ export function BookingsModule() {
         <BookingForm rooms={rooms.items} initial={editItem} depts={depts}
           onSave={(b) => {
             if (editItem) bookings.replace(b.id, b);
-            else { bookings.add(b); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'occupied' }); }
+            else {
+              bookings.add(b); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'occupied' });
+              logBooking('booking.created', `New booking — ${b.guest} in Room ${b.room}`, b.id);
+            }
             const msg = bookingConfirmationTemplate(b.guest, b.room, b.checkin);
             sendWhatsApp(b.phone, msg); appendWhatsAppLog(b.phone, msg);
             setShowForm(false); setEditItem(null);
@@ -113,8 +121,8 @@ export function BookingsModule() {
                 {b.status !== 'checked-out' && b.status !== 'cancelled' && (
                   <>
                     <IconBtn onClick={() => { setEditItem(b); setShowForm(true); }} title="Edit"><Edit3 size={14} /></IconBtn>
-                    <IconBtn tone="green" onClick={() => { bookings.update(b.id, { status: 'checked-out' }); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' }); }} title="Check Out"><LogOut size={14} /></IconBtn>
-                    <IconBtn tone="red" onClick={() => { bookings.update(b.id, { status: 'cancelled' }); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' }); }} title="Cancel"><XCircle size={14} /></IconBtn>
+                    <IconBtn tone="green" onClick={() => { bookings.update(b.id, { status: 'checked-out' }); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' }); logBooking('booking.checkedOut', `Checked out ${b.guest} — Room ${b.room}`, b.id); }} title="Check Out"><LogOut size={14} /></IconBtn>
+                    <IconBtn tone="red" onClick={() => { bookings.update(b.id, { status: 'cancelled' }); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' }); logBooking('booking.cancelled', `Cancelled booking — ${b.guest} (Room ${b.room})`, b.id); }} title="Cancel"><XCircle size={14} /></IconBtn>
                   </>
                 )}
                 <IconBtn tone="red" onClick={() => bookings.remove(b.id)} title="Delete"><Trash2 size={14} /></IconBtn>
@@ -169,6 +177,7 @@ function BookingForm({ rooms, initial, depts, onSave, onCancel }: { rooms: Room[
 export function RoomsModule() {
   const { session } = useAuth();
   const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
+  const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'reception');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Room | null>(null);
@@ -196,7 +205,7 @@ export function RoomsModule() {
             </div>
             <div className="mt-4 flex gap-2 flex-wrap">
               {(['available', 'occupied', 'maintenance'] as const).map(s => (
-                <button key={s} onClick={() => rooms.update(r.id, { status: s })}
+                <button key={s} onClick={() => { rooms.update(r.id, { status: s }); if (r.status !== s) postActivity(feed, session, { dept: 'reception', action: 'room.status', message: `Room ${r.number} marked ${s}`, refId: r.id }); }}
                   className={`text-[10px] px-2 py-1 rounded-full border ${r.status === s ? 'bg-hom-primary text-white border-hom-primary' : 'hover:bg-zinc-50'}`}>{s}</button>
               ))}
             </div>

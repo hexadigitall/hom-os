@@ -33,12 +33,17 @@ class StoreSync<T> implements CloudSyncable {
   /// Hive/localStorage key used as the offline mirror.
   final String cacheKey;
 
+  /// Called after a cloud snapshot has been merged into [target], so live
+  /// stores (e.g. the activity feed) can notify their UI.
+  final void Function()? onMerge;
+
   StoreSync({
     required this.collection,
     required this.target,
     required this.fromJson,
     required this.toJson,
     required this.cacheKey,
+    this.onMerge,
   });
 
   StreamSubscription<List<Map<String, dynamic>>>? _sub;
@@ -111,6 +116,7 @@ class StoreSync<T> implements CloudSyncable {
       ..clear()
       ..addAll([...cloudItems, ...localOnly]);
     PersistenceService.saveList(cacheKey, target, toJson);
+    onMerge?.call();
   }
 
   @override
