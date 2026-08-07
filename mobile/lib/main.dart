@@ -957,8 +957,30 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-class _UpdateBanner extends StatelessWidget {
+class _UpdateBanner extends StatefulWidget {
   const _UpdateBanner();
+
+  @override
+  State<_UpdateBanner> createState() => _UpdateBannerState();
+}
+
+class _UpdateBannerState extends State<_UpdateBanner> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) UpdateService.onResumed();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -966,45 +988,104 @@ class _UpdateBanner extends StatelessWidget {
       valueListenable: UpdateService.status,
       builder: (context, info, _) {
         if (info == null) return const SizedBox.shrink();
-        return Material(
-          color: AppColors.primary,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  const Icon(Icons.system_update_alt_rounded,
-                      color: AppColors.white, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'HOM ${info.latestTag} is available',
-                      style: const TextStyle(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        return ValueListenableBuilder<UpdateProgress>(
+          valueListenable: UpdateService.progress,
+          builder: (context, p, _) {
+            return Material(
+              color: AppColors.primary,
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.system_update_alt_rounded,
+                          color: AppColors.white, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              p.phase == UpdatePhase.idle ||
+                                      p.phase == UpdatePhase.error
+                                  ? 'HOM ${info.latestTag} is available'
+                                  : p.message,
+                              style: const TextStyle(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (p.phase == UpdatePhase.downloading)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(3),
+                                  child: LinearProgressIndicator(
+                                    value: p.fraction,
+                                    minHeight: 4,
+                                    backgroundColor:
+                                        AppColors.white.withValues(alpha: 0.2),
+                                    valueColor: const AlwaysStoppedAnimation(
+                                        AppColors.white),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (p.phase == UpdatePhase.idle)
+                        TextButton(
+                          onPressed: () => UpdateService.downloadAndInstall(info),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.white,
+                            backgroundColor:
+                                AppColors.white.withValues(alpha: 0.15),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
+                          ),
+                          child: const Text('Update'),
+                        )
+                      else if (p.phase == UpdatePhase.downloading ||
+                          p.phase == UpdatePhase.verifying ||
+                          p.phase == UpdatePhase.installing)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 4),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        )
+                      else if (p.phase == UpdatePhase.error)
+                        TextButton(
+                          onPressed: () =>
+                              UpdateService.downloadAndInstall(info),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.white,
+                            backgroundColor:
+                                AppColors.white.withValues(alpha: 0.15),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 4),
+                          ),
+                          child: const Text('Retry'),
+                        )
+                      else
+                        const SizedBox(width: 12),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () => launchUrl(
-                      Uri.parse(info.downloadUrl),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.white,
-                      backgroundColor: AppColors.white.withValues(alpha: 0.15),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                    ),
-                    child: const Text('Update'),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
