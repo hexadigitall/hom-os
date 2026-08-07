@@ -1,4 +1,5 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/housekeeping.dart';
 
 class HousekeepingStore {
@@ -6,6 +7,38 @@ class HousekeepingStore {
   static final List<LaundryItem> _laundry = [];
   static final List<LostFoundItem> _lostFound = [];
   static final List<LinenDamage> _linenDamages = [];
+
+  // Offline-first cloud sync. `hk_laundry` and `hk_linen` are intentionally NOT
+  // synced yet — their enums diverge from the web app (LaundryType
+  // guestCharge/washIron; LinenCategory mattressProtector/bathrobe/other;
+  // LinenCondition new_/good/damaged), and mobile `fromJson` byName would
+  // reject web-only values.
+  static final StoreSync<HousekeepingTask> taskSync = _initTaskSync();
+  static final StoreSync<LostFoundItem> lostFoundSync = _initLostFoundSync();
+
+  static StoreSync<HousekeepingTask> _initTaskSync() {
+    final s = StoreSync<HousekeepingTask>(
+      collection: 'hk_tasks',
+      target: _tasks,
+      fromJson: HousekeepingTask.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'hk_tasks',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<LostFoundItem> _initLostFoundSync() {
+    final s = StoreSync<LostFoundItem>(
+      collection: 'hk_lost_found',
+      target: _lostFound,
+      fromJson: LostFoundItem.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'hk_lost_found',
+    );
+    CloudSync.register(s);
+    return s;
+  }
 
   // ───────────────────── INIT ─────────────────────
 
@@ -19,6 +52,8 @@ class HousekeepingStore {
     final ln = PersistenceService.loadList('hk_linen', LinenDamage.fromJson);
     if (ln != null) { _linenDamages.clear(); _linenDamages.addAll(ln); }
     if (_tasks.isEmpty) _seed();
+    taskSync.loadMeta();
+    lostFoundSync.loadMeta();
   }
 
   static Future<void> _save() async {
@@ -26,6 +61,8 @@ class HousekeepingStore {
     await PersistenceService.saveList('hk_laundry', _laundry, (e) => e.toJson());
     await PersistenceService.saveList('hk_lost_found', _lostFound, (e) => e.toJson());
     await PersistenceService.saveList('hk_linen', _linenDamages, (e) => e.toJson());
+    await taskSync.push();
+    await lostFoundSync.push();
   }
 
   static int _counter = 0;

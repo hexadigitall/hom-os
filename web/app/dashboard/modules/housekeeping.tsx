@@ -8,6 +8,7 @@ import {
 } from '@/lib/types';
 import { seedHkTasks, seedLaundry, seedLostFound, seedLinen } from '@/lib/seed';
 import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
@@ -53,7 +54,7 @@ const HK_PRIORITY_LABEL: Record<HousekeepingPriority, string> = {
 
 function TasksTab() {
   const { session } = useAuth();
-  const tasks = useScopedCollection<HousekeepingTask>('hk_tasks', seedHkTasks, session);
+  const tasks = useSyncedCollection<HousekeepingTask>('hk_tasks', 'hk_tasks', seedHkTasks, session);
   const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<HousekeepingTask | null>(null);
@@ -239,7 +240,7 @@ const LF_CATEGORY_LABEL: Record<LostFoundCategory, string> = {
 
 function LostFoundTab() {
   const { session } = useAuth();
-  const items = useScopedCollection<LostFoundItem>('hk_lostfound', seedLostFound, session);
+  const items = useSyncedCollection<LostFoundItem>('hk_lost_found', 'hk_lostfound', seedLostFound, session);
   const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LostFoundItem | null>(null);
