@@ -177,6 +177,9 @@ void main() async {
   _trace('WhatsAppStore ok');
   _trace('RUNNING APP');
   UpdateService.check();
+  Timer.periodic(const Duration(minutes: 30), (_) {
+    if (!kIsWeb) UpdateService.check();
+  });
   runApp(const HOMApp());
 }
 
