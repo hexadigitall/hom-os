@@ -201,7 +201,7 @@ class RoleStore {
       Permission.viewReconciliation,
       Permission.viewFuel, Permission.viewReports,
       Permission.viewRevPAR, Permission.viewNightAudit,
-      Permission.viewCompliance, Permission.captureGuestNIN,
+      Permission.viewCompliance,
       Permission.viewActivityFeed,
     },
   );
@@ -265,10 +265,7 @@ class RoleStore {
       Permission.lockTransactions, Permission.logCashDrop,
       Permission.viewCompliance, Permission.manageCompliance,
       Permission.captureGuestNIN, Permission.logCashTransactions,
-      Permission.manageLGAHealthPermits,
-      Permission.manageFireServiceCertificates,
       // System
-      Permission.manageSubscriptions,
       Permission.viewActivityFeed,
     },
   );

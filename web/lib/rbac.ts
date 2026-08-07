@@ -169,7 +169,7 @@ export const PREBUILT_ROLES: AppRole[] = [
       // Pillar 5 — back office + financial view only
       P.viewBackOffice, P.viewExpenditure, P.viewReconciliation,
       P.viewFuel, P.viewReports, P.viewRevPAR, P.viewNightAudit,
-      P.viewCompliance, P.captureGuestNIN,
+      P.viewCompliance,
       P.viewActivityFeed,
     ],
   },
@@ -223,9 +223,6 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.lockTransactions, P.logCashDrop,
       P.viewCompliance, P.manageCompliance,
       P.captureGuestNIN, P.logCashTransactions,
-      P.manageLGAHealthPermits, P.manageFireServiceCertificates,
-      // System
-      P.manageSubscriptions,
       P.viewActivityFeed,
     ],
   },
