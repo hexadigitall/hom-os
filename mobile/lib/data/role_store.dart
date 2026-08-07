@@ -232,7 +232,6 @@ class RoleStore {
       Permission.manageShiftHandover, Permission.logCashDrop,
       Permission.captureGuestNIN, Permission.logCashTransactions,
       // Cross-pillar
-      Permission.viewOperations,
       Permission.viewActivityFeed,
     },
   );
@@ -287,7 +286,6 @@ class RoleStore {
       Permission.logMinibarLoss,
       Permission.manageLaundry, Permission.manageGuestDryCleaning,
       // Cross-pillar
-      Permission.viewOperations,
       Permission.viewActivityFeed,
     },
   );
@@ -297,15 +295,12 @@ class RoleStore {
     name: 'Kitchen / Bar',
     department: Department.kitchen,
     permissions: {
-      // Pillar 4 — full culinary ops
+      // Pillar 4 — KDS + culinary costing only (POS/table mgmt is server-side)
       Permission.viewInventory, Permission.manageInventory,
       Permission.manageKDS, Permission.manageRecipeCosting,
       Permission.trackIngredientShortages,
-      Permission.managePOS, Permission.manageSplitChecks,
-      Permission.manageTableManagement,
       Permission.createExpenditure,
       // Cross-pillar
-      Permission.viewOperations,
       Permission.viewActivityFeed,
     },
   );
@@ -314,18 +309,13 @@ class RoleStore {
     id: 'dept_head',
     name: 'Department Head',
     permissions: {
-      // Pillar 5 — their dept only
+      // Their department only — everything here is department-scoped.
+      // HODs get hotel-wide views via an additive management/role grant,
+      // never from this role alone.
       Permission.viewInventory, Permission.manageInventory,
       Permission.createExpenditure,
       Permission.viewStaff, Permission.manageStaff,
-      // Pillar 3 — engineering view
-      Permission.viewEngineering,
-      // Pillar 5 — back office
-      Permission.viewBackOffice,
-      // Pillar 6 — security audit
-      Permission.viewSecurityAudit,
       // Cross-pillar
-      Permission.viewOperations, Permission.viewCompliance,
       Permission.viewActivityFeed,
     },
   );

@@ -196,7 +196,6 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.manageShiftHandover, P.logCashDrop,
       P.captureGuestNIN, P.logCashTransactions,
       // Cross-pillar
-      P.viewOperations,
       P.viewActivityFeed,
     ],
   },
@@ -242,7 +241,6 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.manageLostAndFound, P.logLinenDamage, P.logMinibarLoss,
       P.manageLaundry, P.manageGuestDryCleaning,
       // Cross-pillar
-      P.viewOperations,
       P.viewActivityFeed,
     ],
   },
@@ -251,13 +249,11 @@ export const PREBUILT_ROLES: AppRole[] = [
     name: 'Kitchen / Bar',
     department: 'kitchen',
     permissions: [
-      // Pillar 4 — full culinary ops
+      // Pillar 4 — KDS + culinary costing only (POS/table mgmt is server-side)
       P.viewInventory, P.manageInventory,
       P.manageKDS, P.manageRecipeCosting, P.trackIngredientShortages,
-      P.managePOS, P.manageSplitChecks, P.manageTableManagement,
       P.createExpenditure,
       // Cross-pillar
-      P.viewOperations,
       P.viewActivityFeed,
     ],
   },
@@ -265,17 +261,12 @@ export const PREBUILT_ROLES: AppRole[] = [
     id: 'dept_head',
     name: 'Department Head',
     permissions: [
-      // Pillar 5 — their dept only
+      // Their department only — everything here is department-scoped.
+      // HODs get hotel-wide views via an additive management/role grant,
+      // never from this role alone.
       P.viewInventory, P.manageInventory, P.createExpenditure,
       P.viewStaff, P.manageStaff,
-      // Pillar 3 — engineering view
-      P.viewEngineering,
-      // Pillar 5 — back office
-      P.viewBackOffice,
-      // Pillar 6 — security audit
-      P.viewSecurityAudit,
       // Cross-pillar
-      P.viewOperations, P.viewCompliance,
       P.viewActivityFeed,
     ],
   },

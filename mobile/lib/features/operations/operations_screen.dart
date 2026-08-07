@@ -4,11 +4,31 @@ import '../../data/operations_store.dart';
 import '../../data/expenditure_store.dart';
 import '../../widgets/hom_widgets.dart';
 import '../../models/role.dart';
+import '../../data/role_store.dart';
 import '../../utils/role_gate.dart';
 import '../../data/security_audit_store.dart';
 import '../../utils/theme.dart';
 
 const Color _primaryGreen = AppColors.primary;
+
+enum _OpsTabKind { revpar, nightaudit, housekeeping }
+
+/// Sub-tabs are individually permission-gated (mirrors the web module):
+/// RevPAR + Night Audit are management/finance data; the Housekeeping losses
+/// tab stays with the housekeeping role. `viewOperations` grants all three.
+List<_OpsTabKind> _opsTabsFor(Session s) {
+  final kinds = <_OpsTabKind>[];
+  if (s.hasAny([Permission.viewOperations, Permission.viewRevPAR])) {
+    kinds.add(_OpsTabKind.revpar);
+  }
+  if (s.hasAny([Permission.viewOperations, Permission.viewNightAudit])) {
+    kinds.add(_OpsTabKind.nightaudit);
+  }
+  if (s.hasAny([Permission.viewOperations, Permission.viewHousekeeping])) {
+    kinds.add(_OpsTabKind.housekeeping);
+  }
+  return kinds;
+}
 
 class OperationsScreen extends StatefulWidget {
   const OperationsScreen({super.key});
@@ -19,11 +39,13 @@ class OperationsScreen extends StatefulWidget {
 class _OperationsScreenState extends State<OperationsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
+  late List<_OpsTabKind> _kinds;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 3, vsync: this);
+    _kinds = _opsTabsFor(RoleStore.current);
+    _tabCtrl = TabController(length: _kinds.length, vsync: this);
     _tabCtrl.addListener(() {
       if (_tabCtrl.indexIsChanging) setState(() {});
     });
@@ -39,6 +61,15 @@ class _OperationsScreenState extends State<OperationsScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_kinds.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Text('No operations access',
+              style: TextStyle(color: AppColors.grey500)),
+        ),
+      );
+    }
+    final currentKind = _kinds[_tabCtrl.index.clamp(0, _kinds.length - 1)];
     return Scaffold(
       body: Column(children: [
         TabBar(
@@ -46,44 +77,49 @@ class _OperationsScreenState extends State<OperationsScreen>
           labelColor: _primaryGreen,
           unselectedLabelColor: AppColors.grey500,
           indicatorColor: _primaryGreen,
-          tabs: const [
-            Tab(
-                text: 'RevPAR',
-                icon: Icon(Icons.trending_up_rounded, size: 18)),
-            Tab(
-                text: 'Night Audit',
-                icon: Icon(Icons.nights_stay_rounded, size: 18)),
-            Tab(
-                text: 'Housekeeping',
-                icon: Icon(Icons.cleaning_services_rounded, size: 18)),
-          ],
+          tabs: _kinds
+              .map((k) => Tab(
+                    text: switch (k) {
+                      _OpsTabKind.revpar => 'RevPAR',
+                      _OpsTabKind.nightaudit => 'Night Audit',
+                      _OpsTabKind.housekeeping => 'Housekeeping',
+                    },
+                    icon: Icon(switch (k) {
+                      _OpsTabKind.revpar => Icons.trending_up_rounded,
+                      _OpsTabKind.nightaudit => Icons.nights_stay_rounded,
+                      _OpsTabKind.housekeeping => Icons.cleaning_services_rounded,
+                    }, size: 18),
+                  ))
+              .toList(),
         ),
         Expanded(
             child: TabBarView(controller: _tabCtrl, children: [
-          _RevparTab(onChange: _onChange),
-          _NightAuditTab(onChange: _onChange),
-          _HousekeepingTab(),
+          ..._kinds.map((k) => switch (k) {
+                _OpsTabKind.revpar => _RevparTab(onChange: _onChange),
+                _OpsTabKind.nightaudit => _NightAuditTab(onChange: _onChange),
+                _OpsTabKind.housekeeping => _HousekeepingTab(),
+              }),
         ])),
       ]),
-      floatingActionButton: _tabCtrl.index == 0
-          ? RoleGate(
-              requiredPermission: Permission.createExpenditure,
-              child: FloatingActionButton(
-                backgroundColor: _primaryGreen,
-                foregroundColor: AppColors.white,
-                child: const Icon(Icons.add),
-                onPressed: () => _addDailyRevenue(context),
-              ))
-          : _tabCtrl.index == 1
-              ? RoleGate(
-                  requiredPermission: Permission.logCashDrop,
-                  child: FloatingActionButton(
-                    backgroundColor: _primaryGreen,
-                    foregroundColor: AppColors.white,
-                    child: const Icon(Icons.add),
-                    onPressed: () => _addCashDrop(context),
-                  ))
-              : null,
+      floatingActionButton: switch (currentKind) {
+        _OpsTabKind.revpar => RoleGate(
+            requiredPermission: Permission.createExpenditure,
+            child: FloatingActionButton(
+              backgroundColor: _primaryGreen,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add),
+              onPressed: () => _addDailyRevenue(context),
+            )),
+        _OpsTabKind.nightaudit => RoleGate(
+            requiredPermission: Permission.logCashDrop,
+            child: FloatingActionButton(
+              backgroundColor: _primaryGreen,
+              foregroundColor: AppColors.white,
+              child: const Icon(Icons.add),
+              onPressed: () => _addCashDrop(context),
+            )),
+        _OpsTabKind.housekeeping => null,
+      },
     );
   }
 

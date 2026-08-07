@@ -509,11 +509,17 @@ class _HomeShellState extends State<HomeShell> {
     _TabDef(11, WhatsAppScreen(), 'WhatsApp', Icons.chat_rounded,
         Permission.manageWhatsApp),
     _TabDef(12, OperationsScreen(), 'Operations', Icons.dashboard_rounded,
-        Permission.viewOperations),
+        Permission.viewOperations, [
+      Permission.viewOperations,
+      Permission.viewRevPAR,
+      Permission.viewNightAudit,
+      Permission.viewHousekeeping,
+    ]),
     _TabDef(13, ReconciliationScreen(), 'Reconciliation',
         Icons.compare_arrows_rounded, Permission.viewReconciliation),
     _TabDef(
-        14, FnbScreen(), 'F&B', Icons.restaurant_rounded, Permission.managePOS),
+        14, FnbScreen(), 'F&B', Icons.restaurant_rounded, Permission.managePOS,
+        [Permission.managePOS, Permission.manageKDS]),
     _TabDef(15, const EngineeringScreen(), 'Engineering',
         Icons.precision_manufacturing_rounded, Permission.viewEngineering),
     _TabDef(16, const HousekeepingScreen(), 'Housekeeping',
@@ -527,9 +533,10 @@ class _HomeShellState extends State<HomeShell> {
   ];
 
   // Tabs the current role can see
-  List<_TabDef> get _visibleTabs => _allTabs
-      .where((t) => t.permission == null || RoleStore.has(t.permission!))
-      .toList();
+  List<_TabDef> get _visibleTabs => _allTabs.where((t) {
+        if (t.anyOf != null) return RoleStore.hasAny(t.anyOf!);
+        return t.permission == null || RoleStore.has(t.permission!);
+      }).toList();
 
   // Tabs eligible for bottom nav (first 4 that are visible)
   List<_TabDef> get _navTabs =>
@@ -1101,8 +1108,10 @@ class _TabDef {
   final String label;
   final IconData icon;
   final Permission? permission;
+  final List<Permission>? anyOf;
   const _TabDef(
-      this.index, this.screen, this.label, this.icon, this.permission);
+      this.index, this.screen, this.label, this.icon, this.permission,
+      [this.anyOf]);
 }
 
 // ===================== MODELS =====================

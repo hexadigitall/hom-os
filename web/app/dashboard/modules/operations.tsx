@@ -6,7 +6,7 @@ import { DailyRevenue, CashDrop, HousekeepingLoss, TOTAL_ROOMS, ShiftName } from
 import { seedRevenues, seedCashDrops, seedLosses, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
-import { tagFor, type Department } from '@/lib/rbac';
+import { tagFor, hasAnyPermission, PERMISSIONS, type Department } from '@/lib/rbac';
 import { today, uid, naira, fmtDate, addDays, monthStart } from '@/lib/format';
 import { postActivity } from '@/lib/activity';
 import { ActivityLog } from '@/lib/types';
@@ -21,23 +21,37 @@ const SUB_NAV: { id: SubTab; label: string; icon: any }[] = [
 ];
 
 export function OperationsModule() {
-  const [tab, setTab] = useState<SubTab>('revpar');
+  const { session } = useAuth();
+  // Each sub-tab is individually gated: management data (RevPAR, Night Audit)
+  // only for finance/management; the Housekeeping losses tab stays with the
+  // housekeeping role. `viewOperations` grants all three (legacy module gate).
+  const can = {
+    revpar: hasAnyPermission(session, [PERMISSIONS.viewOperations, PERMISSIONS.viewRevPAR]),
+    nightaudit: hasAnyPermission(session, [PERMISSIONS.viewOperations, PERMISSIONS.viewNightAudit]),
+    housekeeping: hasAnyPermission(session, [PERMISSIONS.viewOperations, PERMISSIONS.viewHousekeeping]),
+  };
+  const tabs = SUB_NAV.filter(s => can[s.id]);
+  const [tab, setTab] = useState<SubTab>(tabs[0]?.id ?? 'revpar');
+  const activeTab = tabs.some(s => s.id === tab) ? tab : (tabs[0]?.id ?? 'revpar');
+  if (tabs.length === 0) return null;
   return (
     <div className="space-y-4">
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {SUB_NAV.map(s => {
-          const Icon = s.icon;
-          return (
-            <button key={s.id} onClick={() => setTab(s.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5 ${tab === s.id ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
-              <Icon size={13} />{s.label}
-            </button>
-          );
-        })}
-      </div>
-      {tab === 'revpar' && <RevParTab />}
-      {tab === 'nightaudit' && <NightAuditTab />}
-      {tab === 'housekeeping' && <LossesTab />}
+      {tabs.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto pb-1">
+          {tabs.map(s => {
+            const Icon = s.icon;
+            return (
+              <button key={s.id} onClick={() => setTab(s.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5 ${activeTab === s.id ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
+                <Icon size={13} />{s.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {activeTab === 'revpar' && can.revpar && <RevParTab />}
+      {activeTab === 'nightaudit' && can.nightaudit && <NightAuditTab />}
+      {activeTab === 'housekeeping' && can.housekeeping && <LossesTab />}
     </div>
   );
 }

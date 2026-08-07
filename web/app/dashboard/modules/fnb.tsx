@@ -9,7 +9,7 @@ import {
 import { seedMenu, seedTables, seedOrders, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
-import { tagFor, type Department } from '@/lib/rbac';
+import { tagFor, hasPermission, hasAnyPermission, PERMISSIONS, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira } from '@/lib/format';
 import { postActivity } from '@/lib/activity';
 import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextInput, NumberInput, Select, FormCard, FieldGrid, EmptyState } from '../ui';
@@ -33,23 +33,29 @@ const TABLE_CHIP: Record<TableStatus, string> = {
 };
 
 export function FnbModule() {
-  const [tab, setTab] = useState<SubTab>('tables');
+  const { session } = useAuth();
+  // POS staff manage tables/orders/payments; kitchen gets the KDS + menu view.
+  const canPOS = hasPermission(session, PERMISSIONS.managePOS);
+  const canFnb = hasAnyPermission(session, [PERMISSIONS.managePOS, PERMISSIONS.manageKDS]);
+  const tabs = SUB_NAV.filter(s => s.id === 'tables' ? canPOS : canFnb);
+  const [tab, setTab] = useState<SubTab>(tabs[0]?.id ?? 'orders');
+  const activeTab = tabs.some(s => s.id === tab) ? tab : (tabs[0]?.id ?? 'orders');
   return (
     <div className="space-y-4">
       <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {SUB_NAV.map(s => {
+        {tabs.map(s => {
           const Icon = s.icon;
           return (
             <button key={s.id} onClick={() => setTab(s.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5 ${tab === s.id ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
+              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex items-center gap-1.5 ${activeTab === s.id ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
               <Icon size={13} />{s.label}
             </button>
           );
         })}
       </div>
-      {tab === 'tables' && <TablesTab />}
-      {tab === 'orders' && <OrdersTab />}
-      {tab === 'menu' && <MenuTab />}
+      {activeTab === 'tables' && canPOS && <TablesTab />}
+      {activeTab === 'orders' && canFnb && <OrdersTab />}
+      {activeTab === 'menu' && canFnb && <MenuTab />}
     </div>
   );
 }
@@ -62,6 +68,7 @@ function TablesTab() {
   const orders = useSyncedCollection<Order>('fnb_orders', 'fnb_orders', seedOrders, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'restaurants');
+  const canPOS = hasPermission(session, PERMISSIONS.managePOS);
   const [showForm, setShowForm] = useState(false);
   const [editTable, setEditTable] = useState<RestaurantTable | null>(null);
   const [createFor, setCreateFor] = useState<RestaurantTable | null>(null);
@@ -72,7 +79,7 @@ function TablesTab() {
   return (
     <div className="space-y-4">
       <SectionHeader title={`Restaurant Tables (${tables.items.length})`}>
-        <Btn onClick={() => { setShowForm(true); setEditTable(null); }}><Plus size={14} /> Add Table</Btn>
+        {canPOS && <Btn onClick={() => { setShowForm(true); setEditTable(null); }}><Plus size={14} /> Add Table</Btn>}
       </SectionHeader>
       {showForm && (
         <TableForm initial={editTable} depts={depts} onSave={(t) => {
@@ -93,15 +100,17 @@ function TablesTab() {
                   {naira(orderTotal(openOrder))}
                 </button>
               )}
-              {!openOrder && t.status === 'free' && (
+              {!openOrder && t.status === 'free' && canPOS && (
                 <button onClick={() => setCreateFor(t)} className="text-[10px] bg-hom-primary text-white rounded-lg px-2 py-1 font-bold hover:bg-hom-primary-dark">
                   New Order
                 </button>
               )}
-              <div className="flex gap-1 mt-1">
-                <IconBtn onClick={() => { setEditTable(t); setShowForm(true); }}><Edit3 size={12} /></IconBtn>
-                <IconBtn tone="red" onClick={() => tables.remove(t.id)}><Trash2 size={12} /></IconBtn>
-              </div>
+              {canPOS && (
+                <div className="flex gap-1 mt-1">
+                  <IconBtn onClick={() => { setEditTable(t); setShowForm(true); }}><Edit3 size={12} /></IconBtn>
+                  <IconBtn tone="red" onClick={() => tables.remove(t.id)}><Trash2 size={12} /></IconBtn>
+                </div>
+              )}
             </Card>
           );
         })}
@@ -177,6 +186,8 @@ function OrdersTab() {
   const orders = useSyncedCollection<Order>('fnb_orders', 'fnb_orders', seedOrders, session);
   const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
+  const canPOS = hasPermission(session, PERMISSIONS.managePOS);
+  const canKDS = hasPermission(session, PERMISSIONS.manageKDS);
   const [view, setView] = useState<Order | null>(null);
   const [kds, setKds] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -192,7 +203,7 @@ function OrdersTab() {
           <button onClick={() => setKds(true)}
             className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 ${kds ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600'}`}><Flame size={12} /> Kitchen View (KDS)</button>
         </div>
-        {!kds && <Btn onClick={() => { setCreating(true); setView(null); }}><Plus size={14} /> New Order</Btn>}
+        {!kds && canPOS && <Btn onClick={() => { setCreating(true); setView(null); }}><Plus size={14} /> New Order</Btn>}
       </div>
 
       {creating && (
@@ -314,12 +325,16 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
   const { session } = useAuth();
   const menuItems = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
+  const canPOS = hasPermission(session, PERMISSIONS.managePOS);
   const [adding, setAdding] = useState(order.items.length === 0);
   const [payMethod, setPayMethod] = useState('cash');
+  const [sent, setSent] = useState(false);
 
+  // Server flags the order for the kitchen. Items stay `pending` until a food
+  // handler accepts them (pending → preparing) in the KDS — the status flow is
+  // driven by kitchen confirmation, not by the server.
   const sendToKitchen = () => {
-    const items = order.items.map(x => x.status === 'pending' ? { ...x, status: 'preparing' as OrderItemStatus } : x);
-    orders.update(order.id, { items, status: 'preparing' });
+    setSent(true);
     postActivity(feed, session, {
       dept: 'kitchen', action: 'order.kitchen',
       message: `Order at ${displayLocation(tables, order)} sent to kitchen`,
@@ -352,7 +367,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
             <div className="flex items-center gap-2">
               <span className="font-bold">{naira(it.quantity * it.unitPrice)}</span>
               <StatusChip status={it.status} />
-              {order.status !== 'paid' && order.status !== 'cancelled' && (
+              {canPOS && order.status !== 'paid' && order.status !== 'cancelled' && (
                 <IconBtn tone="red" title="Remove item" onClick={() => {
                   const items = order.items.filter(x => x.id !== it.id);
                   orders.update(order.id, { items });
@@ -367,7 +382,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
         <span className="font-black text-lg">{naira(orderTotal(order))}</span>
       </div>
 
-      {adding && (
+      {adding && canPOS && (
         <div className="mt-4">
           <h4 className="font-bold text-sm mb-2 flex items-center justify-between">
             <span>Add Items</span>
@@ -396,23 +411,25 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
       )}
 
       <div className="mt-4 flex gap-2 flex-wrap">
-        {(order.status === 'open' || order.status === 'preparing') && (
+        {(order.status === 'open' || order.status === 'preparing') && canPOS && (
           <>
             <Btn color="outline" onClick={() => setAdding(!adding)}>Add Items</Btn>
-            {order.items.length > 0 && (
-              <Btn color="amber" onClick={sendToKitchen} disabled={order.status === 'preparing'}>{order.status === 'preparing' ? 'In Kitchen' : 'Send to Kitchen'}</Btn>
+            {order.status === 'open' && order.items.length > 0 && (
+              sent
+                ? <Btn color="amber" disabled>In Kitchen</Btn>
+                : <Btn color="amber" onClick={sendToKitchen}>Send to Kitchen</Btn>
             )}
           </>
         )}
-        {order.items.length > 0 && order.status !== 'paid' && (
+        {canPOS && order.items.length > 0 && order.status !== 'paid' && (
           <Btn color="green" onClick={payOrder}>Mark Paid — {naira(orderTotal(order))}</Btn>
         )}
-        {(order.status === 'open' || order.status === 'preparing') && order.items.every(x => x.status === 'served') && order.items.length > 0 && (
+        {(order.status === 'open' || order.status === 'preparing') && canPOS && order.items.every(x => x.status === 'served') && order.items.length > 0 && (
           <Select value={payMethod} onChange={e => setPayMethod(e.target.value)} className="!w-36 !py-1.5 !text-xs">
             <option>cash</option><option>card</option><option>transfer</option><option>roomCharge</option>
           </Select>
         )}
-        {order.status !== 'paid' && order.status !== 'cancelled' && (
+        {canPOS && order.status !== 'paid' && order.status !== 'cancelled' && (
           <Btn color="outline" className="!text-red-500" onClick={() => {
             orders.update(order.id, { status: 'cancelled' });
             freeTable(order.tableId);
@@ -424,16 +441,18 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
             onClose();
           }}><X size={14} /> Cancel Order</Btn>
         )}
-        <Btn color="outline" className="!text-red-500" onClick={() => {
-          orders.remove(order.id);
-          freeTable(order.tableId);
-          postActivity(feed, session, {
-            dept: 'restaurants', action: 'order.deleted',
-            message: `Order at ${displayLocation(tables, order)} deleted`,
-            refId: order.id,
-          });
-          onClose();
-        }}><Trash2 size={14} /> Delete Order</Btn>
+        {canPOS && (
+          <Btn color="outline" className="!text-red-500" onClick={() => {
+            orders.remove(order.id);
+            freeTable(order.tableId);
+            postActivity(feed, session, {
+              dept: 'restaurants', action: 'order.deleted',
+              message: `Order at ${displayLocation(tables, order)} deleted`,
+              refId: order.id,
+            });
+            onClose();
+          }}><Trash2 size={14} /> Delete Order</Btn>
+        )}
       </div>
     </FormCard>
   );
@@ -447,6 +466,7 @@ function MenuTab() {
   const { session } = useAuth();
   const menu = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
   const depts = tagFor(session, 'restaurants');
+  const canPOS = hasPermission(session, PERMISSIONS.managePOS);
   const [cat, setCat] = useState<MenuCategory>('food');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
@@ -454,7 +474,7 @@ function MenuTab() {
   return (
     <div className="space-y-4">
       <SectionHeader title={`Menu (${menu.items.length} items)`}>
-        <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Item</Btn>
+        {canPOS && <Btn onClick={() => { setShowForm(true); setEditItem(null); }}><Plus size={14} /> Add Item</Btn>}
       </SectionHeader>
       <div className="flex gap-1.5 overflow-x-auto">
         {(Object.keys(CAT_LABEL) as MenuCategory[]).map(c => (
@@ -478,12 +498,14 @@ function MenuTab() {
               </div>
               <div className="font-black text-hom-primary">{naira(m.price)}</div>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <button onClick={() => menu.update(m.id, { available: !m.available })}
-                className={`text-[10px] px-2 py-1 rounded-full font-medium ${m.available ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>{m.available ? 'Available' : 'Unavailable'}</button>
-              <IconBtn onClick={() => { setEditItem(m); setShowForm(true); }}><Edit3 size={14} /></IconBtn>
-              <IconBtn tone="red" onClick={() => menu.remove(m.id)}><Trash2 size={14} /></IconBtn>
-            </div>
+            {canPOS && (
+              <div className="mt-3 flex items-center gap-2">
+                <button onClick={() => menu.update(m.id, { available: !m.available })}
+                  className={`text-[10px] px-2 py-1 rounded-full font-medium ${m.available ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>{m.available ? 'Available' : 'Unavailable'}</button>
+                <IconBtn onClick={() => { setEditItem(m); setShowForm(true); }}><Edit3 size={14} /></IconBtn>
+                <IconBtn tone="red" onClick={() => menu.remove(m.id)}><Trash2 size={14} /></IconBtn>
+              </div>
+            )}
           </Card>
         ))}
         {menu.items.filter(m => m.category === cat).length === 0 && <div className="md:col-span-3"><EmptyState text={`No ${CAT_LABEL[cat].toLowerCase()} on the menu`} /></div>}

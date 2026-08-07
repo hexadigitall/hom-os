@@ -22,6 +22,20 @@ void _feedOrder(String action, Order o, String verb) {
   );
 }
 
+enum _FnbTabKind { tables, orders, menu }
+
+/// Sub-tabs are permission-gated (mirrors the web module): Tables is a
+/// server/POS function; Orders + Menu are shared with the kitchen (KDS) role.
+List<_FnbTabKind> _fnbTabsFor(Session s) {
+  final kinds = <_FnbTabKind>[];
+  if (s.has(Permission.managePOS)) kinds.add(_FnbTabKind.tables);
+  if (s.hasAny([Permission.managePOS, Permission.manageKDS])) {
+    kinds.add(_FnbTabKind.orders);
+    kinds.add(_FnbTabKind.menu);
+  }
+  return kinds;
+}
+
 class FnbScreen extends StatefulWidget {
   const FnbScreen({super.key});
   @override
@@ -31,12 +45,14 @@ class FnbScreen extends StatefulWidget {
 class _FnbScreenState extends State<FnbScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late List<_FnbTabKind> _kinds;
   final _searchCtl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _kinds = _fnbTabsFor(RoleStore.current);
+    _tabController = TabController(length: _kinds.length, vsync: this);
   }
 
   @override
@@ -48,6 +64,10 @@ class _FnbScreenState extends State<FnbScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_kinds.isEmpty) {
+      return const Scaffold(
+          body: Center(child: Text('No F&B access')));
+    }
     return Scaffold(
       body: Column(children: [
         Material(
@@ -57,22 +77,31 @@ class _FnbScreenState extends State<FnbScreen>
             indicatorColor: _primary,
             labelColor: _primary,
             unselectedLabelColor: AppColors.grey500,
-            tabs: const [
-              Tab(
-                  text: 'Tables',
-                  icon: Icon(Icons.table_restaurant_rounded, size: 16)),
-              Tab(
-                  text: 'Orders',
-                  icon: Icon(Icons.receipt_long_rounded, size: 16)),
-              Tab(text: 'Menu', icon: Icon(Icons.menu_book_rounded, size: 16)),
-            ],
+            tabs: _kinds
+                .map((k) => Tab(
+                      text: switch (k) {
+                        _FnbTabKind.tables => 'Tables',
+                        _FnbTabKind.orders => 'Orders',
+                        _FnbTabKind.menu => 'Menu',
+                      },
+                      icon: Icon(switch (k) {
+                        _FnbTabKind.tables => Icons.table_restaurant_rounded,
+                        _FnbTabKind.orders => Icons.receipt_long_rounded,
+                        _FnbTabKind.menu => Icons.menu_book_rounded,
+                      }, size: 16),
+                    ))
+                .toList(),
           ),
         ),
         Expanded(
             child: TabBarView(controller: _tabController, children: [
-          _TablesTab(onOrderTap: () => setState(() {})),
-          _OrdersTab(onChange: () => setState(() {})),
-          _MenuTab(onChange: () => setState(() {})),
+          ..._kinds.map((k) => switch (k) {
+                _FnbTabKind.tables =>
+                  _TablesTab(onOrderTap: () => setState(() {})),
+                _FnbTabKind.orders =>
+                  _OrdersTab(onChange: () => setState(() {})),
+                _FnbTabKind.menu => _MenuTab(onChange: () => setState(() {})),
+              }),
         ])),
       ]),
     );
@@ -141,12 +170,18 @@ class _TablesTabState extends State<_TablesTab> {
                 return GestureDetector(
                   onTap: () {
                     if (t.status == TableStatus.free) {
-                      _showCreateOrder(context, t);
+                      if (RoleStore.has(Permission.managePOS)) {
+                        _showCreateOrder(context, t);
+                      }
                     } else if (openOrder != null) {
                       _showOrderDetail(context, openOrder);
                     }
                   },
-                  onLongPress: () => _showTableActions(context, t),
+                  onLongPress: () {
+                    if (RoleStore.has(Permission.managePOS)) {
+                      _showTableActions(context, t);
+                    }
+                  },
                   child: Container(
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.1),
@@ -439,6 +474,7 @@ class _TablesTabState extends State<_TablesTab> {
   }
 
   void _showOrderDetail(BuildContext context, Order order) {
+    var sentToKitchen = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -498,33 +534,38 @@ class _TablesTabState extends State<_TablesTab> {
                     if (order.status == OrderStatus.open ||
                         order.status == OrderStatus.preparing)
                       Row(children: [
-                        Expanded(
-                            child: ElevatedButton(
-                          onPressed: () {
-                            _showAddItems(context, order);
-                            setSheetState(() {});
-                          },
-                          child: const Text('Add Items'),
-                        )),
-                        const SizedBox(width: 8),
-                        if (order.items.isNotEmpty)
+                        if (RoleStore.has(Permission.managePOS))
+                          Expanded(
+                              child: ElevatedButton(
+                            onPressed: () {
+                              _showAddItems(context, order);
+                              setSheetState(() {});
+                            },
+                            child: const Text('Add Items'),
+                          )),
+                        if (RoleStore.has(Permission.managePOS))
+                          const SizedBox(width: 8),
+                        if (order.items.isNotEmpty &&
+                            RoleStore.has(Permission.managePOS))
                           Expanded(
                               child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.orange,
                                 foregroundColor: AppColors.white),
-                            onPressed: () {
-                              for (final item in order.items) {
-                                if (item.status == 'pending')
-                                  item.status = 'preparing';
-                              }
-                              order.status = OrderStatus.preparing;
-                              FnbStore.updateOrder(order.id, order);
-                              _feedOrder('order.kitchen', order, 'Sent to kitchen');
-                              setSheetState(() {});
-                              widget.onOrderTap();
-                            },
-                            child: const Text('Send to Kitchen'),
+                            onPressed: sentToKitchen
+                                ? null
+                                : () {
+                                    // Server flags the order; items stay
+                                    // `pending` until the kitchen accepts them.
+                                    _feedOrder('order.kitchen', order,
+                                        'Sent to kitchen');
+                                    setSheetState(
+                                        () => sentToKitchen = true);
+                                    widget.onOrderTap();
+                                  },
+                            child: Text(sentToKitchen
+                                ? 'In Kitchen'
+                                : 'Send to Kitchen'),
                           )),
                       ]),
                     if (order.allServed && order.status != OrderStatus.paid)
@@ -804,6 +845,7 @@ class _ActiveOrders extends StatelessWidget {
   }
 
   void _showOrderDetail(BuildContext context, Order order) {
+    var sentToKitchen = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -897,21 +939,24 @@ class _ActiveOrders extends StatelessWidget {
                     if (order.status != OrderStatus.paid &&
                         order.status != OrderStatus.cancelled)
                       Row(children: [
-                        if (!order.allServed)
+                        if (!order.allServed &&
+                            RoleStore.has(Permission.managePOS))
                           Expanded(
                               child: ElevatedButton(
-                            onPressed: () {
-                              for (final item in order.items) {
-                                if (item.status == 'pending')
-                                  item.status = 'preparing';
-                              }
-                              order.status = OrderStatus.preparing;
-                              FnbStore.updateOrder(order.id, order);
-                              _feedOrder('order.kitchen', order, 'Sent to kitchen');
-                              setSheetState(() {});
-                              onChange();
-                            },
-                            child: const Text('Send All to Kitchen'),
+                            onPressed: sentToKitchen
+                                ? null
+                                : () {
+                                    // Server flags the order; items stay
+                                    // `pending` until the kitchen accepts them.
+                                    _feedOrder('order.kitchen', order,
+                                        'Sent to kitchen');
+                                    setSheetState(
+                                        () => sentToKitchen = true);
+                                    onChange();
+                                  },
+                            child: Text(sentToKitchen
+                                ? 'In Kitchen'
+                                : 'Send All to Kitchen'),
                           )),
                         if (order.allServed &&
                             order.status != OrderStatus.paid) ...[
@@ -945,31 +990,33 @@ class _ActiveOrders extends StatelessWidget {
                           )),
                         ],
                         const SizedBox(width: 8),
-                        Expanded(
-                            child: TextButton(
-                          onPressed: () {
-                            order.status = OrderStatus.cancelled;
-                            FnbStore.updateOrder(order.id, order);
-                            Navigator.pop(ctx);
-                            onChange();
-                          },
-                          child: const Text('Cancel',
-                              style: TextStyle(color: AppColors.red)),
-                        )),
-                        const SizedBox(width: 8),
-                        Expanded(
-                            child: RoleGate(
-                          requiredPermission: Permission.managePOS,
-                          child: TextButton(
-                            onPressed: () => _confirmDeleteOrder(ctx, order,
-                                () {
+                        if (RoleStore.has(Permission.managePOS))
+                          Expanded(
+                              child: TextButton(
+                            onPressed: () {
+                              order.status = OrderStatus.cancelled;
+                              FnbStore.updateOrder(order.id, order);
                               Navigator.pop(ctx);
                               onChange();
-                            }),
-                            child: const Text('Delete',
+                            },
+                            child: const Text('Cancel',
                                 style: TextStyle(color: AppColors.red)),
-                          ),
-                        )),
+                          )),
+                        const SizedBox(width: 8),
+                        if (RoleStore.has(Permission.managePOS))
+                          Expanded(
+                              child: RoleGate(
+                            requiredPermission: Permission.managePOS,
+                            child: TextButton(
+                              onPressed: () => _confirmDeleteOrder(ctx, order,
+                                  () {
+                                Navigator.pop(ctx);
+                                onChange();
+                              }),
+                              child: const Text('Delete',
+                                  style: TextStyle(color: AppColors.red)),
+                            ),
+                          )),
                       ]),
                   ]),
             ),
@@ -1087,12 +1134,15 @@ class _KdsView extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 12, vertical: 4)),
                               onPressed: () {
-                                item.status = 'ready';
+                                item.status = item.status == 'pending'
+                                    ? 'preparing'
+                                    : 'ready';
                                 FnbStore.updateOrder(o.id, o);
                                 onChange();
                               },
-                              child: const Text('Ready',
-                                  style: TextStyle(fontSize: 11)),
+                              child: Text(
+                                  item.status == 'pending' ? 'Accept' : 'Ready',
+                                  style: const TextStyle(fontSize: 11)),
                             ),
                           ),
                         ]),

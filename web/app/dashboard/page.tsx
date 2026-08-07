@@ -20,18 +20,18 @@ import { AccountModule } from './modules/account';
 import { FeedModule } from './modules/feed';
 import { AuthProvider, useAuth } from '../../lib/auth';
 import { AuthGate } from './auth';
-import { Permission, PERMISSIONS, hasPermission, primaryRole, hasIdentity, roleAccent } from '../../lib/rbac';
+import { Permission, PERMISSIONS, hasPermission, hasAnyPermission, primaryRole, hasIdentity, roleAccent } from '../../lib/rbac';
 
-const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; perm: Permission; always?: boolean }[] = [
+const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; perm: Permission; permAny?: Permission[]; always?: boolean }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, module: OverviewModule, perm: PERMISSIONS.viewReports },
   { id: 'activity', label: 'Activity', icon: Rss, module: FeedModule, perm: PERMISSIONS.viewActivityFeed },
   { id: 'bookings', label: 'Bookings', icon: CalendarCheck, module: BookingsModule, perm: PERMISSIONS.viewBookings },
   { id: 'rooms', label: 'Rooms', icon: BedDouble, module: RoomsModule, perm: PERMISSIONS.viewRooms },
-  { id: 'operations', label: 'Operations', icon: Activity, module: OperationsModule, perm: PERMISSIONS.viewOperations },
+  { id: 'operations', label: 'Operations', icon: Activity, module: OperationsModule, perm: PERMISSIONS.viewOperations, permAny: [PERMISSIONS.viewOperations, PERMISSIONS.viewRevPAR, PERMISSIONS.viewNightAudit, PERMISSIONS.viewHousekeeping] },
   { id: 'reconciliation', label: 'Reconciliation', icon: Scale, module: ReconciliationModule, perm: PERMISSIONS.viewReconciliation },
   { id: 'expenses', label: 'Expenses', icon: Receipt, module: ExpensesModule, perm: PERMISSIONS.viewExpenditure },
   { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, module: SubscriptionsModule, perm: PERMISSIONS.manageSubscriptions },
-  { id: 'fnb', label: 'F&B', icon: UtensilsCrossed, module: FnbModule, perm: PERMISSIONS.managePOS },
+  { id: 'fnb', label: 'F&B', icon: UtensilsCrossed, module: FnbModule, perm: PERMISSIONS.managePOS, permAny: [PERMISSIONS.managePOS, PERMISSIONS.manageKDS] },
   { id: 'engineering', label: 'Engineering', icon: Wrench, module: EngineeringModule, perm: PERMISSIONS.viewEngineering },
   { id: 'housekeeping', label: 'Housekeeping', icon: Sparkles, module: HousekeepingModule, perm: PERMISSIONS.viewHousekeeping },
   { id: 'back_office', label: 'Back Office', icon: Briefcase, module: BackOfficeModule, perm: PERMISSIONS.viewBackOffice },
@@ -89,7 +89,7 @@ function Brand({ minimal }: { minimal?: boolean }) {
 
 function DashboardInner() {
   const { session, logout } = useAuth();
-  const visible = NAV.filter(n => n.always || hasPermission(session, n.perm));
+  const visible = NAV.filter(n => n.always || hasPermission(session, n.perm) || (n.permAny && hasAnyPermission(session, n.permAny)));
   const [tab, setTab] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
