@@ -1,3 +1,5 @@
+import 'safe_enum.dart';
+
 enum IncidentStatus { open, investigating, resolved }
 enum IncidentType { theft, fire, medical, intruder, propertyDamage, noiseComplaint, other }
 enum ShiftType { morning, afternoon, night }
@@ -68,13 +70,21 @@ class SecurityIncident {
   };
 
   factory SecurityIncident.fromJson(Map<String, dynamic> j) => SecurityIncident(
-    id: j['id'], location: j['location'], description: j['description'],
-    reportedBy: j['reportedBy'], resolvedBy: j['resolvedBy'], notes: j['notes'],
-    type: IncidentType.values.byName(j['type'] ?? 'other'),
-    status: IncidentStatus.values.byName(j['status'] ?? 'open'),
-    dateReported: DateTime.parse(j['dateReported']),
-    dateResolved: j['dateResolved'] != null ? DateTime.parse(j['dateResolved']) : null,
-  );
+        id: j['id'],
+        location: j['location'],
+        description: j['description'],
+        reportedBy: j['reportedBy'],
+        resolvedBy: j['resolvedBy'],
+        notes: j['notes'],
+        type: safeEnum(j['type'], IncidentType.values, IncidentType.other),
+        status: safeEnum(j['status'], IncidentStatus.values, IncidentStatus.open),
+        dateReported: j['dateReported'] != null
+            ? DateTime.tryParse('${j['dateReported']}') ?? DateTime.now()
+            : DateTime.now(),
+        dateResolved: j['dateResolved'] != null
+            ? DateTime.tryParse('${j['dateResolved']}')
+            : null,
+      );
 }
 
 class VisitorPass {
@@ -133,12 +143,12 @@ class ShiftHandover {
   };
 
   factory ShiftHandover.fromJson(Map<String, dynamic> j) => ShiftHandover(
-    id: j['id'],
-    shift: ShiftType.values.byName(j['shift'] ?? 'morning'),
-    staffName: j['staffName'] ?? '',
-    openedAt: DateTime.parse(j['openedAt']),
-    closedAt: j['closedAt'] != null ? DateTime.parse(j['closedAt']) : null,
-    notes: j['notes'],
-    isActive: j['isActive'] ?? true,
-  );
+        id: j['id'],
+        shift: safeEnum(j['shift'], ShiftType.values, ShiftType.morning),
+        staffName: j['staffName'] ?? j['openedBy'] ?? '',
+        openedAt: DateTime.parse(j['openedAt']),
+        closedAt: j['closedAt'] != null ? DateTime.tryParse('${j['closedAt']}') : null,
+        notes: j['notes'],
+        isActive: j['isActive'] ?? true,
+      );
 }

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit3 } from 'lucide-react';
 import { Subscription, BillingCycle } from '@/lib/types';
 import { seedSubscriptions } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, uid, naira, fmtDate, addMonths, daysBetween } from '@/lib/format';
@@ -14,7 +14,7 @@ const CATEGORIES = ['TV & Entertainment', 'Internet', 'Software / SaaS', 'Licens
 
 export function SubscriptionsModule() {
   const { session } = useAuth();
-  const subs = useScopedCollection<Subscription>('hom_subscriptions', seedSubscriptions, session);
+  const subs = useSyncedCollection<Subscription>('hom_subscriptions', 'hom_subscriptions', seedSubscriptions, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Subscription | null>(null);
   const depts = tagFor(session, 'management');

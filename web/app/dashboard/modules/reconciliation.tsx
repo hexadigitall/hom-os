@@ -9,7 +9,6 @@ import {
 import {
   seedBankTransactions, seedMatches, seedVirtualAccounts, seedPosTerminals, seedPosSettlements, seedBookings, seedExpenditure,
 } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
@@ -46,9 +45,9 @@ export function ReconciliationModule() {
 
 function BankTab() {
   const { session } = useAuth();
-  const txns = useScopedCollection<BankTransaction>('rec_bank_txns', seedBankTransactions, session);
-  const matches = useScopedCollection<ReconciliationMatch>('rec_matches', seedMatches, session);
-  const splits = useScopedCollection<SplitPayment>('rec_split_payments', () => [], session);
+  const txns = useSyncedCollection<BankTransaction>('rec_bank_txns', 'rec_bank_txns', seedBankTransactions, session);
+  const matches = useSyncedCollection<ReconciliationMatch>('rec_matches', 'rec_matches', seedMatches, session);
+  const splits = useSyncedCollection<SplitPayment>('rec_split_payments', 'rec_split_payments', () => [], session);
   const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
   const exp = useSyncedCollection<ExpenditureRecord>('expenditure', 'expenditure_records', seedExpenditure, session);
   const [filter, setFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
@@ -383,7 +382,7 @@ function SplitForm({ txn, entities, depts, onSave, onCancel }: {
 function VirtualAccountsTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.manageVirtualAccounts);
-  const vas = useScopedCollection<VirtualAccount>('rec_vas', seedVirtualAccounts, session);
+  const vas = useSyncedCollection<VirtualAccount>('rec_vas', 'rec_vas', seedVirtualAccounts, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<VirtualAccount | null>(null);
   const depts = tagFor(session, 'accounts');
@@ -475,8 +474,8 @@ function VaForm({ initial, depts, onSave, onCancel }: { initial: VirtualAccount 
 function PosTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.trackPOSTerminals);
-  const terminals = useScopedCollection<PosTerminal>('rec_pos_terminals', seedPosTerminals, session);
-  const settlements = useScopedCollection<PosSettlement>('rec_pos_settlements', seedPosSettlements, session);
+  const terminals = useSyncedCollection<PosTerminal>('rec_pos_terminals', 'rec_pos_terminals', seedPosTerminals, session);
+  const settlements = useSyncedCollection<PosSettlement>('rec_pos_settlements', 'rec_pos_settlements', seedPosSettlements, session);
   const [showTerminal, setShowTerminal] = useState(false);
   const [showSettlement, setShowSettlement] = useState(false);
   const [editTerminal, setEditTerminal] = useState<PosTerminal | null>(null);

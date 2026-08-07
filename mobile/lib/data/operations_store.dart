@@ -1,4 +1,5 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/operations.dart';
 
 class OperationsStore {
@@ -8,6 +9,47 @@ class OperationsStore {
   static final List<HousekeepingLoss> _losses = [];
   static int _lossCounter = 0;
 
+  // Offline-first cloud sync for each operations collection.
+  static final StoreSync<DailyRevenue> revenueSync = _initRevenueSync();
+  static final StoreSync<CashDrop> cashDropSync = _initCashDropSync();
+  static final StoreSync<HousekeepingLoss> lossSync = _initLossSync();
+
+  static StoreSync<DailyRevenue> _initRevenueSync() {
+    final s = StoreSync<DailyRevenue>(
+      collection: 'ops_revenues',
+      target: _revenues,
+      fromJson: DailyRevenue.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'ops_revenues',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<CashDrop> _initCashDropSync() {
+    final s = StoreSync<CashDrop>(
+      collection: 'ops_cash_drops',
+      target: _cashDrops,
+      fromJson: CashDrop.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'ops_cash_drops',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<HousekeepingLoss> _initLossSync() {
+    final s = StoreSync<HousekeepingLoss>(
+      collection: 'ops_losses',
+      target: _losses,
+      fromJson: HousekeepingLoss.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'ops_losses',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   static Future<void> init() async {
     if (_revenues.isNotEmpty) return;
     final r = PersistenceService.loadList('ops_revenues', DailyRevenue.fromJson);
@@ -16,6 +58,9 @@ class OperationsStore {
     if (c != null && c.isNotEmpty) { _cashDrops.addAll(c); } else { _seedCashDrops(); }
     final l = PersistenceService.loadList('ops_losses', HousekeepingLoss.fromJson);
     if (l != null && l.isNotEmpty) { _losses.addAll(l); } else { _seedLosses(); }
+    revenueSync.loadMeta();
+    cashDropSync.loadMeta();
+    lossSync.loadMeta();
   }
 
   static void _seedRevenues() {
@@ -29,6 +74,7 @@ class OperationsStore {
       final walkIns = weekend ? rng.nextInt(3) : (rng.nextDouble() > 0.7 ? rng.nextInt(2) : 0);
       final rev = sold * (weekend ? (rng.nextInt(5000) + 25000) : (rng.nextInt(4000) + 18000));
       _revenues.add(DailyRevenue(
+        id: 'rev_${d.toIso8601String().substring(0, 10)}',
         date: d, roomsSold: sold, walkIns: walkIns,
         totalRevenue: rev.toDouble(),
       ));
@@ -81,6 +127,9 @@ class OperationsStore {
     await PersistenceService.saveList('ops_revenues', _revenues, (e) => e.toJson());
     await PersistenceService.saveList('ops_cash_drops', _cashDrops, (e) => e.toJson());
     await PersistenceService.saveList('ops_losses', _losses, (e) => e.toJson());
+    await revenueSync.push();
+    await cashDropSync.push();
+    await lossSync.push();
   }
 
   static String genId() => 'ops_${DateTime.now().millisecondsSinceEpoch.toRadixString(36)}';

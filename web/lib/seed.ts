@@ -333,7 +333,7 @@ export const seedLostFound = (): LostFoundItem[] => [
 export const seedLinen = (): LinenDamage[] => [
   { id: 'hk_ln1', itemName: 'King Bedsheet', roomNumber: '101', category: 'bedsheet', condition: 'stained', quantity: 2, replacementCost: 8500, notes: 'Red wine stain', departments: ['laundry'] },
   { id: 'hk_ln2', itemName: 'Bath Towel XL', roomNumber: '103', category: 'towel', condition: 'torn', quantity: 1, replacementCost: 3500, notes: '', departments: ['laundry'] },
-  { id: 'hk_ln3', itemName: 'Pillowcase', roomNumber: '202', category: 'pillowcase', condition: 'condemned', quantity: 4, replacementCost: 2200, notes: 'Yellowed beyond recovery', departments: ['laundry'] },
+  { id: 'hk_ln3', itemName: 'Pillowcase', roomNumber: '202', category: 'pillowcase', condition: 'damaged', quantity: 4, replacementCost: 2200, notes: 'Yellowed beyond recovery', departments: ['laundry'] },
 ];
 
 // ─── Back Office ─────────────────────────────────────────────────────────────

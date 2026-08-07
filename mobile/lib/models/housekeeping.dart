@@ -1,8 +1,10 @@
+import 'safe_enum.dart';
+
 enum LaundryStatus { received, washing, drying, ironing, ready, delivered }
-enum LaundryType { selfService, guestCharge, dryCleanOnly }
+enum LaundryType { selfService, guestCharge, washIron, dryCleanOnly }
 enum LostFoundCategory { electronics, clothing, jewelry, documents, luggage, keys, other }
-enum LinenCategory { bedsheet, towel, pillowcase, duvet, mattressProtector, bathrobe }
-enum LinenCondition { new_, good, stained, torn, condemned }
+enum LinenCategory { bedsheet, towel, pillowcase, duvet, mattressProtector, bathrobe, other }
+enum LinenCondition { new_, good, stained, torn, damaged, condemned }
 enum HousekeepingPriority { routine, deepClean, turndown, vipSetup, maintenanceRequest }
 
 class LaundryItem {
@@ -23,21 +25,31 @@ class LaundryItem {
   String get statusLabel => status.name;
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'guestName': guestName, 'roomNumber': roomNumber,
-    'itemDescription': itemDescription, 'status': status.name,
-    'type': type.name, 'receivedDate': receivedDate.toIso8601String(),
-    'readyDate': readyDate?.toIso8601String(), 'chargeAmount': chargeAmount,
-  };
+        'id': id,
+        'guestName': guestName,
+        'roomNumber': roomNumber,
+        'itemDescription': itemDescription,
+        'status': status.name,
+        'type': type.name,
+        'receivedDate': receivedDate.toIso8601String(),
+        'readyDate': readyDate?.toIso8601String(),
+        'deliveredDate': readyDate?.toIso8601String(),
+        'chargeAmount': chargeAmount,
+      };
 
   factory LaundryItem.fromJson(Map<String, dynamic> j) => LaundryItem(
-    id: j['id'], guestName: j['guestName'], roomNumber: j['roomNumber'],
-    itemDescription: j['itemDescription'],
-    status: LaundryStatus.values.byName(j['status'] ?? 'received'),
-    type: LaundryType.values.byName(j['type'] ?? 'guestCharge'),
-    receivedDate: DateTime.parse(j['receivedDate']),
-    readyDate: j['readyDate'] != null ? DateTime.parse(j['readyDate']) : null,
-    chargeAmount: (j['chargeAmount'] as num?)?.toDouble(),
-  );
+        id: j['id'],
+        guestName: j['guestName'],
+        roomNumber: j['roomNumber'],
+        itemDescription: j['itemDescription'],
+        status: safeEnum(j['status'], LaundryStatus.values, LaundryStatus.received),
+        type: safeEnum(j['type'], LaundryType.values, LaundryType.guestCharge),
+        receivedDate: DateTime.parse(j['receivedDate']),
+        readyDate: j['readyDate'] != null || j['deliveredDate'] != null
+            ? DateTime.tryParse('${j['readyDate'] ?? j['deliveredDate']}')
+            : null,
+        chargeAmount: (j['chargeAmount'] as num?)?.toDouble(),
+      );
 }
 
 class LostFoundItem {
@@ -64,14 +76,20 @@ class LostFoundItem {
   };
 
   factory LostFoundItem.fromJson(Map<String, dynamic> j) => LostFoundItem(
-    id: j['id'], itemName: j['itemName'], foundBy: j['foundBy'],
-    locationFound: j['locationFound'], guestName: j['guestName'],
-    claimedBy: j['claimedBy'], notes: j['notes'],
-    category: LostFoundCategory.values.byName(j['category'] ?? 'other'),
-    foundDate: DateTime.parse(j['foundDate']),
-    claimedDate: j['claimedDate'] != null ? DateTime.parse(j['claimedDate']) : null,
-    returned: j['returned'] ?? false,
-  );
+        id: j['id'],
+        itemName: j['itemName'],
+        foundBy: j['foundBy'],
+        locationFound: j['locationFound'],
+        guestName: j['guestName'],
+        claimedBy: j['claimedBy'],
+        notes: j['notes'],
+        category: safeEnum(j['category'], LostFoundCategory.values, LostFoundCategory.other),
+        foundDate: DateTime.parse(j['foundDate']),
+        claimedDate: j['claimedDate'] != null
+            ? DateTime.tryParse('${j['claimedDate']}')
+            : null,
+        returned: j['returned'] ?? false,
+      );
 }
 
 class LinenDamage {
@@ -90,20 +108,33 @@ class LinenDamage {
   }) : dateRecorded = dateRecorded ?? DateTime.now();
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'itemName': itemName, 'roomNumber': roomNumber, 'notes': notes,
-    'category': category.name, 'condition': condition.name,
-    'dateRecorded': dateRecorded.toIso8601String(), 'quantity': quantity,
-    'replacementCost': replacementCost,
-  };
+        'id': id,
+        'itemName': itemName,
+        'roomNumber': roomNumber,
+        'notes': notes,
+        'category': category.name,
+        'condition': condition == LinenCondition.new_ ? 'new' : condition.name,
+        'dateRecorded': dateRecorded.toIso8601String(),
+        'quantity': quantity,
+        'replacementCost': replacementCost,
+      };
 
   factory LinenDamage.fromJson(Map<String, dynamic> j) => LinenDamage(
-    id: j['id'], itemName: j['itemName'], roomNumber: j['roomNumber'],
-    notes: j['notes'], category: LinenCategory.values.byName(j['category'] ?? 'bedsheet'),
-    condition: LinenCondition.values.byName(j['condition'] ?? 'good'),
-    dateRecorded: DateTime.parse(j['dateRecorded']),
-    quantity: (j['quantity'] as num?)?.toInt() ?? 1,
-    replacementCost: (j['replacementCost'] as num?)?.toDouble(),
-  );
+        id: j['id'],
+        itemName: j['itemName'],
+        roomNumber: j['roomNumber'],
+        notes: j['notes'],
+        category: safeEnum(j['category'], LinenCategory.values, LinenCategory.bedsheet),
+        condition: safeEnum(
+          j['condition'],
+          LinenCondition.values,
+          LinenCondition.good,
+          aliases: {'new': LinenCondition.new_, 'condemned': LinenCondition.damaged},
+        ),
+        dateRecorded: DateTime.parse(j['dateRecorded']),
+        quantity: (j['quantity'] as num?)?.toInt() ?? 1,
+        replacementCost: (j['replacementCost'] as num?)?.toDouble(),
+      );
 }
 
 class HousekeepingTask {
@@ -131,10 +162,15 @@ class HousekeepingTask {
   };
 
   factory HousekeepingTask.fromJson(Map<String, dynamic> j) => HousekeepingTask(
-    id: j['id'], roomNumber: j['roomNumber'], assignedTo: j['assignedTo'],
-    notes: j['notes'], priority: HousekeepingPriority.values.byName(j['priority'] ?? 'routine'),
-    scheduledDate: DateTime.parse(j['scheduledDate']),
-    completedDate: j['completedDate'] != null ? DateTime.parse(j['completedDate']) : null,
-    completed: j['completed'] ?? false,
-  );
+        id: j['id'],
+        roomNumber: j['roomNumber'],
+        assignedTo: j['assignedTo'],
+        notes: j['notes'],
+        priority: safeEnum(j['priority'], HousekeepingPriority.values, HousekeepingPriority.routine),
+        scheduledDate: DateTime.parse(j['scheduledDate']),
+        completedDate: j['completedDate'] != null
+            ? DateTime.tryParse('${j['completedDate']}')
+            : null,
+        completed: j['completed'] ?? false,
+      );
 }

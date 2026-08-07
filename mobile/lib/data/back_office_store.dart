@@ -1,4 +1,5 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/back_office.dart';
 import '../models/role.dart';
 import 'role_store.dart';
@@ -6,7 +7,48 @@ import 'role_store.dart';
 class BackOfficeStore {
   static final List<ProcurementOrder> _procurements = [];
   static final List<PayrollRecord> _payrolls = [];
-  static TaxConfiguration? _taxConfig;
+  static final List<TaxConfiguration> _taxConfigs = [];
+
+  // Offline-first cloud sync for each back-office collection.
+  static final StoreSync<ProcurementOrder> procurementSync = _initProcurementSync();
+  static final StoreSync<PayrollRecord> payrollSync = _initPayrollSync();
+  static final StoreSync<TaxConfiguration> taxConfigSync = _initTaxConfigSync();
+
+  static StoreSync<ProcurementOrder> _initProcurementSync() {
+    final s = StoreSync<ProcurementOrder>(
+      collection: 'bo_procurements',
+      target: _procurements,
+      fromJson: ProcurementOrder.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'bo_procurements',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<PayrollRecord> _initPayrollSync() {
+    final s = StoreSync<PayrollRecord>(
+      collection: 'bo_payrolls',
+      target: _payrolls,
+      fromJson: PayrollRecord.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'bo_payrolls',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<TaxConfiguration> _initTaxConfigSync() {
+    final s = StoreSync<TaxConfiguration>(
+      collection: 'bo_tax_config',
+      target: _taxConfigs,
+      fromJson: TaxConfiguration.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'bo_tax_config',
+    );
+    CloudSync.register(s);
+    return s;
+  }
 
   // ───────────────────── INIT ─────────────────────
 
@@ -15,15 +57,26 @@ class BackOfficeStore {
     if (p != null) { _procurements.clear(); _procurements.addAll(p); }
     final pr = PersistenceService.loadList('bo_payrolls', PayrollRecord.fromJson);
     if (pr != null) { _payrolls.clear(); _payrolls.addAll(pr); }
-    final t = PersistenceService.load('bo_tax_config', (d) => TaxConfiguration.fromJson(d as Map<String, dynamic>));
-    if (t != null) { _taxConfig = t; }
+    final t = PersistenceService.loadList('bo_tax_config', TaxConfiguration.fromJson);
+    if (t != null && t.isNotEmpty) {
+      _taxConfigs.clear(); _taxConfigs.addAll(t);
+    } else {
+      final legacy = PersistenceService.load('bo_tax_config', (d) => TaxConfiguration.fromJson(d as Map<String, dynamic>));
+      if (legacy != null) _taxConfigs.add(legacy);
+    }
     if (_procurements.isEmpty) _seed();
+    procurementSync.loadMeta();
+    payrollSync.loadMeta();
+    taxConfigSync.loadMeta();
   }
 
   static Future<void> _save() async {
     await PersistenceService.saveList('bo_procurements', _procurements, (e) => e.toJson());
     await PersistenceService.saveList('bo_payrolls', _payrolls, (e) => e.toJson());
-    if (_taxConfig != null) await PersistenceService.save('bo_tax_config', _taxConfig!.toJson());
+    await PersistenceService.saveList('bo_tax_config', _taxConfigs, (e) => e.toJson());
+    await procurementSync.push();
+    await payrollSync.push();
+    await taxConfigSync.push();
   }
 
   static int _counter = 0;
@@ -76,14 +129,19 @@ class BackOfficeStore {
 
   // ───────────────────── TAX CONFIG ─────────────────────
 
-  static TaxConfiguration get taxConfig => _taxConfig ?? TaxConfiguration(id: 'tax_default');
-  static Future<void> updateTaxConfig(TaxConfiguration t) async { _taxConfig = t; await _save(); }
-  static Future<void> resetTaxConfig() async { _taxConfig = TaxConfiguration(id: 'tax_default'); await _save(); }
+  static TaxConfiguration get taxConfig =>
+      _taxConfigs.isNotEmpty ? _taxConfigs.first : TaxConfiguration(id: 'tax_default');
+  static Future<void> updateTaxConfig(TaxConfiguration t) async {
+    final i = _taxConfigs.indexWhere((c) => c.id == t.id);
+    if (i >= 0) { _taxConfigs[i] = t; } else { _taxConfigs.add(t); }
+    await _save();
+  }
+  static Future<void> resetTaxConfig() async { _taxConfigs.clear(); await _save(); }
 
   // ───────────────────── SEED ─────────────────────
 
   static void _seed() {
-    _taxConfig = TaxConfiguration(id: 'tax_default');
+    _taxConfigs.add(TaxConfiguration(id: 'tax_default'));
     final now = DateTime.now();
     final monthStart = DateTime(now.year, now.month, 1);
     final monthEnd = DateTime(now.year, now.month + 1, 0);

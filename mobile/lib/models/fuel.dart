@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'safe_enum.dart';
 
 enum FuelCategory { power, kitchen }
 
@@ -100,20 +101,27 @@ class FuelLog {
       fuelType.theftThreshold(usageHours ?? 0, quantity);
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'date': date.toIso8601String(),
-    'fuelType': fuelType.name, 'quantity': quantity,
-    'cost': cost, 'supplier': supplier,
-    'usageHours': usageHours, 'note': note,
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'fuelType': fuelType.name,
+        // Canonical fields shared with the web app (`Diesel` model).
+        'liters': quantity,
+        'genHours': usageHours,
+        'quantity': quantity,
+        'cost': cost,
+        'supplier': supplier,
+        'usageHours': usageHours,
+        'note': note,
+      };
 
   factory FuelLog.fromJson(Map<String, dynamic> json) => FuelLog(
-    id: json['id'] as String,
-    date: DateTime.parse(json['date'] as String),
-    fuelType: FuelType.values.byName(json['fuelType'] as String),
-    quantity: (json['quantity'] as num).toDouble(),
-    cost: (json['cost'] as num).toDouble(),
-    supplier: json['supplier'] as String? ?? '',
-    usageHours: (json['usageHours'] as num?)?.toDouble(),
-    note: json['note'] as String? ?? '',
-  );
+        id: json['id'] as String,
+        date: DateTime.parse(json['date'] as String),
+        fuelType: safeEnum(json['fuelType'], FuelType.values, FuelType.diesel),
+        quantity: ((json['liters'] ?? json['quantity']) as num).toDouble(),
+        cost: (json['cost'] as num).toDouble(),
+        supplier: json['supplier'] as String? ?? '',
+        usageHours: ((json['genHours'] ?? json['usageHours']) as num?)?.toDouble(),
+        note: json['note'] as String? ?? '',
+      );
 }

@@ -1,4 +1,5 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/engineering.dart';
 
 class EngineeringStore {
@@ -7,6 +8,73 @@ class EngineeringStore {
   static final List<WaterTreatmentLog> _waterLogs = [];
   static final List<TankDipLog> _tankDipLogs = [];
   static final List<GridTariffConfig> _gridTariffs = [];
+
+  // Offline-first cloud sync for each engineering collection.
+  static final StoreSync<Generator> generatorSync = _initGeneratorSync();
+  static final StoreSync<MaintenanceTask> taskSync = _initTaskSync();
+  static final StoreSync<WaterTreatmentLog> waterSync = _initWaterSync();
+  static final StoreSync<TankDipLog> dipSync = _initDipSync();
+  static final StoreSync<GridTariffConfig> tariffSync = _initTariffSync();
+
+  static StoreSync<Generator> _initGeneratorSync() {
+    final s = StoreSync<Generator>(
+      collection: 'eng_generators',
+      target: _generators,
+      fromJson: Generator.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'eng_generators',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<MaintenanceTask> _initTaskSync() {
+    final s = StoreSync<MaintenanceTask>(
+      collection: 'eng_maintenance',
+      target: _maintenanceTasks,
+      fromJson: MaintenanceTask.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'eng_maintenance',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<WaterTreatmentLog> _initWaterSync() {
+    final s = StoreSync<WaterTreatmentLog>(
+      collection: 'eng_water',
+      target: _waterLogs,
+      fromJson: WaterTreatmentLog.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'eng_water',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<TankDipLog> _initDipSync() {
+    final s = StoreSync<TankDipLog>(
+      collection: 'eng_tank_dips',
+      target: _tankDipLogs,
+      fromJson: TankDipLog.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'eng_tank_dips',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<GridTariffConfig> _initTariffSync() {
+    final s = StoreSync<GridTariffConfig>(
+      collection: 'eng_grid_tariffs',
+      target: _gridTariffs,
+      fromJson: GridTariffConfig.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'eng_grid_tariffs',
+    );
+    CloudSync.register(s);
+    return s;
+  }
 
   static Future<void> load() async {
     final g = PersistenceService.loadList('eng_generators', Generator.fromJson);
@@ -20,6 +88,11 @@ class EngineeringStore {
     final r = PersistenceService.loadList('eng_grid_tariffs', GridTariffConfig.fromJson);
     if (r != null) { _gridTariffs.clear(); _gridTariffs.addAll(r); }
     if (_generators.isEmpty) _seed();
+    generatorSync.loadMeta();
+    taskSync.loadMeta();
+    waterSync.loadMeta();
+    dipSync.loadMeta();
+    tariffSync.loadMeta();
   }
 
   static Future<void> _save() async {
@@ -28,6 +101,11 @@ class EngineeringStore {
     await PersistenceService.saveList('eng_water', _waterLogs, (e) => e.toJson());
     await PersistenceService.saveList('eng_tank_dips', _tankDipLogs, (e) => e.toJson());
     await PersistenceService.saveList('eng_grid_tariffs', _gridTariffs, (e) => e.toJson());
+    await generatorSync.push();
+    await taskSync.push();
+    await waterSync.push();
+    await dipSync.push();
+    await tariffSync.push();
   }
 
   static int _counter = 0;

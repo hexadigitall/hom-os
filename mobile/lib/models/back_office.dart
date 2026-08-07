@@ -1,4 +1,5 @@
 import 'role.dart';
+import 'safe_enum.dart';
 
 enum ProcurementStatus { draft, approved, ordered, delivered, cancelled }
 enum PayrollStatus { pending, paid, cancelled }
@@ -19,21 +20,41 @@ class ProcurementOrder {
     this.department,
   }) : orderDate = orderDate ?? DateTime.now();
 
+  static Department? _parseDepartment(Map<String, dynamic> j) {
+    final deps = j['departments'];
+    if (deps is List && deps.isNotEmpty && deps.first is String) {
+      return Department.values.byName(deps.first as String);
+    }
+    final single = j['department'];
+    return single is String ? Department.values.byName(single) : null;
+  }
+
   Map<String, dynamic> toJson() => {
-    'id': id, 'vendorName': vendorName, 'items': items, 'notes': notes,
-    'amount': amount, 'status': status.name, 'orderDate': orderDate.toIso8601String(),
-    'deliveryDate': deliveryDate?.toIso8601String(),
-    'department': department?.name,
-  };
+        'id': id,
+        'vendorName': vendorName,
+        'items': items,
+        'notes': notes,
+        'amount': amount,
+        'status': status.name,
+        'orderDate': orderDate.toIso8601String(),
+        'deliveryDate': deliveryDate?.toIso8601String(),
+        'department': department?.name,
+        'departments': department != null ? [department!.name] : <String>[],
+      };
 
   factory ProcurementOrder.fromJson(Map<String, dynamic> j) => ProcurementOrder(
-    id: j['id'], vendorName: j['vendorName'], items: j['items'], notes: j['notes'],
-    amount: (j['amount'] as num).toDouble(),
-    status: ProcurementStatus.values.byName(j['status'] ?? 'draft'),
-    orderDate: DateTime.parse(j['orderDate']),
-    deliveryDate: j['deliveryDate'] != null ? DateTime.parse(j['deliveryDate']) : null,
-    department: j['department'] != null ? Department.values.byName(j['department']) : null,
-  );
+        id: j['id'],
+        vendorName: j['vendorName'],
+        items: j['items'],
+        notes: j['notes'],
+        amount: (j['amount'] as num).toDouble(),
+        status: safeEnum(j['status'], ProcurementStatus.values, ProcurementStatus.draft),
+        orderDate: DateTime.parse(j['orderDate']),
+        deliveryDate: j['deliveryDate'] != null
+            ? DateTime.tryParse('${j['deliveryDate']}')
+            : null,
+        department: _parseDepartment(j),
+      );
 }
 
 class PayrollRecord {
@@ -70,7 +91,7 @@ class PayrollRecord {
     payeTax: (j['payeTax'] as num?)?.toDouble() ?? 0,
     pensionContribution: (j['pensionContribution'] as num?)?.toDouble() ?? 0,
     netPay: (j['netPay'] as num?)?.toDouble() ?? 0,
-    status: PayrollStatus.values.byName(j['status'] ?? 'pending'),
+    status: safeEnum(j['status'], PayrollStatus.values, PayrollStatus.pending),
     periodStart: DateTime.parse(j['periodStart']),
     periodEnd: DateTime.parse(j['periodEnd']),
     paidDate: j['paidDate'] != null ? DateTime.parse(j['paidDate']) : null,

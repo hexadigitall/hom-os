@@ -1,17 +1,33 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/subscription.dart';
 
 class SubscriptionStore {
   static final List<Subscription> _subscriptions = [];
 
+  // Offline-first cloud sync for the subscriptions collection.
+  static final StoreSync<Subscription> sync = _initSync();
+
+  static StoreSync<Subscription> _initSync() {
+    final s = StoreSync<Subscription>(
+      collection: 'hom_subscriptions', target: _subscriptions,
+      fromJson: Subscription.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'sub_subscriptions',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   static Future<void> load() async {
     if (_subscriptions.isNotEmpty) return;
     final s = PersistenceService.loadList('sub_subscriptions', Subscription.fromJson);
     if (s != null && s.isNotEmpty) { _subscriptions.addAll(s); } else { _seed(); }
+    sync.loadMeta();
   }
 
   static Future<void> _save() async {
     await PersistenceService.saveList('sub_subscriptions', _subscriptions, (e) => e.toJson());
+    await sync.push();
   }
 
   static void _seed() {

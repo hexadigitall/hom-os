@@ -1,4 +1,5 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/compliance.dart';
 
 class ComplianceStore {
@@ -24,11 +25,11 @@ class ComplianceStore {
 
   // State Tax
   static final List<StateTaxConfig> _stateTaxConfigs = [
-    StateTaxConfig(stateName: 'Lagos', rate: 5.0),
-    StateTaxConfig(stateName: 'Rivers', rate: 5.0),
-    StateTaxConfig(stateName: 'Federal Capital Territory', rate: 5.0),
-    StateTaxConfig(stateName: 'Oyo', rate: 3.0, appliesToOtherServices: true),
-    StateTaxConfig(stateName: 'Delta', rate: 2.5),
+    StateTaxConfig(id: 'Lagos', stateName: 'Lagos', rate: 5.0),
+    StateTaxConfig(id: 'Rivers', stateName: 'Rivers', rate: 5.0),
+    StateTaxConfig(id: 'FCT', stateName: 'Federal Capital Territory', rate: 5.0),
+    StateTaxConfig(id: 'Oyo', stateName: 'Oyo', rate: 3.0, appliesToOtherServices: true),
+    StateTaxConfig(id: 'Delta', stateName: 'Delta', rate: 2.5),
   ];
   static List<StateTaxConfig> get stateTaxConfigs => List.unmodifiable(_stateTaxConfigs);
 
@@ -49,6 +50,85 @@ class ComplianceStore {
   static int _counter = 0;
   static String genId() => 'cmp_${DateTime.now().millisecondsSinceEpoch}_${++_counter}';
 
+  // Offline-first cloud sync for each compliance collection.
+  static final StoreSync<ScumlTransaction> scumlSync = _initScumlSync();
+  static final StoreSync<CashTransaction> cashSync = _initCashSync();
+  static final StoreSync<StateTaxConfig> taxConfigSync = _initTaxConfigSync();
+  static final StoreSync<StateTaxReport> taxReportSync = _initTaxReportSync();
+  static final StoreSync<NaptipAlert> naptipSync = _initNaptipSync();
+  static final StoreSync<LgaInspection> lgaSync = _initLgaSync();
+  static final StoreSync<FireServiceCert> fireSync = _initFireSync();
+
+  static StoreSync<ScumlTransaction> _initScumlSync() {
+    final s = StoreSync<ScumlTransaction>(
+      collection: 'cmp_scuml', target: _scumlTransactions,
+      fromJson: ScumlTransaction.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_scuml',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<CashTransaction> _initCashSync() {
+    final s = StoreSync<CashTransaction>(
+      collection: 'cmp_cash', target: _cashTransactions,
+      fromJson: CashTransaction.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_cash',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<StateTaxConfig> _initTaxConfigSync() {
+    final s = StoreSync<StateTaxConfig>(
+      collection: 'cmp_tax_config', target: _stateTaxConfigs,
+      fromJson: StateTaxConfig.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_tax_config',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<StateTaxReport> _initTaxReportSync() {
+    final s = StoreSync<StateTaxReport>(
+      collection: 'cmp_tax_reports', target: _taxReports,
+      fromJson: StateTaxReport.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_tax_reports',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<NaptipAlert> _initNaptipSync() {
+    final s = StoreSync<NaptipAlert>(
+      collection: 'cmp_naptip', target: _naptipAlerts,
+      fromJson: NaptipAlert.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_naptip',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<LgaInspection> _initLgaSync() {
+    final s = StoreSync<LgaInspection>(
+      collection: 'cmp_lga', target: _lgaInspections,
+      fromJson: LgaInspection.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_lga',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<FireServiceCert> _initFireSync() {
+    final s = StoreSync<FireServiceCert>(
+      collection: 'cmp_fire_certs', target: _fireServiceCerts,
+      fromJson: FireServiceCert.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'cmp_fire_certs',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   // ===================== PERSISTENCE =====================
 
   static Future<void> load() async {
@@ -66,6 +146,13 @@ class ComplianceStore {
     if (cash != null) { _cashTransactions.clear(); _cashTransactions.addAll(cash); }
     final fire = PersistenceService.loadList('cmp_fire_certs', FireServiceCert.fromJson);
     if (fire != null) { _fireServiceCerts.clear(); _fireServiceCerts.addAll(fire); }
+    scumlSync.loadMeta();
+    cashSync.loadMeta();
+    taxConfigSync.loadMeta();
+    taxReportSync.loadMeta();
+    naptipSync.loadMeta();
+    lgaSync.loadMeta();
+    fireSync.loadMeta();
   }
 
   static Future<void> _save() async {
@@ -76,6 +163,13 @@ class ComplianceStore {
     await PersistenceService.saveList('cmp_lga', _lgaInspections, (e) => e.toJson());
     await PersistenceService.saveList('cmp_cash', _cashTransactions, (e) => e.toJson());
     await PersistenceService.saveList('cmp_fire_certs', _fireServiceCerts, (e) => e.toJson());
+    await scumlSync.push();
+    await cashSync.push();
+    await taxConfigSync.push();
+    await taxReportSync.push();
+    await naptipSync.push();
+    await lgaSync.push();
+    await fireSync.push();
   }
 
   static Future<void> addScuml(ScumlTransaction t) async { _scumlTransactions.insert(0, t); await _save(); }
@@ -86,7 +180,15 @@ class ComplianceStore {
   static Future<void> removeScuml(String id) async { _scumlTransactions.removeWhere((t) => t.id == id); await _save(); }
 
   static Future<void> upsertTaxConfig(StateTaxConfig c) async {
-    final i = _stateTaxConfigs.indexWhere((x) => x.stateName == c.stateName);
+    if (c.id == null) {
+      c = StateTaxConfig(
+        id: c.stateName, stateName: c.stateName, rate: c.rate,
+        appliesToAccommodation: c.appliesToAccommodation,
+        appliesToFoodAndDrinks: c.appliesToFoodAndDrinks,
+        appliesToOtherServices: c.appliesToOtherServices,
+      );
+    }
+    final i = _stateTaxConfigs.indexWhere((x) => x.id == c.id);
     if (i >= 0) { _stateTaxConfigs[i] = c; } else { _stateTaxConfigs.add(c); }
     await _save();
   }

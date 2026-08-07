@@ -12,7 +12,6 @@ import {
   seedRooms, seedBookings, seedDiesel, seedInventory, seedStaff, seedVendors, seedPOs,
 } from '@/lib/seed';
 
-import { useScopedCollection } from '@/lib/scoped';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
@@ -28,7 +27,7 @@ export function OverviewModule() {
   const { session } = useAuth();
   const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
   const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
-  const diesel = useScopedCollection<Diesel>('hom_diesel', seedDiesel, session);
+  const diesel = useSyncedCollection<Diesel>('fuel_logs', 'hom_diesel', seedDiesel, session);
   const inventory = useSyncedCollection<InventoryItem>('inventory', 'hom_inventory', seedInventory, session);
 
   const t = today();
@@ -237,7 +236,7 @@ function RoomForm({ initial, depts, onSave, onCancel }: { initial: Room | null; 
 
 export function DieselModule() {
   const { session } = useAuth();
-  const diesel = useScopedCollection<Diesel>('hom_diesel', seedDiesel, session);
+  const diesel = useSyncedCollection<Diesel>('fuel_logs', 'hom_diesel', seedDiesel, session);
   const depts = tagFor(session, 'engineering');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Diesel | null>(null);

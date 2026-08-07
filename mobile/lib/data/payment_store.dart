@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/payments.dart';
 import '../models/reconciliation.dart';
 import 'reconciliation_store.dart';
@@ -24,6 +25,41 @@ class PaymentStore {
   static List<PosSettlement> get posSettlements => List.unmodifiable(_posSettlements);
   static List<PosSettlement> get pendingSettlements => _posSettlements.where((s) => s.status == 'pending').toList();
 
+  // Offline-first cloud sync for each payment collection.
+  static final StoreSync<VirtualAccount> vaSync = _initVaSync();
+  static final StoreSync<PosTerminal> posTerminalSync = _initPosTerminalSync();
+  static final StoreSync<PosSettlement> posSettlementSync = _initPosSettlementSync();
+
+  static StoreSync<VirtualAccount> _initVaSync() {
+    final s = StoreSync<VirtualAccount>(
+      collection: 'rec_vas', target: _virtualAccounts,
+      fromJson: VirtualAccount.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'pmt_virtual_accounts',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<PosTerminal> _initPosTerminalSync() {
+    final s = StoreSync<PosTerminal>(
+      collection: 'rec_pos_terminals', target: _posTerminals,
+      fromJson: PosTerminal.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'pmt_pos_terminals',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<PosSettlement> _initPosSettlementSync() {
+    final s = StoreSync<PosSettlement>(
+      collection: 'rec_pos_settlements', target: _posSettlements,
+      fromJson: PosSettlement.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'pmt_pos_settlements',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   static Future<void> init() async {
     final va = PersistenceService.loadList('pmt_virtual_accounts', VirtualAccount.fromJson);
     if (va != null) { _virtualAccounts.addAll(va); } else { _generateSampleVAs(); }
@@ -31,12 +67,18 @@ class PaymentStore {
     if (pt != null) { _posTerminals.addAll(pt); } else { _generateSamplePOS(); }
     final ps = PersistenceService.loadList('pmt_pos_settlements', PosSettlement.fromJson);
     if (ps != null) { _posSettlements.addAll(ps); } else { _generateSampleSettlements(); }
+    vaSync.loadMeta();
+    posTerminalSync.loadMeta();
+    posSettlementSync.loadMeta();
   }
 
   static Future<void> _save() async {
     await PersistenceService.saveList('pmt_virtual_accounts', _virtualAccounts, (e) => e.toJson());
     await PersistenceService.saveList('pmt_pos_terminals', _posTerminals, (e) => e.toJson());
     await PersistenceService.saveList('pmt_pos_settlements', _posSettlements, (e) => e.toJson());
+    await vaSync.push();
+    await posTerminalSync.push();
+    await posSettlementSync.push();
   }
 
   // ===================== VIRTUAL ACCOUNT CRUD =====================

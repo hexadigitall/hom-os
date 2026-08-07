@@ -38,7 +38,7 @@ export interface ExpenditureRecord {
 // ─── Subscriptions ───────────────────────────────────────────────────────────
 
 export type BillingCycle = 'monthly' | 'quarterly' | 'annual';
-export type SubscriptionStatus = 'active' | 'expiring' | 'expired';
+export type SubscriptionStatus = 'active' | 'expiring' | 'expired' | 'cancelled';
 export interface Subscription {
   id: string; name: string; provider: string; category: string; amount: number;
   billingCycle: BillingCycle; startDate: string; status: SubscriptionStatus;
@@ -210,8 +210,8 @@ export interface LostFoundItem {
   returned: boolean; returnedAt?: string; departments?: Department[];
 }
 
-export type LinenCategory = 'bedsheet' | 'towel' | 'pillowcase' | 'duvet' | 'other';
-export type LinenCondition = 'stained' | 'torn' | 'damaged' | 'condemned';
+export type LinenCategory = 'bedsheet' | 'towel' | 'pillowcase' | 'duvet' | 'mattressProtector' | 'bathrobe' | 'other';
+export type LinenCondition = 'new' | 'good' | 'stained' | 'torn' | 'damaged';
 export interface LinenDamage {
   id: string; itemName: string; roomNumber: string; category: LinenCategory;
   condition: LinenCondition; quantity: number; replacementCost?: number; notes?: string;

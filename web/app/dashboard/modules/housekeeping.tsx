@@ -7,7 +7,6 @@ import {
   HousekeepingPriority, LaundryType, LaundryStatus, LostFoundCategory, LinenCategory, LinenCondition,
 } from '@/lib/types';
 import { seedHkTasks, seedLaundry, seedLostFound, seedLinen } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
@@ -152,7 +151,7 @@ const LAUNDRY_NEXT: Record<LaundryStatus, LaundryStatus | null> = {
 
 function LaundryTab() {
   const { session } = useAuth();
-  const laundry = useScopedCollection<LaundryItem>('hk_laundry', seedLaundry, session);
+  const laundry = useSyncedCollection<LaundryItem>('hk_laundry', 'hk_laundry', seedLaundry, session);
   const depts = tagFor(session, 'laundry');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LaundryItem | null>(null);
@@ -322,21 +321,22 @@ function LostFoundForm({ initial, depts, onSave, onCancel }: { initial: LostFoun
 // ─── Linen ───────────────────────────────────────────────────────────────────
 
 const LINEN_CATEGORY_LABEL: Record<LinenCategory, string> = {
-  bedsheet: 'Bedsheet', towel: 'Towel', pillowcase: 'Pillowcase', duvet: 'Duvet', other: 'Other',
+  bedsheet: 'Bedsheet', towel: 'Towel', pillowcase: 'Pillowcase', duvet: 'Duvet',
+  mattressProtector: 'Mattress Protector', bathrobe: 'Bathrobe', other: 'Other',
 };
 const LINEN_CONDITION_LABEL: Record<LinenCondition, string> = {
-  stained: 'Stained', torn: 'Torn', damaged: 'Damaged', condemned: 'Condemned',
+  new: 'New', good: 'Good', stained: 'Stained', torn: 'Torn', damaged: 'Damaged',
 };
 
 function LinenTab() {
   const { session } = useAuth();
-  const linen = useScopedCollection<LinenDamage>('hk_linen', seedLinen, session);
+  const linen = useSyncedCollection<LinenDamage>('hk_linen', 'hk_linen', seedLinen, session);
   const depts = tagFor(session, 'laundry');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LinenDamage | null>(null);
 
   const totalCost = linen.items.reduce((a, l) => a + (l.replacementCost || 0) * l.quantity, 0);
-  const condemned = linen.items.filter(l => l.condition === 'condemned').length;
+  const condemned = linen.items.filter(l => l.condition === 'damaged' || l.condition === 'stained').length;
 
   return (
     <div className="space-y-4">
@@ -346,7 +346,7 @@ function LinenTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Entries" value={linen.items.length} sub="Damage records" color="bg-blue-50 text-blue-700" />
         <MetricCard label="Replacement Cost" value={naira(totalCost)} sub="All entries" color="bg-red-50 text-red-700" />
-        <MetricCard label="Condemned" value={condemned} sub="Beyond recovery" color="bg-amber-50 text-amber-700" />
+        <MetricCard label="Damaged" value={condemned} sub="Stained or damaged" color="bg-amber-50 text-amber-700" />
         <MetricCard label="Units Damaged" value={linen.items.reduce((a, l) => a + l.quantity, 0)} sub="Total pieces" color="bg-zinc-50 text-zinc-700" />
       </div>
       {showForm && (

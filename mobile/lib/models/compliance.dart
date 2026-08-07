@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'safe_enum.dart';
 
 // ===================== SCUML =====================
 
@@ -58,6 +59,7 @@ class ScumlTransaction {
 // ===================== STATE CONSUMPTION TAX =====================
 
 class StateTaxConfig {
+  final String? id;
   String stateName;
   double rate;
   bool appliesToAccommodation;
@@ -65,6 +67,7 @@ class StateTaxConfig {
   bool appliesToOtherServices;
 
   StateTaxConfig({
+    this.id,
     required this.stateName,
     required this.rate,
     this.appliesToAccommodation = true,
@@ -73,18 +76,22 @@ class StateTaxConfig {
   });
 
   Map<String, dynamic> toJson() => {
-    'stateName': stateName, 'rate': rate,
-    'appliesToAccommodation': appliesToAccommodation,
-    'appliesToFoodAndDrinks': appliesToFoodAndDrinks,
-    'appliesToOtherServices': appliesToOtherServices,
-  };
+        'id': id,
+        'stateName': stateName,
+        'rate': rate,
+        'appliesToAccommodation': appliesToAccommodation,
+        'appliesToFoodAndDrinks': appliesToFoodAndDrinks,
+        'appliesToOtherServices': appliesToOtherServices,
+      };
 
   factory StateTaxConfig.fromJson(Map<String, dynamic> j) => StateTaxConfig(
-    stateName: j['stateName'], rate: (j['rate'] as num).toDouble(),
-    appliesToAccommodation: j['appliesToAccommodation'] ?? true,
-    appliesToFoodAndDrinks: j['appliesToFoodAndDrinks'] ?? true,
-    appliesToOtherServices: j['appliesToOtherServices'] ?? false,
-  );
+        id: j['id'],
+        stateName: j['stateName'],
+        rate: (j['rate'] as num).toDouble(),
+        appliesToAccommodation: j['appliesToAccommodation'] ?? true,
+        appliesToFoodAndDrinks: j['appliesToFoodAndDrinks'] ?? true,
+        appliesToOtherServices: j['appliesToOtherServices'] ?? false,
+      );
 }
 
 class StateTaxReport {
@@ -137,6 +144,31 @@ enum NaptipIncidentType {
   final String label;
   final IconData icon;
   const NaptipIncidentType(this.label, this.icon);
+
+  /// Value shared with the web app (`NaptipIncidentType` type).
+  String get webName {
+    switch (this) {
+      case NaptipIncidentType.trafficking:
+        return 'humanTrafficking';
+      case NaptipIncidentType.forcedLabour:
+        return 'forcedLabour';
+      case NaptipIncidentType.childExploitation:
+        return 'childLabour';
+      case NaptipIncidentType.other:
+        return 'other';
+    }
+  }
+
+  static NaptipIncidentType fromWeb(dynamic v) => safeEnum(
+        v,
+        values,
+        other,
+        aliases: {
+          'humanTrafficking': trafficking,
+          'childLabour': childExploitation,
+          'exploitation': other,
+        },
+      );
 }
 
 class NaptipAlert {
@@ -159,17 +191,24 @@ class NaptipAlert {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'date': date.toIso8601String(), 'type': type.name,
-    'description': description, 'actionTaken': actionTaken,
-    'reportedTo': reportedTo, 'status': status,
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'type': type.webName,
+        'description': description,
+        'actionTaken': actionTaken,
+        'reportedTo': reportedTo,
+        'status': status,
+      };
 
   factory NaptipAlert.fromJson(Map<String, dynamic> j) => NaptipAlert(
-    id: j['id'], date: DateTime.parse(j['date']),
-    type: NaptipIncidentType.values.byName(j['type']),
-    description: j['description'] ?? '', actionTaken: j['actionTaken'] ?? '',
-    reportedTo: j['reportedTo'] ?? '', status: j['status'] ?? 'pending',
-  );
+        id: j['id'],
+        date: DateTime.parse(j['date']),
+        type: NaptipIncidentType.fromWeb(j['type']),
+        description: j['description'] ?? '',
+        actionTaken: j['actionTaken'] ?? '',
+        reportedTo: j['reportedTo'] ?? '',
+        status: j['status'] ?? 'pending',
+      );
 
   NaptipAlert copyWith({
     String? id, DateTime? date, NaptipIncidentType? type,
@@ -320,21 +359,32 @@ class LgaInspection {
   });
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'inspectionDate': inspectionDate.toIso8601String(),
-    'inspector': inspector, 'agency': agency,
-    'certificateNumber': certificateNumber,
-    'expiryDate': expiryDate?.toIso8601String(),
-    'score': score, 'status': status,
-  };
+        'id': id,
+        'inspectionDate': inspectionDate.toIso8601String(),
+        'inspector': inspector,
+        'agency': agency,
+        'certificateNumber': certificateNumber,
+        'expiryDate': expiryDate?.toIso8601String(),
+        'score': score,
+        'status': status,
+        'passedItems': passedItems,
+        'failedItems': failedItems,
+      };
 
   factory LgaInspection.fromJson(Map<String, dynamic> j) => LgaInspection(
-    id: j['id'], inspectionDate: DateTime.parse(j['inspectionDate']),
-    inspector: j['inspector'] ?? '', agency: j['agency'] ?? '',
-    certificateNumber: j['certificateNumber'],
-    expiryDate: j['expiryDate'] != null ? DateTime.parse(j['expiryDate']) : null,
-    score: (j['score'] as num?)?.toDouble() ?? 0,
-    status: j['status'] ?? 'pending-renewal',
-  );
+        id: j['id'],
+        inspectionDate: DateTime.parse(j['inspectionDate']),
+        inspector: j['inspector'] ?? '',
+        agency: j['agency'] ?? '',
+        certificateNumber: j['certificateNumber'],
+        expiryDate: j['expiryDate'] != null
+            ? DateTime.tryParse('${j['expiryDate']}')
+            : null,
+        score: (j['score'] as num?)?.toDouble() ?? 0,
+        status: j['status'] ?? 'pending-renewal',
+        passedItems: (j['passedItems'] as List?)?.cast<String>() ?? const [],
+        failedItems: (j['failedItems'] as List?)?.cast<String>() ?? const [],
+      );
 
   LgaInspection copyWith({
     String? id, DateTime? inspectionDate, String? inspector,

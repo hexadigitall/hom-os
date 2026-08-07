@@ -6,7 +6,6 @@ import {
   MenuItem, RestaurantTable, Order, OrderItem, TableStatus, MenuCategory, OrderItemStatus,
 } from '@/lib/types';
 import { seedMenu, seedTables, seedOrders } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
@@ -58,7 +57,7 @@ export function FnbModule() {
 function TablesTab() {
   const { session } = useAuth();
   const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
-  const orders = useScopedCollection<Order>('fnb_orders', seedOrders, session);
+  const orders = useSyncedCollection<Order>('fnb_orders', 'fnb_orders', seedOrders, session);
   const depts = tagFor(session, 'restaurants');
   const [showForm, setShowForm] = useState(false);
   const [editTable, setEditTable] = useState<RestaurantTable | null>(null);
@@ -145,7 +144,7 @@ function NewOrderForm({ table, menu, onSave, onCancel }: { table: RestaurantTabl
 
 function OrdersTab() {
   const { session } = useAuth();
-  const orders = useScopedCollection<Order>('fnb_orders', seedOrders, session);
+  const orders = useSyncedCollection<Order>('fnb_orders', 'fnb_orders', seedOrders, session);
   const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
   const [view, setView] = useState<Order | null>(null);
   const [kds, setKds] = useState(false);

@@ -7,7 +7,7 @@ import {
   IncidentType, IncidentStatus, ShiftType,
 } from '@/lib/types';
 import { seedNightAudits, seedIncidents, seedVisitors, seedShifts } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate } from '@/lib/format';
@@ -49,7 +49,7 @@ export function SecurityAuditModule() {
 
 function NightAuditTab() {
   const { session } = useAuth();
-  const audits = useScopedCollection<NightAuditLog>('sa_nightaudits', seedNightAudits, session);
+  const audits = useSyncedCollection<NightAuditLog>('sa_nightaudits', 'sa_nightaudits', seedNightAudits, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<NightAuditLog | null>(null);
   const depts = tagFor(session, 'accounts');
@@ -138,7 +138,7 @@ const INCIDENT_TYPE_LABEL: Record<IncidentType, string> = {
 
 function SecurityTab() {
   const { session } = useAuth();
-  const incidents = useScopedCollection<SecurityIncident>('sa_incidents', seedIncidents, session);
+  const incidents = useSyncedCollection<SecurityIncident>('sa_incidents', 'sa_incidents', seedIncidents, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<SecurityIncident | null>(null);
   const depts = tagFor(session, 'security');
@@ -222,7 +222,7 @@ function IncidentForm({ initial, depts, onSave, onCancel }: { initial: SecurityI
 
 function VisitorsTab() {
   const { session } = useAuth();
-  const visitors = useScopedCollection<VisitorPass>('sa_visitors', seedVisitors, session);
+  const visitors = useSyncedCollection<VisitorPass>('sa_visitors', 'sa_visitors', seedVisitors, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<VisitorPass | null>(null);
   const depts = tagFor(session, 'security');
@@ -302,7 +302,7 @@ const SHIFT_LABEL: Record<ShiftType, string> = {
 
 function ShiftsTab() {
   const { session } = useAuth();
-  const shifts = useScopedCollection<ShiftHandover>('sa_shifts', seedShifts, session);
+  const shifts = useSyncedCollection<ShiftHandover>('sa_shifts', 'sa_shifts', seedShifts, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ShiftHandover | null>(null);
   const depts = tagFor(session, 'security');

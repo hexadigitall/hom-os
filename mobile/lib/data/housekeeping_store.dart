@@ -8,13 +8,14 @@ class HousekeepingStore {
   static final List<LostFoundItem> _lostFound = [];
   static final List<LinenDamage> _linenDamages = [];
 
-  // Offline-first cloud sync. `hk_laundry` and `hk_linen` are intentionally NOT
-  // synced yet — their enums diverge from the web app (LaundryType
-  // guestCharge/washIron; LinenCategory mattressProtector/bathrobe/other;
-  // LinenCondition new_/good/damaged), and mobile `fromJson` byName would
-  // reject web-only values.
+  // Offline-first cloud sync. Laundry and linen enums are now unified across
+  // platforms (LaundryType washIron; LinenCategory mattressProtector/bathrobe/
+  // other; LinenCondition new/good/damaged) with tolerant `safeEnum` parsing,
+  // so every housekeeping collection syncs.
   static final StoreSync<HousekeepingTask> taskSync = _initTaskSync();
+  static final StoreSync<LaundryItem> laundrySync = _initLaundrySync();
   static final StoreSync<LostFoundItem> lostFoundSync = _initLostFoundSync();
+  static final StoreSync<LinenDamage> linenSync = _initLinenSync();
 
   static StoreSync<HousekeepingTask> _initTaskSync() {
     final s = StoreSync<HousekeepingTask>(
@@ -28,6 +29,18 @@ class HousekeepingStore {
     return s;
   }
 
+  static StoreSync<LaundryItem> _initLaundrySync() {
+    final s = StoreSync<LaundryItem>(
+      collection: 'hk_laundry',
+      target: _laundry,
+      fromJson: LaundryItem.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'hk_laundry',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   static StoreSync<LostFoundItem> _initLostFoundSync() {
     final s = StoreSync<LostFoundItem>(
       collection: 'hk_lost_found',
@@ -35,6 +48,18 @@ class HousekeepingStore {
       fromJson: LostFoundItem.fromJson,
       toJson: (e) => e.toJson(),
       cacheKey: 'hk_lost_found',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<LinenDamage> _initLinenSync() {
+    final s = StoreSync<LinenDamage>(
+      collection: 'hk_linen',
+      target: _linenDamages,
+      fromJson: LinenDamage.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'hk_linen',
     );
     CloudSync.register(s);
     return s;
@@ -53,7 +78,9 @@ class HousekeepingStore {
     if (ln != null) { _linenDamages.clear(); _linenDamages.addAll(ln); }
     if (_tasks.isEmpty) _seed();
     taskSync.loadMeta();
+    laundrySync.loadMeta();
     lostFoundSync.loadMeta();
+    linenSync.loadMeta();
   }
 
   static Future<void> _save() async {
@@ -62,7 +89,9 @@ class HousekeepingStore {
     await PersistenceService.saveList('hk_lost_found', _lostFound, (e) => e.toJson());
     await PersistenceService.saveList('hk_linen', _linenDamages, (e) => e.toJson());
     await taskSync.push();
+    await laundrySync.push();
     await lostFoundSync.push();
+    await linenSync.push();
   }
 
   static int _counter = 0;

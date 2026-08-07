@@ -1,3 +1,5 @@
+import 'safe_enum.dart';
+
 enum TableStatus { free, occupied, reserved, cleaning }
 
 enum OrderStatus { open, preparing, served, paid, cancelled }
@@ -60,34 +62,43 @@ class RestaurantTable {
 }
 
 class OrderItem {
-  String menuItemId, name;
+  String id, menuItemId, name;
   int quantity;
   double unitPrice;
   String status; // pending, preparing, ready, served
   String? note;
 
   OrderItem({
+    String? id,
     required this.menuItemId,
     required this.name,
     required this.quantity,
     required this.unitPrice,
     this.status = 'pending',
     this.note,
-  });
+  }) : id = id ?? 'oi_${DateTime.now().microsecondsSinceEpoch}';
 
   double get total => quantity * unitPrice;
 
   Map<String, dynamic> toJson() => {
-    'menuItemId': menuItemId, 'name': name,
-    'quantity': quantity, 'unitPrice': unitPrice,
-    'status': status, 'note': note,
-  };
+        'id': id,
+        'menuItemId': menuItemId,
+        'name': name,
+        'quantity': quantity,
+        'unitPrice': unitPrice,
+        'status': status,
+        'note': note,
+      };
 
   factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
-    menuItemId: j['menuItemId'], name: j['name'],
-    quantity: j['quantity'], unitPrice: (j['unitPrice'] as num).toDouble(),
-    status: j['status'] ?? 'pending', note: j['note'],
-  );
+        id: j['id'],
+        menuItemId: j['menuItemId'],
+        name: j['name'],
+        quantity: j['quantity'],
+        unitPrice: (j['unitPrice'] as num).toDouble(),
+        status: j['status'] ?? 'pending',
+        note: j['note'],
+      );
 }
 
 class Order {
@@ -122,21 +133,40 @@ class Order {
   bool get allServed => items.isNotEmpty && items.every((i) => i.status == 'served');
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'tableId': tableId, 'tableNumber': tableNumber,
-    'serverName': serverName, 'createdAt': createdAt.toIso8601String(),
-    'items': items.map((i) => i.toJson()).toList(),
-    'status': status.name, 'paymentMethod': paymentMethod,
-    'roomChargeId': roomChargeId, 'discount': discount,
-  };
+        'id': id,
+        'tableId': tableId,
+        'tableNumber': tableNumber,
+        'serverName': serverName,
+        'servedBy': serverName,
+        'openedAt': createdAt.toIso8601String(),
+        'items': items.map((i) => i.toJson()).toList(),
+        'status': status.name,
+        'paymentMethod': paymentMethod,
+        'roomChargeId': roomChargeId,
+        'discount': discount,
+      };
+
+  static DateTime _parseOpenedAt(Map<String, dynamic> j) {
+    final v = j['openedAt'] ?? j['createdAt'];
+    if (v is String) {
+      final t = DateTime.tryParse(v);
+      if (t != null) return t;
+    }
+    return DateTime.now();
+  }
 
   factory Order.fromJson(Map<String, dynamic> j) => Order(
-    id: j['id'], tableId: j['tableId'],
-    tableNumber: j['tableNumber'], serverName: j['serverName'],
-    createdAt: DateTime.parse(j['createdAt']),
-    items: (j['items'] as List).map((e) => OrderItem.fromJson(e)).toList(),
-    status: OrderStatus.values.byName(j['status']),
-    paymentMethod: j['paymentMethod'] ?? 'cash',
-    roomChargeId: j['roomChargeId'],
-    discount: (j['discount'] as num?)?.toDouble(),
-  );
+        id: j['id'],
+        tableId: j['tableId'],
+        tableNumber: j['tableNumber'] ?? '',
+        serverName: j['servedBy'] ?? j['serverName'] ?? '',
+        createdAt: _parseOpenedAt(j),
+        items: (j['items'] as List)
+            .map((e) => OrderItem.fromJson(e))
+            .toList(),
+        status: safeEnum(j['status'], OrderStatus.values, OrderStatus.open),
+        paymentMethod: j['paymentMethod'] ?? 'cash',
+        roomChargeId: j['roomChargeId'],
+        discount: (j['discount'] as num?)?.toDouble(),
+      );
 }

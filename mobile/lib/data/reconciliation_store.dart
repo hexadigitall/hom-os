@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/reconciliation.dart';
 import '../models/expenditure.dart';
 import 'expenditure_store.dart';
@@ -11,6 +12,41 @@ class ReconciliationStore {
   static final List<ReconciliationMatch> _matches = [];
   static final List<SplitPayment> _splits = [];
 
+  // Offline-first cloud sync for each reconciliation collection.
+  static final StoreSync<BankTransaction> transactionSync = _initTransactionSync();
+  static final StoreSync<ReconciliationMatch> matchSync = _initMatchSync();
+  static final StoreSync<SplitPayment> splitSync = _initSplitSync();
+
+  static StoreSync<BankTransaction> _initTransactionSync() {
+    final s = StoreSync<BankTransaction>(
+      collection: 'rec_bank_txns', target: _transactions,
+      fromJson: BankTransaction.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'rec_transactions',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<ReconciliationMatch> _initMatchSync() {
+    final s = StoreSync<ReconciliationMatch>(
+      collection: 'rec_matches', target: _matches,
+      fromJson: ReconciliationMatch.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'rec_matches',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<SplitPayment> _initSplitSync() {
+    final s = StoreSync<SplitPayment>(
+      collection: 'rec_split_payments', target: _splits,
+      fromJson: SplitPayment.fromJson, toJson: (e) => e.toJson(),
+      cacheKey: 'rec_splits',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   static Future<void> init() async {
     if (_transactions.isNotEmpty) return;
     final t = PersistenceService.loadList('rec_transactions', BankTransaction.fromJson);
@@ -19,12 +55,18 @@ class ReconciliationStore {
     if (m != null) { _matches.addAll(m); }
     final s = PersistenceService.loadList('rec_splits', SplitPayment.fromJson);
     if (s != null) { _splits.addAll(s); }
+    transactionSync.loadMeta();
+    matchSync.loadMeta();
+    splitSync.loadMeta();
   }
 
   static Future<void> _save() async {
     await PersistenceService.saveList('rec_transactions', _transactions, (e) => e.toJson());
     await PersistenceService.saveList('rec_matches', _matches, (e) => e.toJson());
     await PersistenceService.saveList('rec_splits', _splits, (e) => e.toJson());
+    await transactionSync.push();
+    await matchSync.push();
+    await splitSync.push();
   }
 
   static List<BankTransaction> get transactions => List.unmodifiable(_transactions);

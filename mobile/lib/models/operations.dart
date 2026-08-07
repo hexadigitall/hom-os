@@ -1,4 +1,7 @@
+import 'safe_enum.dart';
+
 class DailyRevenue {
+  final String id;
   final DateTime date;
   final int roomsAvailable;
   final int roomsSold;
@@ -6,12 +9,13 @@ class DailyRevenue {
   final double totalRevenue;
 
   DailyRevenue({
+    String? id,
     required this.date,
     this.roomsAvailable = 12,
     required this.roomsSold,
     this.walkIns = 0,
     required this.totalRevenue,
-  });
+  }) : id = id ?? 'rev_${DateTime.now().microsecondsSinceEpoch}';
 
   double get occupancyPct => roomsAvailable > 0
       ? (roomsSold / roomsAvailable * 100).clamp(0, 100)
@@ -19,14 +23,21 @@ class DailyRevenue {
   double get adr => roomsSold > 0 ? totalRevenue / roomsSold : 0;
   double get revpar => roomsAvailable > 0 ? totalRevenue / roomsAvailable : 0;
   Map<String, dynamic> toJson() => {
-    'date': date.toIso8601String(), 'roomsAvailable': roomsAvailable,
-    'roomsSold': roomsSold, 'walkIns': walkIns, 'totalRevenue': totalRevenue,
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'roomsAvailable': roomsAvailable,
+        'roomsSold': roomsSold,
+        'walkIns': walkIns,
+        'totalRevenue': totalRevenue,
+      };
   factory DailyRevenue.fromJson(Map<String, dynamic> j) => DailyRevenue(
-    date: DateTime.parse(j['date']), roomsAvailable: j['roomsAvailable'] ?? 12,
-    roomsSold: j['roomsSold'], walkIns: j['walkIns'] ?? 0,
-    totalRevenue: (j['totalRevenue'] as num).toDouble(),
-  );
+        id: j['id'],
+        date: DateTime.parse(j['date']),
+        roomsAvailable: j['roomsAvailable'] ?? 12,
+        roomsSold: j['roomsSold'],
+        walkIns: j['walkIns'] ?? 0,
+        totalRevenue: (j['totalRevenue'] as num).toDouble(),
+      );
 }
 
 class CashDrop {
@@ -58,7 +69,8 @@ class CashDrop {
     id: j['id'], date: DateTime.parse(j['date']), shift: j['shift'],
     expectedAmount: (j['expectedAmount'] as num).toDouble(),
     actualAmount: (j['actualAmount'] as num).toDouble(),
-    notes: j['notes'] ?? '', status: CashDropStatus.values.byName(j['status'] ?? 'matched'),
+    notes: j['notes'] ?? '',
+        status: safeEnum(j['status'], CashDropStatus.values, CashDropStatus.matched),
   );
 }
 

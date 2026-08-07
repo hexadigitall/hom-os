@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Plus, Trash2, Edit3, TrendingUp, MoonStar, PackageX, AlertTriangle } from 'lucide-react';
 import { DailyRevenue, CashDrop, HousekeepingLoss, TOTAL_ROOMS, ShiftName } from '@/lib/types';
 import { seedRevenues, seedCashDrops, seedLosses } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, uid, naira, fmtDate, addDays, monthStart } from '@/lib/format';
@@ -44,7 +44,7 @@ export function OperationsModule() {
 
 function RevParTab() {
   const { session } = useAuth();
-  const revs = useScopedCollection<DailyRevenue>('ops_revenues', seedRevenues, session);
+  const revs = useSyncedCollection<DailyRevenue>('ops_revenues', 'ops_revenues', seedRevenues, session);
   const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<DailyRevenue | null>(null);
@@ -147,7 +147,7 @@ function RevenueForm({ initial, depts, onSave, onCancel }: { initial: DailyReven
 
 function NightAuditTab() {
   const { session } = useAuth();
-  const drops = useScopedCollection<CashDrop>('ops_cash_drops', seedCashDrops, session);
+  const drops = useSyncedCollection<CashDrop>('ops_cash_drops', 'ops_cash_drops', seedCashDrops, session);
   const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<CashDrop | null>(null);
@@ -241,7 +241,7 @@ const LOSS_COLORS: Record<string, string> = {
 
 function LossesTab() {
   const { session } = useAuth();
-  const losses = useScopedCollection<HousekeepingLoss>('ops_losses', seedLosses, session);
+  const losses = useSyncedCollection<HousekeepingLoss>('ops_losses', 'ops_losses', seedLosses, session);
   const depts = tagFor(session, 'housekeeping');
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<HousekeepingLoss | null>(null);

@@ -7,8 +7,7 @@ import {
   ProcurementStatus,
 } from '@/lib/types';
 import { seedProcurements, seedPayrolls, seedTaxConfig } from '@/lib/seed';
-import { useKeyValue } from '@/lib/storage';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, monthStart, monthEnd } from '@/lib/format';
@@ -53,7 +52,7 @@ const PROC_ORDER: ProcurementStatus[] = ['draft', 'approved', 'ordered', 'delive
 
 function ProcurementTab() {
   const { session } = useAuth();
-  const orders = useScopedCollection<ProcurementOrder>('bo_procurement', seedProcurements, session);
+  const orders = useSyncedCollection<ProcurementOrder>('bo_procurements', 'bo_procurement', seedProcurements, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ProcurementOrder | null>(null);
   const depts = tagFor(session, 'procurement');
@@ -146,7 +145,7 @@ function OrderForm({ initial, depts, onSave, onCancel }: { initial: ProcurementO
 
 function PayrollTab() {
   const { session } = useAuth();
-  const payroll = useScopedCollection<PayrollRecord>('bo_payroll', seedPayrolls, session);
+  const payroll = useSyncedCollection<PayrollRecord>('bo_payrolls', 'bo_payroll', seedPayrolls, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<PayrollRecord | null>(null);
   const depts = tagFor(session, 'accounts');
@@ -236,17 +235,24 @@ function PayrollForm({ initial, depts, onSave, onCancel }: { initial: PayrollRec
 // ─── Tax Configuration ───────────────────────────────────────────────────────
 
 function TaxConfigTab() {
-  const [cfg, setCfg] = useKeyValue<TaxConfiguration>('bo_taxconfig', seedTaxConfig());
+  const { session } = useAuth();
+  const tax = useSyncedCollection<TaxConfiguration>('bo_tax_config', 'bo_taxconfig', () => [seedTaxConfig()], session);
+  const cfg = tax.items[0] ?? seedTaxConfig();
   const [draft, setDraft] = useState<TaxConfiguration>(cfg);
   const [saved, setSaved] = useState(false);
 
   const grossMonthly = 120000; // sample: average gross salary
   const grossAnnual = grossMonthly * 13;
 
+  const saveCfg = (c: TaxConfiguration) => {
+    if (tax.items.length) tax.replace(tax.items[0].id, c);
+    else tax.add(c);
+  };
+
   return (
     <div className="space-y-4">
       <SectionHeader title="Tax Configuration" sub="Statutory rates applied across the dashboard">
-        <Btn onClick={() => { setCfg(draft); setSaved(true); setTimeout(() => setSaved(false), 1500); }}><Check size={14} /> {saved ? 'Saved!' : 'Save Config'}</Btn>
+        <Btn onClick={() => { saveCfg(draft); setSaved(true); setTimeout(() => setSaved(false), 1500); }}><Check size={14} /> {saved ? 'Saved!' : 'Save Config'}</Btn>
       </SectionHeader>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <MetricCard label="VAT Rate" value={`${cfg.vatRate}%`} sub="Value added tax" color="bg-blue-50 text-blue-700" />

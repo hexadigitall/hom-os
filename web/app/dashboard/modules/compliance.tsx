@@ -10,7 +10,7 @@ import {
 } from '@/lib/types';
 import { SCUML_THRESHOLD } from '@/lib/types';
 import { seedScuml, seedCash, seedTaxConfigs, seedTaxReports, seedFireCerts, seedNaptip, seedLga } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate } from '@/lib/format';
@@ -55,12 +55,12 @@ export function ComplianceModule() {
 
 function ComplianceHub({ onOpen }: { onOpen: (t: SubTab) => void }) {
   const { session } = useAuth();
-  const scuml = useScopedCollection<ScumlTransaction>('cmp_scuml', seedScuml, session);
-  const cash = useScopedCollection<CashTransaction>('cmp_cash', seedCash, session);
-  const tax = useScopedCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed, session);
-  const naptip = useScopedCollection<NaptipAlert>('cmp_naptip', seedNaptip, session);
-  const lga = useScopedCollection<LgaInspection>('cmp_lga', seedLga, session);
-  const fire = useScopedCollection<FireServiceCert>('cmp_fire_certs', seedFireCerts, session);
+  const scuml = useSyncedCollection<ScumlTransaction>('cmp_scuml', 'cmp_scuml', seedScuml, session);
+  const cash = useSyncedCollection<CashTransaction>('cmp_cash', 'cmp_cash', seedCash, session);
+  const tax = useSyncedCollection<TaxConfigItem>('cmp_tax_config', 'cmp_tax_config', taxConfigSeed, session);
+  const naptip = useSyncedCollection<NaptipAlert>('cmp_naptip', 'cmp_naptip', seedNaptip, session);
+  const lga = useSyncedCollection<LgaInspection>('cmp_lga', 'cmp_lga', seedLga, session);
+  const fire = useSyncedCollection<FireServiceCert>('cmp_fire_certs', 'cmp_fire_certs', seedFireCerts, session);
 
   const thresholdAlerts = cash.items.filter(c => c.amount >= SCUML_THRESHOLD).length;
   const latestInspection = lga.items[0];
@@ -90,7 +90,7 @@ function ComplianceHub({ onOpen }: { onOpen: (t: SubTab) => void }) {
 
 function CashTab() {
   const { session } = useAuth();
-  const cash = useScopedCollection<CashTransaction>('cmp_cash', seedCash, session);
+  const cash = useSyncedCollection<CashTransaction>('cmp_cash', 'cmp_cash', seedCash, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<CashTransaction | null>(null);
   const depts = tagFor(session, 'accounts');
@@ -180,7 +180,7 @@ function CashForm({ initial, depts, onSave, onCancel }: { initial: CashTransacti
 
 function ScumlTab() {
   const { session } = useAuth();
-  const scuml = useScopedCollection<ScumlTransaction>('cmp_scuml', seedScuml, session);
+  const scuml = useSyncedCollection<ScumlTransaction>('cmp_scuml', 'cmp_scuml', seedScuml, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ScumlTransaction | null>(null);
   const depts = tagFor(session, 'accounts');
@@ -275,7 +275,7 @@ const NAPTIP_TYPES: { id: NaptipIncidentType; label: string }[] = [
 
 function NaptipTab() {
   const { session } = useAuth();
-  const naptip = useScopedCollection<NaptipAlert>('cmp_naptip', seedNaptip, session);
+  const naptip = useSyncedCollection<NaptipAlert>('cmp_naptip', 'cmp_naptip', seedNaptip, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<NaptipAlert | null>(null);
   const depts = tagFor(session, 'humanResources');
@@ -353,7 +353,7 @@ function NaptipForm({ initial, depts, onSave, onCancel }: { initial: NaptipAlert
 
 function LgaTab() {
   const { session } = useAuth();
-  const lga = useScopedCollection<LgaInspection>('cmp_lga', seedLga, session);
+  const lga = useSyncedCollection<LgaInspection>('cmp_lga', 'cmp_lga', seedLga, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<LgaInspection | null>(null);
   const depts = tagFor(session, 'healthSafety');
@@ -432,8 +432,8 @@ function LgaForm({ initial, depts, onSave, onCancel }: { initial: LgaInspection 
 function TaxTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.manageTaxConfig);
-  const tax = useScopedCollection<TaxConfigItem>('cmp_tax_config', taxConfigSeed, session);
-  const reports = useScopedCollection<StateTaxReport>('cmp_tax_reports', seedTaxReports, session);
+  const tax = useSyncedCollection<TaxConfigItem>('cmp_tax_config', 'cmp_tax_config', taxConfigSeed, session);
+  const reports = useSyncedCollection<StateTaxReport>('cmp_tax_reports', 'cmp_tax_reports', seedTaxReports, session);
   const [editState, setEditState] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [showReport, setShowReport] = useState<string | null>(null);
@@ -560,7 +560,7 @@ function TaxConfigForm({ initial, depts, onSave, onCancel }: { initial: TaxConfi
 
 function FireTab() {
   const { session } = useAuth();
-  const fire = useScopedCollection<FireServiceCert>('cmp_fire_certs', seedFireCerts, session);
+  const fire = useSyncedCollection<FireServiceCert>('cmp_fire_certs', 'cmp_fire_certs', seedFireCerts, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<FireServiceCert | null>(null);
   const depts = tagFor(session, 'healthSafety');

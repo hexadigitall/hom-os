@@ -9,7 +9,7 @@ import {
 import {
   seedGenerators, seedMaintenance, seedTankDips, seedTariffs, seedWater,
 } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira, fmtDate, addDays } from '@/lib/format';
@@ -55,7 +55,7 @@ const DIESEL_PRICE = 1200;
 
 function EngDashboard() {
   const { session } = useAuth();
-  const gens = useScopedCollection<Generator>('eng_generators', seedGenerators, session);
+  const gens = useSyncedCollection<Generator>('eng_generators', 'eng_generators', seedGenerators, session);
 
   const running = gens.items.filter(g => g.status === 'running');
   const faults = gens.items.filter(g => g.status === 'fault');
@@ -101,7 +101,7 @@ function EngDashboard() {
 
 function GeneratorsTab() {
   const { session } = useAuth();
-  const gens = useScopedCollection<Generator>('eng_generators', seedGenerators, session);
+  const gens = useSyncedCollection<Generator>('eng_generators', 'eng_generators', seedGenerators, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<Generator | null>(null);
   const depts = tagFor(session, 'engineering');
@@ -185,7 +185,7 @@ const PRIORITY_COLOR: Record<MaintenancePriority, string> = {
 
 function MaintenanceTab() {
   const { session } = useAuth();
-  const tasks = useScopedCollection<MaintenanceTask>('eng_maintenance', seedMaintenance, session);
+  const tasks = useSyncedCollection<MaintenanceTask>('eng_maintenance', 'eng_maintenance', seedMaintenance, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<MaintenanceTask | null>(null);
   const [showDone, setShowDone] = useState(false);
@@ -285,7 +285,7 @@ function TaskForm({ initial, depts, onSave, onCancel }: { initial: MaintenanceTa
 
 function FuelTanksTab() {
   const { session } = useAuth();
-  const dips = useScopedCollection<TankDipLog>('eng_tank_dips', seedTankDips, session);
+  const dips = useSyncedCollection<TankDipLog>('eng_tank_dips', 'eng_tank_dips', seedTankDips, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<TankDipLog | null>(null);
   const depts = tagFor(session, 'engineering');
@@ -378,7 +378,7 @@ function DipForm({ initial, depts, onSave, onCancel }: { initial: TankDipLog | n
 function GridCostTab() {
   const { session } = useAuth();
   const canManage = hasPermission(session, PERMISSIONS.trackGridTariffUsage);
-  const tariffs = useScopedCollection<GridTariffConfig>('eng_tariffs', seedTariffs, session);
+  const tariffs = useSyncedCollection<GridTariffConfig>('eng_grid_tariffs', 'eng_tariffs', seedTariffs, session);
   const [editId, setEditId] = useState<string | null>(null);
   const depts = tagFor(session, 'engineering');
 
@@ -451,7 +451,7 @@ function TariffForm({ initial, depts, onSave, onCancel }: { initial: GridTariffC
 
 function WaterTab() {
   const { session } = useAuth();
-  const logs = useScopedCollection<WaterTreatmentLog>('eng_water', seedWater, session);
+  const logs = useSyncedCollection<WaterTreatmentLog>('eng_water', 'eng_water', seedWater, session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<WaterTreatmentLog | null>(null);
   const depts = tagFor(session, 'engineering');

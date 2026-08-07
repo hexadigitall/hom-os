@@ -1365,11 +1365,8 @@ class HOMData {
   // the session's hotel id (identity remains server-authoritative) and
   // Firestore's local persistence queues any write made while offline, so the
   // next reconnection syncs it automatically.
-  //
-  // NOTE: `fuel_logs` is intentionally NOT synced yet — the mobile FuelLog
-  // and web Diesel models have different field names (quantity/fuelType vs
-  // liters/genHours), so the schemas must be unified before the two platforms
-  // can share that collection.
+  // NOTE: local caches are stored under their own keys (e.g. `hom_fuel_logs`);
+  // the Firestore collection names are the canonical `fuel_logs` etc.
 
   static final List<StreamSubscription<List<Map<String, dynamic>>>> _syncSubs =
       [];
@@ -1409,6 +1406,7 @@ class HOMData {
         _backfill('staff', staff, (e) => e.toJson()),
         _backfill('vendors', vendors, (e) => e.toJson()),
         _backfill('purchase_orders', purchaseOrders, (e) => e.toJson()),
+        _backfill('fuel_logs', fuelLogs, (e) => e.toJson()),
       ]);
       for (final s in _syncSubs) {
         s.cancel();
@@ -1421,6 +1419,7 @@ class HOMData {
         _listen('staff', staff, StaffMember.fromJson, (e) => e.toJson(), 'hom_staff'),
         _listen('vendors', vendors, Vendor.fromJson, (e) => e.toJson(), 'hom_vendors'),
         _listen('purchase_orders', purchaseOrders, PurchaseOrder.fromJson, (e) => e.toJson(), 'hom_purchase_orders'),
+        _listen('fuel_logs', fuelLogs, FuelLog.fromJson, (e) => e.toJson(), 'hom_fuel_logs'),
       ]);
     } catch (_) {
       // No network / not provisioned — stay local-only for this run.
@@ -1473,6 +1472,7 @@ class HOMData {
       _push('staff', staff, (e) => e.toJson()),
       _push('vendors', vendors, (e) => e.toJson()),
       _push('purchase_orders', purchaseOrders, (e) => e.toJson()),
+      _push('fuel_logs', fuelLogs, (e) => e.toJson()),
     ]);
   }
 
