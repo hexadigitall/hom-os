@@ -6,7 +6,7 @@ import {
   ExpenditureRecord, ExpenditureCategory, PaymentMethod, EXPENSE_CATEGORIES,
 } from '@/lib/types';
 import { seedExpenditure } from '@/lib/seed';
-import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { DEPARTMENT_LABEL, scopeOptions, type Department } from '@/lib/rbac';
 import { useAuth } from '@/lib/auth';
 import { today, uid, naira, fmtDate } from '@/lib/format';
@@ -14,7 +14,7 @@ import { Card, MetricCard, StatusChip, SectionHeader, Btn, IconBtn, Field, TextI
 
 export function ExpensesModule() {
   const { session } = useAuth();
-  const exp = useScopedCollection<ExpenditureRecord>('expenditure_records', seedExpenditure, session);
+  const exp = useSyncedCollection<ExpenditureRecord>('expenditure', 'expenditure_records', seedExpenditure, session);
   const depts = scopeOptions(session);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState<ExpenditureRecord | null>(null);

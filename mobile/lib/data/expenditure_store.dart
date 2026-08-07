@@ -1,4 +1,5 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/expenditure.dart';
 import '../models/role.dart';
 import 'role_store.dart';
@@ -7,6 +8,21 @@ class ExpenditureStore {
   static final List<ExpenditureRecord> _records = [];
   static int _counter = 0;
 
+  /// Offline-first cloud sync for this collection (Firestore master).
+  static final StoreSync<ExpenditureRecord> sync = _initSync();
+
+  static StoreSync<ExpenditureRecord> _initSync() {
+    final s = StoreSync<ExpenditureRecord>(
+      collection: 'expenditure',
+      target: _records,
+      fromJson: ExpenditureRecord.fromJson,
+      toJson: (r) => r.toJson(),
+      cacheKey: 'expenditure_records',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
   static List<ExpenditureRecord> get all => List.unmodifiable(_records);
 
   static String generateId() => 'exp_${DateTime.now().millisecondsSinceEpoch}_${++_counter}';
@@ -14,9 +30,13 @@ class ExpenditureStore {
   static Future<void> load() async {
     final r = PersistenceService.loadList('expenditure_records', ExpenditureRecord.fromJson);
     if (r != null) { _records.clear(); _records.addAll(r); }
+    sync.loadMeta();
   }
 
-  static Future<void> _save() => PersistenceService.saveList('expenditure_records', _records, (r) => r.toJson());
+  static Future<void> _save() async {
+    await PersistenceService.saveList('expenditure_records', _records, (r) => r.toJson());
+    await sync.push();
+  }
 
   static Future<void> add(ExpenditureRecord r) async { _records.insert(0, r); await _save(); }
 

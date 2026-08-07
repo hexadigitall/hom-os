@@ -19,7 +19,7 @@ const epoch = (v: unknown): number =>
 
 export interface SyncedCollection<T extends { id: string }> {
   items: T[];
-  set: (items: T[]) => void;
+  set: (items: T[] | ((prev: T[]) => T[])) => void;
   add: (item: T) => void;
   update: (id: string, patch: Partial<T>) => void;
   remove: (id: string) => void;
@@ -164,7 +164,29 @@ export function useSyncedCollection<T extends { id: string }>(
     [db, hotelId, collectionName],
   );
 
-  const set = useCallback((list: T[]) => setItems(list), []);
+  const set = useCallback(
+    (items: T[] | ((prev: T[]) => T[])) => {
+      setItems((prev) => {
+        const next = typeof items === 'function'
+          ? (items as (p: T[]) => T[])(prev)
+          : items;
+        if (hotelId) {
+          // Write only genuinely new ids (bulk import) to keep write churn low.
+          const existing = new Set(prev.map((p) => p.id));
+          for (const item of next) {
+            if (existing.has(item.id)) continue;
+            void setDoc(doc(db, 'hotels', hotelId, collectionName, item.id), {
+              ...item,
+              createdAt: ts(),
+              updatedAt: ts(),
+            }).catch(() => {});
+          }
+        }
+        return next;
+      });
+    },
+    [db, hotelId, collectionName],
+  );
 
   const visible = useMemo(
     () =>

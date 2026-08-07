@@ -23,9 +23,38 @@ enum ExpenditureCategory {
     final lower = s.toLowerCase().replaceAll(RegExp(r'[\s/&-]'), '');
     for (final c in ExpenditureCategory.values) {
       if (c.code.toLowerCase() == lower) return c;
+      // Legacy Hive records store the Dart enum name (e.g. `procurement`);
+      // the web app stores display labels (e.g. `Procurement`, `F&B`).
+      if (c.name.toLowerCase() == lower) return c;
       if (c.displayName.toLowerCase().replaceAll(RegExp(r'[\s/&-]'), '') == lower) return c;
     }
     return ExpenditureCategory.other;
+  }
+
+  /// Stable label shared with the web app (`EXPENSE_CATEGORIES`).
+  static String toWebLabel(ExpenditureCategory c) {
+    switch (c) {
+      case ExpenditureCategory.foodBeverage:
+        return 'F&B';
+      case ExpenditureCategory.logistics:
+        return 'Logistics / Transport';
+      case ExpenditureCategory.toiletries:
+        return 'Toiletries & Amenities';
+      case ExpenditureCategory.laundry:
+        return 'Laundry & Linen';
+      case ExpenditureCategory.utilities:
+        return 'Utilities (Power/Water)';
+      case ExpenditureCategory.maintenance:
+        return 'Maintenance & Repairs';
+      case ExpenditureCategory.procurement:
+        return 'Procurement';
+      case ExpenditureCategory.marketing:
+        return 'Marketing & Advertising';
+      case ExpenditureCategory.administrative:
+        return 'Administrative';
+      case ExpenditureCategory.other:
+        return 'Other';
+    }
   }
 
   static List<ExpenditureCategory> get all => values;
@@ -73,21 +102,43 @@ class ExpenditureRecord {
   );
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'date': date.toIso8601String(), 'category': category.name,
-    'subcategory': subcategory, 'description': description, 'amount': amount,
-    'vendor': vendor, 'paymentMethod': paymentMethod, 'receiptRef': receiptRef,
-    'notes': notes, 'department': department?.name,
-  };
+        'id': id,
+        'date': date.toIso8601String(),
+        'category': ExpenditureCategory.toWebLabel(category),
+        'subcategory': subcategory,
+        'description': description,
+        'amount': amount,
+        'vendor': vendor,
+        'paymentMethod': paymentMethod,
+        'receiptRef': receiptRef,
+        'notes': notes,
+        'department': department?.name,
+        'departments': department != null ? [department!.name] : <String>[],
+      };
 
-  factory ExpenditureRecord.fromJson(Map<String, dynamic> j) => ExpenditureRecord(
-    id: j['id'], date: DateTime.parse(j['date']),
-    category: ExpenditureCategory.values.byName(j['category']),
-    subcategory: j['subcategory'] ?? '', description: j['description'] ?? '',
-    amount: (j['amount'] as num).toDouble(),
-    vendor: j['vendor'] ?? '', paymentMethod: j['paymentMethod'] ?? '',
-    receiptRef: j['receiptRef'] ?? '', notes: j['notes'] ?? '',
-    department: j['department'] != null ? Department.values.byName(j['department']) : null,
-  );
+  static Department? _parseDepartment(Map<String, dynamic> j) {
+    final deps = j['departments'];
+    if (deps is List && deps.isNotEmpty && deps.first is String) {
+      return Department.values.byName(deps.first as String);
+    }
+    final single = j['department'];
+    return single is String ? Department.values.byName(single) : null;
+  }
+
+  factory ExpenditureRecord.fromJson(Map<String, dynamic> j) =>
+      ExpenditureRecord(
+        id: j['id'],
+        date: DateTime.parse(j['date']),
+        category: ExpenditureCategory.fromString(j['category'] ?? ''),
+        subcategory: j['subcategory'] ?? '',
+        description: j['description'] ?? '',
+        amount: (j['amount'] as num).toDouble(),
+        vendor: j['vendor'] ?? '',
+        paymentMethod: j['paymentMethod'] ?? '',
+        receiptRef: j['receiptRef'] ?? '',
+        notes: j['notes'] ?? '',
+        department: _parseDepartment(j),
+      );
 }
 
 class ReportPeriod {

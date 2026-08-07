@@ -27,7 +27,7 @@ import {
 export function OverviewModule() {
   const { session } = useAuth();
   const rooms = useSyncedCollection<Room>('rooms', 'hom_rooms', seedRooms, session);
-  const bookings = useScopedCollection<Booking>('hom_bookings', seedBookings, session);
+  const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
   const diesel = useScopedCollection<Diesel>('hom_diesel', seedDiesel, session);
   const inventory = useSyncedCollection<InventoryItem>('inventory', 'hom_inventory', seedInventory, session);
 

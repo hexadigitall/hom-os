@@ -50,7 +50,7 @@ function BankTab() {
   const matches = useScopedCollection<ReconciliationMatch>('rec_matches', seedMatches, session);
   const splits = useScopedCollection<SplitPayment>('rec_split_payments', () => [], session);
   const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
-  const exp = useScopedCollection<ExpenditureRecord>('expenditure_records', seedExpenditure, session);
+  const exp = useSyncedCollection<ExpenditureRecord>('expenditure', 'expenditure_records', seedExpenditure, session);
   const [filter, setFilter] = useState<'all' | 'matched' | 'unmatched'>('all');
   const [search, setSearch] = useState('');
   const [matchTxn, setMatchTxn] = useState<BankTransaction | null>(null);

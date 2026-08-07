@@ -49,6 +49,7 @@ import 'data/profile_store.dart';
 import 'data/role_store.dart';
 import 'data/update_service.dart';
 import 'data/sync_service.dart';
+import 'data/store_sync.dart';
 import 'models/role.dart';
 import 'models/hotel_user.dart';
 import 'models/expenditure.dart';
@@ -142,6 +143,8 @@ void main() async {
   _trace('HOMData.load ok');
   HOMData.attach();
   _trace('HOMData.attach ok');
+  CloudSync.attach();
+  _trace('CloudSync.attach ok');
   await ExpenditureStore.load();
   _trace('ExpenditureStore ok');
   await ComplianceStore.load();
