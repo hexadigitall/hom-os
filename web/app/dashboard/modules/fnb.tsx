@@ -7,6 +7,7 @@ import {
 } from '@/lib/types';
 import { seedMenu, seedTables, seedOrders } from '@/lib/seed';
 import { useScopedCollection } from '@/lib/scoped';
+import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, type Department } from '@/lib/rbac';
 import { today, nowISO, uid, naira } from '@/lib/format';
@@ -56,7 +57,7 @@ export function FnbModule() {
 
 function TablesTab() {
   const { session } = useAuth();
-  const tables = useScopedCollection<RestaurantTable>('fnb_tables', seedTables, session);
+  const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
   const orders = useScopedCollection<Order>('fnb_orders', seedOrders, session);
   const depts = tagFor(session, 'restaurants');
   const [showForm, setShowForm] = useState(false);
@@ -145,7 +146,7 @@ function NewOrderForm({ table, menu, onSave, onCancel }: { table: RestaurantTabl
 function OrdersTab() {
   const { session } = useAuth();
   const orders = useScopedCollection<Order>('fnb_orders', seedOrders, session);
-  const tables = useScopedCollection<RestaurantTable>('fnb_tables', seedTables, session);
+  const tables = useSyncedCollection<RestaurantTable>('fnb_tables', 'fnb_tables', seedTables, session);
   const [view, setView] = useState<Order | null>(null);
   const [kds, setKds] = useState(false);
 
@@ -252,7 +253,7 @@ function advanceItem(orders: any, order: Order, item: OrderItem) {
 
 function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; tables: any; orders: any; menu: Record<string, never>; onClose: () => void }) {
   const { session } = useAuth();
-  const menuItems = useScopedCollection<MenuItem>('fnb_menu', seedMenu, session);
+  const menuItems = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
   const [adding, setAdding] = useState(false);
   const [payMethod, setPayMethod] = useState('cash');
 
@@ -347,7 +348,7 @@ const CAT_LABEL: Record<MenuCategory, string> = { food: 'Food', drink: 'Drinks',
 
 function MenuTab() {
   const { session } = useAuth();
-  const menu = useScopedCollection<MenuItem>('fnb_menu', seedMenu, session);
+  const menu = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
   const depts = tagFor(session, 'restaurants');
   const [cat, setCat] = useState<MenuCategory>('food');
   const [showForm, setShowForm] = useState(false);

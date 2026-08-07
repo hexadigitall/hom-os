@@ -1,10 +1,42 @@
 import 'persistence_service.dart';
+import 'store_sync.dart';
 import '../models/food_beverage.dart';
 
 class FnbStore {
   static final List<MenuItem> _menu = [];
   static final List<RestaurantTable> _tables = [];
   static final List<Order> _orders = [];
+
+  // Offline-first cloud sync. `fnb_orders` is intentionally NOT synced yet —
+  // the mobile Order and web Order schemas diverge (createdAt/openedAt,
+  // serverName/servedBy, tableNumber/roomChargeId), so they must be unified
+  // before the two platforms can share that collection.
+  static final StoreSync<MenuItem> menuSync = _initMenuSync();
+  static final StoreSync<RestaurantTable> tableSync = _initTableSync();
+
+  static StoreSync<MenuItem> _initMenuSync() {
+    final s = StoreSync<MenuItem>(
+      collection: 'fnb_menu',
+      target: _menu,
+      fromJson: MenuItem.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'fnb_menu',
+    );
+    CloudSync.register(s);
+    return s;
+  }
+
+  static StoreSync<RestaurantTable> _initTableSync() {
+    final s = StoreSync<RestaurantTable>(
+      collection: 'fnb_tables',
+      target: _tables,
+      fromJson: RestaurantTable.fromJson,
+      toJson: (e) => e.toJson(),
+      cacheKey: 'fnb_tables',
+    );
+    CloudSync.register(s);
+    return s;
+  }
 
   // ===================== INIT =====================
 
@@ -17,12 +49,16 @@ class FnbStore {
     if (o != null) { _orders.clear(); _orders.addAll(o); }
     if (_menu.isEmpty) _seedMenu();
     if (_tables.isEmpty) _seedTables();
+    menuSync.loadMeta();
+    tableSync.loadMeta();
   }
 
   static Future<void> _save() async {
     await PersistenceService.saveList('fnb_menu', _menu, (e) => e.toJson());
     await PersistenceService.saveList('fnb_tables', _tables, (e) => e.toJson());
     await PersistenceService.saveList('fnb_orders', _orders, (e) => e.toJson());
+    await menuSync.push();
+    await tableSync.push();
   }
 
   // ===================== ID GENERATORS =====================
