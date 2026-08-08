@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/role.dart';
 import '../models/user_profile.dart' show UserPreferences;
+import '../utils/hive_security.dart';
 import 'role_store.dart';
 import 'user_store.dart';
 import 'firestore_role_service.dart';
@@ -40,7 +41,7 @@ class AuthService {
   static StreamSubscription? _sessionSubscription;
 
   static Future<void> init() async {
-    _box = await Hive.openBox<String>('hom_auth');
+    _box = await HiveSecurity.openEncryptedBox('hom_auth');
 
     // Initialize Google Sign-In
     try {

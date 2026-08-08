@@ -96,9 +96,14 @@ enum Permission {
   managePOS, manageSplitChecks, manageTableManagement,
   // Kitchen / KDS
   manageKDS, manageRecipeCosting, trackIngredientShortages,
+  // Management-only F&B control (voiding tickets / cancelling open orders)
+  voidFnbOrders,
   // Banqueting
   manageBanquetingHallRentals, manageAVEquipment,
   manageBuffetMenus, manageSeatingConfig, manageCorporateEvents,
+  // Facilities & Amenities (gym, pool, gift shop, event halls)
+  viewFacilities, manageFacilities,
+  manageFacilityAccess, manageGiftShop,
 
   // ========= PILLAR 5: BACK OFFICE & SUPPLY CHAIN =========
   viewBackOffice,
@@ -120,6 +125,8 @@ enum Permission {
   viewOperations,
   // Activity feed (cross-pillar)
   viewActivityFeed,
+  // Internal department chat (channels, #hotel-general, DMs)
+  viewDepartmentChat, sendChatMessage, manageChat,
   // Subscriptions, WhatsApp, System
   manageSubscriptions, manageWhatsApp, sendAutomatedWhatsApp,
   sendWhatsAppPayslips, manageUsers,

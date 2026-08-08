@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../utils/theme.dart';
 
+/// Single source of truth for the HOM brand name and tagline — used by the
+/// auth panels, the splash screen and the device-lock screen.
+const String authShellWordmark = 'HOM';
+const String authShellTagline = 'The Hotel Operating System\nPowering Nigeria.';
+
 /// Responsive auth scaffold used by every sign-in / sign-up screen.
 ///
 /// Narrow screens get a single centered column (max 440). Wide screens get a
@@ -101,7 +106,7 @@ class _BrandHeader extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const Text(
-          'HOM',
+          authShellWordmark,
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 1),
         ),
       ],
@@ -152,7 +157,7 @@ class _BrandPanel extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const Text(
-                'HOM',
+                authShellWordmark,
                 style: TextStyle(
                   color: AppColors.white,
                   fontWeight: FontWeight.w900,
@@ -174,7 +179,7 @@ class _BrandPanel extends StatelessWidget {
           ),
           const SizedBox(height: 40),
           const Text(
-            'The Hotel Operating System\nPowering Nigeria.',
+            authShellTagline,
             style: TextStyle(
               color: AppColors.white,
               fontSize: 30,

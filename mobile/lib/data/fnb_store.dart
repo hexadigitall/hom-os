@@ -89,7 +89,7 @@ class FnbStore {
   static List<MenuItem> get menu => List.unmodifiable(_menu);
 
   static const List<String> _defaultCategories = [
-    'food', 'drink', 'bar', 'wine', 'special',
+    'food', 'suya', 'drink', 'bar', 'wine', 'pastry', 'special',
   ];
 
   static List<String> get categories {
@@ -100,8 +100,29 @@ class FnbStore {
     return set.toList();
   }
 
+  static FnbStation stationForCategory(String category) =>
+      MenuItem.stationForCategory(category);
+
+  /// Stations present on the live menu, always including General as a fallback.
+  static List<FnbStation> get stations {
+    final set = <FnbStation>{FnbStation.general};
+    for (final m in _menu) {
+      set.add(m.station);
+    }
+    return FnbStation.values.where(set.contains).toList();
+  }
+
+  static List<MenuItem> menuByStation(FnbStation station) =>
+      _menu.where((m) => m.station == station && m.available).toList();
+
   static List<MenuItem> menuByCategory(String c) =>
       _menu.where((m) => m.category == c && m.available).toList();
+
+  /// Open orders carrying kitchen work for [station] — drives the station
+  /// filter chips so the Suya man never sees a mixed kitchen ticket.
+  static List<Order> ordersForStation(FnbStation station) =>
+      openOrders.where((o) =>
+          o.items.any((i) => i.station == station && i.isKitchenWork)).toList();
 
   static Future<void> addMenuItem(MenuItem item) async { _menu.add(item); await _save(); }
   static Future<void> updateMenuItem(String id, MenuItem updated) async {
@@ -145,6 +166,11 @@ class FnbStore {
       MenuItem(id: genMenuId(), name: 'Egusi Soup & Pounded Yam', category: 'food', price: 5500, description: 'Classic egusi with assorted meat & pounded yam'),
       MenuItem(id: genMenuId(), name: 'Grilled Tilapia', category: 'food', price: 6500, description: 'Whole tilapia with chips & garden salad'),
       MenuItem(id: genMenuId(), name: 'Pepper Soup Goat Meat', category: 'food', price: 5000, description: 'Spiced pepper soup with tender goat meat'),
+      MenuItem(id: genMenuId(), name: 'Beef Suya Platter', category: 'suya', price: 8000, description: 'Spiced beef suya with onions, pepper & yaji — serving for 2'),
+      MenuItem(id: genMenuId(), name: 'Chicken Suya Skewers', category: 'suya', price: 5000, description: 'Charcoal-grilled chicken skewers dusted in yaji'),
+      MenuItem(id: genMenuId(), name: 'Puff Puff', category: 'pastry', price: 1000, description: 'Six golden fried dough bites — best fresh'),
+      MenuItem(id: genMenuId(), name: 'Meat Pie', category: 'pastry', price: 1500, description: 'Buttery Nigerian meat pie, oven fresh'),
+      MenuItem(id: genMenuId(), name: 'Chin Chin', category: 'pastry', price: 1000, description: 'Crunchy fried dough snacks'),
       MenuItem(id: genMenuId(), name: 'Bottled Water', category: 'drink', price: 500),
       MenuItem(id: genMenuId(), name: 'Maltina', category: 'drink', price: 800),
       MenuItem(id: genMenuId(), name: 'Chapman Mocktail', category: 'drink', price: 2500, description: 'Non-alcoholic fruit mocktail'),

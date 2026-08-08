@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Theme applied to the Android Window while the process is starting on
+         Android 12+ (S), which surfaces a system splash before the activity
+         window is drawn. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/launch_green_mid</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/hom_splash_logo</item>
+        <item name="android:windowBackground">@drawable/launch_background</item>
+    </style>
+</resources>

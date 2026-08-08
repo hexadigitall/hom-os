@@ -4,6 +4,7 @@ import 'package:hive/hive.dart';
 import '../models/hotel_user.dart';
 import '../models/invite_code.dart';
 import '../models/role.dart';
+import '../utils/hive_security.dart';
 import 'hom_api_service.dart';
 
 /// Offline cache of the hotel's users and invites.
@@ -21,7 +22,7 @@ class UserStore {
   static final ValueNotifier<int> invitesVersion = ValueNotifier<int>(0);
 
   static Future<void> init() async {
-    _box = await Hive.openBox<String>('hom_users');
+    _box = await HiveSecurity.openEncryptedBox('hom_users');
   }
 
   static List<HotelUser> _loadUsers() {

@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
+import '../utils/hive_security.dart';
 
 class PersistenceService {
   static Box<String>? _store;
 
   static Future<void> init() async {
-    _store = await Hive.openBox<String>('hom_data');
+    _store = await HiveSecurity.openEncryptedBox('hom_data');
   }
 
   static Future<void> save<T>(String key, T value) async {

@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:hive/hive.dart';
 import '../models/user_profile.dart';
+import '../utils/hive_security.dart';
 
 class ProfileStore {
   static Box<String>? _box;
 
   static Future<void> init() async {
-    _box = await Hive.openBox<String>('hom_profiles');
+    _box = await HiveSecurity.openEncryptedBox('hom_profiles');
   }
 
   static UserProfile? load(String userId) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/operations.dart';
 import '../../data/operations_store.dart';
+import '../../data/facility_store.dart';
 import '../../data/expenditure_store.dart';
 import '../../widgets/hom_widgets.dart';
 import '../../models/role.dart';
@@ -10,6 +11,13 @@ import '../../data/security_audit_store.dart';
 import '../../utils/theme.dart';
 
 const Color _primaryGreen = AppColors.primary;
+
+Color _facRevColor(String source) => switch (source) {
+      'Gym' => AppColors.red400,
+      'Pool' => AppColors.blue,
+      'Gift Shop' => AppColors.orange,
+      _ => AppColors.amber,
+    };
 
 enum _OpsTabKind { revpar, nightaudit, housekeeping }
 
@@ -362,6 +370,7 @@ class _RevparTab extends StatelessWidget {
     final adr = OperationsStore.monthAvgAdr;
     final revpar = OperationsStore.monthAvgRevpar;
     final totalRev = OperationsStore.monthRevenue;
+    final facilityRev = FacilityStore.monthRevenue;
     final totalExp = ExpenditureStore.totalAll;
     final revDays = revs.length;
 
@@ -403,13 +412,14 @@ class _RevparTab extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1)),
               const SizedBox(height: 4),
-              Text(_fmt(totalRev),
+              Text(_fmt(totalRev + facilityRev),
                   style: const TextStyle(
                       color: AppColors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 28)),
               const SizedBox(height: 4),
-              Text('$revDays days of data',
+              Text('$revDays days of data'
+                  '${facilityRev > 0 ? '  ·  +${_fmt(facilityRev)} amenities' : ''}',
                   style: TextStyle(
                       color: AppColors.white.withValues(alpha: 0.7),
                       fontSize: 12)),
@@ -417,7 +427,7 @@ class _RevparTab extends StatelessWidget {
           ),
           if (totalExp > 0)
             Column(children: [
-              Text('${(totalRev / totalExp * 100).toStringAsFixed(0)}%',
+              Text('${((totalRev + facilityRev) / totalExp * 100).toStringAsFixed(0)}%',
                   style: const TextStyle(
                       color: AppColors.white,
                       fontWeight: FontWeight.w900,
@@ -429,6 +439,42 @@ class _RevparTab extends StatelessWidget {
             ]),
         ]),
       ),
+      if (facilityRev > 0) ...[
+        const SizedBox(height: 12),
+        Text('Facility Revenue — auto-rolled up',
+            style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                color: AppColors.grey800)),
+        const SizedBox(height: 8),
+        for (final entry in FacilityStore
+            .revenueBySource(DateTime.now().year, DateTime.now().month)
+            .entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Text(entry.key,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 12)),
+                const Spacer(),
+                Text(_fmt(entry.value),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 12)),
+              ]),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: facilityRev > 0 ? entry.value / facilityRev : 0,
+                  minHeight: 7,
+                  backgroundColor: AppColors.grey200,
+                  valueColor: AlwaysStoppedAnimation(_facRevColor(entry.key)),
+                ),
+              ),
+            ]),
+          ),
+      ],
       const SizedBox(height: 12),
       Text('Daily Revenue Trend',
           style: TextStyle(
@@ -699,6 +745,30 @@ class _NightAuditTab extends StatelessWidget {
           ]),
         ),
       const SizedBox(height: 4),
+      Container(
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.3))),
+        child: Row(children: [
+          const Icon(Icons.holiday_village_rounded,
+              color: _primaryGreen, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Facility & amenity revenue today: '
+              '${_fmt(FacilityStore.revenueForDate(DateTime.now()))}'
+              '  (month: ${_fmt(FacilityStore.monthRevenue)})',
+              style: const TextStyle(
+                  color: AppColors.ink,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13),
+            ),
+          ),
+        ]),
+      ),
       Text('Last 14 Drops',
           style: TextStyle(
               fontWeight: FontWeight.w800,
@@ -971,13 +1041,15 @@ class _HousekeepingTab extends StatelessWidget {
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: AppColors.grey700),
-                      textAlign: TextAlign.right)),
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis)),
               SizedBox(
                   width: 52,
                   child: Text(_fmt(e.value),
                       style: const TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w600),
-                      textAlign: TextAlign.right)),
+                      textAlign: TextAlign.right,
+                      overflow: TextOverflow.ellipsis)),
             ]),
           );
         }),

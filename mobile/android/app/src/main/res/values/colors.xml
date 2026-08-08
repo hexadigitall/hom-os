@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="launch_green_start">#0E9F6E</color>
+    <color name="launch_green_mid">#0B7A55</color>
+    <color name="launch_green_end">#064534</color>
+</resources>

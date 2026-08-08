@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/app_notification.dart';
+import '../../data/hotel_settings_store.dart';
 import '../../data/notification_store.dart';
+import '../../data/role_store.dart';
 import '../../utils/theme.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -34,6 +36,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
     var list = _filter == null ? NotificationStore.all : NotificationStore.filterByType(_filter);
     list = list.where((n) => !(_tabController.index == 0 && n.read)).toList();
     return list;
+  }
+
+  String _emptyCopy() {
+    final hotel = HotelSettingsStore.displayName(
+      RoleStore.current.hotelId,
+      RoleStore.current.hotelName,
+    );
+    return hotel.isEmpty ? 'No notifications' : 'No notifications at $hotel';
   }
 
   @override
@@ -78,7 +88,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with SingleTi
               ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.notifications_none_rounded, size: 64, color: AppColors.grey300),
                   const SizedBox(height: 12),
-                  Text('No notifications', style: TextStyle(color: AppColors.grey500)),
+                  Text(_emptyCopy(), style: TextStyle(color: AppColors.grey500)),
                 ]))
               : ListView.builder(
                   padding: const EdgeInsets.all(8),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../../data/back_office_store.dart';
 import '../../data/compliance_store.dart';
 import '../../data/expenditure_store.dart';
+import '../../data/facility_store.dart';
 import '../../data/fnb_store.dart';
+import '../../data/hotel_settings_store.dart';
 import '../../data/housekeeping_store.dart';
 import '../../data/notification_store.dart';
 import '../../data/operations_store.dart';
@@ -13,6 +15,7 @@ import '../../data/security_audit_store.dart';
 import '../../data/subscription_store.dart';
 import '../../data/user_store.dart';
 import '../../main.dart' as app;
+import '../../models/facility.dart';
 import '../../models/food_beverage.dart';
 import '../../utils/theme.dart';
 import '../../widgets/hom_widgets.dart';
@@ -51,16 +54,32 @@ class _HomeDashboardState extends State<HomeDashboard> {
 
   Widget _header(Session session) {
     final firstName = session.userName.trim().split(' ').first;
+    final hotelName = HotelSettingsStore.displayName(
+      session.hotelId,
+      session.hotelName,
+    );
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(
         '$greeting(), $firstName',
         style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 20),
       ),
       const SizedBox(height: 4),
-      Text(
-        session.hotelName.isEmpty ? 'Welcome to HOM' : session.hotelName,
-        style: const TextStyle(fontSize: 13, color: AppColors.grey500),
-      ),
+      Row(children: [
+        const Icon(Icons.apartment_rounded,
+            size: 15, color: AppColors.primary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            hotelName.isEmpty ? 'Welcome to HOM' : hotelName,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.grey700,
+              height: 1.25,
+            ),
+          ),
+        ),
+      ]),
     ]);
   }
 
@@ -160,7 +179,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
   List<Widget> _roleSections(Session session) {
     final ids = session.roleIds;
     if (ids.contains('super_admin') || ids.contains('hotel_manager')) {
-      return _managementSections();
+      return [..._managementSections(), ..._facilitySections()];
     }
     switch (session.primaryRole?.id) {
       case 'auditor':
@@ -174,10 +193,70 @@ class _HomeDashboardState extends State<HomeDashboard> {
       case 'kitchen':
         return _kitchenSections();
       case 'dept_head':
-        return _deptHeadSections();
+        return [..._deptHeadSections(), ..._facilitySections()];
+      case 'events_coordinator':
+      case 'wellness_attendant':
+      case 'gift_shop_cashier':
+        return _facilitySections();
       default:
         return _managementSections();
     }
+  }
+
+  // ────────────────────────────── facilities ──────────────────────────────
+
+  List<Widget> _facilitySections() {
+    final bookings = FacilityStore.bookings
+        .where((b) => b.status != BookingStatus.cancelled)
+        .take(4)
+        .toList();
+    final recents = bookings.map((b) {
+      return _tile(
+        '${b.guestName} — ${b.facilityName}',
+        '${b.kind.label}  ·  ${b.status.label}',
+        trailing: Text(_naira(b.amount),
+            style:
+                const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+      );
+    }).toList();
+
+    return _sections(
+      kpis: [
+        HomMetricCard(
+            label: 'Amenity revenue',
+            value: _naira(FacilityStore.monthRevenue),
+            color: AppColors.amber,
+            icon: Icons.holiday_village_rounded,
+            sub: 'this month'),
+        HomMetricCard(
+            label: 'Bookings',
+            value: '${FacilityStore.bookings.length}',
+            color: AppColors.primary,
+            icon: Icons.event_available_rounded),
+        HomMetricCard(
+            label: 'Visits today',
+            value: '${FacilityStore.todaysCheckIns.length}',
+            color: AppColors.blue,
+            icon: Icons.login_rounded),
+        HomMetricCard(
+            label: 'Low-stock retail',
+            value: '${FacilityStore.lowStockItems.length}',
+            color: AppColors.red,
+            icon: Icons.shopping_bag_rounded),
+      ],
+      alerts: [
+        for (final s in FacilityStore.revenueBySource(
+            DateTime.now().year, DateTime.now().month)
+            .entries
+            .take(3))
+          _alertRow(
+            Icons.trending_up_rounded,
+            '${s.key}: ${_naira(s.value)} facility revenue this month',
+            AppColors.amber,
+          ),
+      ],
+      recents: recents,
+    );
   }
 
   List<Widget> _bookingRecents() {

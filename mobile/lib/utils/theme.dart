@@ -28,6 +28,8 @@ class AppColors {
   // ─── Neutrals (Material grey scale) ───────────────────────────────────────
   static const Color white = Colors.white;
   static const Color white70 = Color(0xB3FFFFFF);
+  static const Color white54 = Color(0x8AFFFFFF);
+  static const Color white38 = Color(0x61FFFFFF);
   static const Color white24 = Color(0x3DFFFFFF);
   static const Color black = Colors.black;
   static const Color black87 = Color(0xDD000000);

@@ -24,8 +24,8 @@ void _feedOrder(String action, Order o, String verb) {
 
 enum _FnbTabKind { tables, orders, menu }
 
-/// Sub-tabs are permission-gated (mirrors the web module): Tables is a
-/// server/POS function; Orders + Menu are shared with the kitchen (KDS) role.
+/// Sub-tabs are permission-gated (mirrors the web module): Tables needs
+/// managePOS; Orders + Menu are shared by the POS and kitchen (KDS) roles.
 List<_FnbTabKind> _fnbTabsFor(Session s) {
   final kinds = <_FnbTabKind>[];
   if (s.has(Permission.managePOS)) kinds.add(_FnbTabKind.tables);
@@ -494,9 +494,25 @@ class _TablesTabState extends State<_TablesTab> {
                     Text('Order — ${order.locationLabel}',
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 16)),
-                    Text('Server: ${order.serverName}  •  ${order.status.name}',
+                    Text('Server: ${order.serverName}  •  ${order.sourceLabel}',
                         style:
                             TextStyle(color: AppColors.grey600, fontSize: 12)),
+                    if (order.hasKitchenWork)
+                      Text(order.kitchenSummary,
+                          style: TextStyle(
+                              color: AppColors.grey600, fontSize: 12)),
+                    if (order.seenAt != null)
+                      Text('First seen ${_fmtTs(order.seenAt!)}',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 11)),
+                    if (order.readyAt != null)
+                      Text('Ready ${_fmtTs(order.readyAt!)}',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 11)),
+                    if (order.servedAt != null)
+                      Text('Served ${_fmtTs(order.servedAt!)}',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 11)),
                     const Divider(),
                     if (order.items.isEmpty)
                       const Padding(
@@ -507,14 +523,24 @@ class _TablesTabState extends State<_TablesTab> {
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             child: Row(children: [
                               Expanded(
-                                  child: Text('${item.quantity}x ${item.name}',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600))),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('${item.quantity}x ${item.name}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w600)),
+                                        Text(fnbStationLabel(item.station),
+                                            style: TextStyle(
+                                                fontSize: 10,
+                                                color: AppColors.grey500)),
+                                      ])),
                               Text('₦${item.total.toStringAsFixed(0)}',
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700)),
                               const SizedBox(width: 8),
-                              statusBadge(item.status),
+                              statusBadge(kItemStageLabel(item.status),
+                                  color: _itemStatusColor(item.status)),
                             ]),
                           )),
                     const Divider(),
@@ -555,8 +581,10 @@ class _TablesTabState extends State<_TablesTab> {
                             onPressed: sentToKitchen
                                 ? null
                                 : () {
-                                    // Server flags the order; items stay
-                                    // `pending` until the kitchen accepts them.
+                                    if (order.status == OrderStatus.open) {
+                                      order.status = OrderStatus.preparing;
+                                      FnbStore.updateOrder(order.id, order);
+                                    }
                                     _feedOrder('order.kitchen', order,
                                         'Sent to kitchen');
                                     setSheetState(
@@ -597,7 +625,7 @@ class _TablesTabState extends State<_TablesTab> {
                     if (order.status == OrderStatus.open ||
                         order.status == OrderStatus.preparing)
                       RoleGate(
-                        requiredPermission: Permission.managePOS,
+                        requiredPermission: Permission.voidFnbOrders,
                         child: SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -833,10 +861,16 @@ class _ActiveOrders extends StatelessWidget {
               style: const TextStyle(fontSize: 11),
               overflow: TextOverflow.ellipsis),
           trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-            if (o.preparingCount > 0) statusBadge('${o.preparingCount} prep'),
-            if (o.readyCount > 0) const SizedBox(width: 4),
-            if (o.readyCount > 0)
+            if (o.queuedCount > 0)
+              statusBadge('${o.queuedCount} queued', color: AppColors.teal),
+            if (o.preparingCount > 0) ...[
+              const SizedBox(width: 4),
+              statusBadge('${o.preparingCount} prep'),
+            ],
+            if (o.readyCount > 0) ...[
+              const SizedBox(width: 4),
               statusBadge('${o.readyCount} ready', color: AppColors.orange),
+            ],
           ]),
           onTap: () => _showOrderDetail(context, o),
         ));
@@ -865,31 +899,50 @@ class _ActiveOrders extends StatelessWidget {
                     Text('Order — ${order.locationLabel}',
                         style: const TextStyle(
                             fontWeight: FontWeight.w800, fontSize: 16)),
-                    Text('Server: ${order.serverName}  •  ${order.status.name}',
+                    Text('Server: ${order.serverName}  •  ${order.sourceLabel}',
                         style:
                             TextStyle(color: AppColors.grey600, fontSize: 12)),
+                    if (order.hasKitchenWork)
+                      Text(order.kitchenSummary,
+                          style: TextStyle(
+                              color: AppColors.grey600, fontSize: 12)),
+                    if (order.seenAt != null)
+                      Text('First seen ${_fmtTs(order.seenAt!)}',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 11)),
+                    if (order.readyAt != null)
+                      Text('Ready ${_fmtTs(order.readyAt!)}',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 11)),
+                    if (order.servedAt != null)
+                      Text('Served ${_fmtTs(order.servedAt!)}',
+                          style:
+                              TextStyle(color: AppColors.grey600, fontSize: 11)),
                     const Divider(),
                     ...order.items.map((item) => Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(children: [
                             Expanded(
-                                child: Text('${item.quantity}x ${item.name}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600))),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${item.quantity}x ${item.name}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600)),
+                                      Text(fnbStationLabel(item.station),
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              color: AppColors.grey500)),
+                                    ])),
                             Text('₦${item.total.toStringAsFixed(0)}'),
                             const SizedBox(width: 8),
                             GestureDetector(
                               onTap: () {
-                                final next = item.status == 'pending'
-                                    ? 'preparing'
-                                    : item.status == 'preparing'
-                                        ? 'ready'
-                                        : item.status == 'ready'
-                                            ? 'served'
-                                            : 'served';
-                                item.status = next;
-                                if (order.allServed)
+                                order.advanceItem(item);
+                                if (order.allServed) {
                                   order.status = OrderStatus.served;
+                                }
                                 FnbStore.updateOrder(order.id, order);
                                 setSheetState(() {});
                                 onChange();
@@ -898,26 +951,15 @@ class _ActiveOrders extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: item.status == 'pending'
-                                      ? AppColors.blue50
-                                      : item.status == 'preparing'
-                                          ? AppColors.orange50
-                                          : item.status == 'ready'
-                                              ? AppColors.green50
-                                              : AppColors.grey100,
+                                  color: _itemStatusColor(item.status)
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Text(item.status,
+                                child: Text(kItemStageLabel(item.status),
                                     style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w600,
-                                        color: item.status == 'pending'
-                                            ? AppColors.blue
-                                            : item.status == 'preparing'
-                                                ? AppColors.orange
-                                                : item.status == 'ready'
-                                                    ? AppColors.green
-                                                    : AppColors.grey500)),
+                                        color: _itemStatusColor(item.status))),
                               ),
                             ),
                           ]),
@@ -946,8 +988,10 @@ class _ActiveOrders extends StatelessWidget {
                             onPressed: sentToKitchen
                                 ? null
                                 : () {
-                                    // Server flags the order; items stay
-                                    // `pending` until the kitchen accepts them.
+                                    if (order.status == OrderStatus.open) {
+                                      order.status = OrderStatus.preparing;
+                                      FnbStore.updateOrder(order.id, order);
+                                    }
                                     _feedOrder('order.kitchen', order,
                                         'Sent to kitchen');
                                     setSheetState(
@@ -990,11 +1034,23 @@ class _ActiveOrders extends StatelessWidget {
                           )),
                         ],
                         const SizedBox(width: 8),
-                        if (RoleStore.has(Permission.managePOS))
+                        if (RoleStore.has(Permission.voidFnbOrders))
                           Expanded(
                               child: TextButton(
                             onPressed: () {
                               order.status = OrderStatus.cancelled;
+                              final table = FnbStore.tables
+                                  .where((t) => t.id == order.tableId)
+                                  .firstOrNull;
+                              if (table != null) {
+                                FnbStore.updateTable(
+                                    table.id,
+                                    RestaurantTable(
+                                        id: table.id,
+                                        number: table.number,
+                                        seats: table.seats,
+                                        status: TableStatus.free));
+                              }
                               FnbStore.updateOrder(order.id, order);
                               Navigator.pop(ctx);
                               onChange();
@@ -1003,10 +1059,10 @@ class _ActiveOrders extends StatelessWidget {
                                 style: TextStyle(color: AppColors.red)),
                           )),
                         const SizedBox(width: 8),
-                        if (RoleStore.has(Permission.managePOS))
+                        if (RoleStore.has(Permission.voidFnbOrders))
                           Expanded(
                               child: RoleGate(
-                            requiredPermission: Permission.managePOS,
+                            requiredPermission: Permission.voidFnbOrders,
                             child: TextButton(
                               onPressed: () => _confirmDeleteOrder(ctx, order,
                                   () {
@@ -1069,89 +1125,202 @@ void _confirmDeleteOrder(BuildContext ctx, Order order, VoidCallback onDone) {
 
 // ─────────────────────── KITCHEN DISPLAY (KDS) ───────────────────────
 
-class _KdsView extends StatelessWidget {
+/// Kitchen Display System: station-filtered granular pipeline. Each station
+/// (Main Kitchen / Suya & Grill / Bar / Pastry) only ever sees its own
+/// tickets, and items are advanced through pending → seen → queued →
+/// preparing → ready → picked_up → served with first-crossing timestamps.
+class _KdsView extends StatefulWidget {
   final VoidCallback onChange;
   const _KdsView({required this.onChange});
+  @override
+  State<_KdsView> createState() => _KdsViewState();
+}
+
+class _KdsViewState extends State<_KdsView> {
+  FnbStation _station = FnbStation.general;
 
   @override
   Widget build(BuildContext context) {
-    final preparing = FnbStore.orders
-        .where((o) => o.status == OrderStatus.preparing || o.preparingCount > 0)
+    final stations = FnbStore.stations;
+    final station = stations.contains(_station) ? _station : stations.first;
+    final orders = FnbStore.orders
+        .where((o) =>
+            o.status == OrderStatus.open || o.status == OrderStatus.preparing)
+        .where((o) => o.items.any((i) => i.station == station && i.isKitchenWork))
         .toList();
-    if (preparing.isEmpty)
-      return const Center(child: Text('No orders in the kitchen'));
-    return ListView.builder(
-      padding: const EdgeInsets.all(8),
-      itemCount: preparing.length,
-      itemBuilder: (ctx, i) {
-        final o = preparing[i];
-        return Card(
-          color: AppColors.orange50,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                const Icon(Icons.restaurant, size: 18, color: AppColors.orange),
-                const SizedBox(width: 8),
-                Text(o.locationLabel,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 16)),
-                const Spacer(),
-                Text(o.createdAt.toIso8601String().substring(11, 19),
-                    style: TextStyle(color: AppColors.grey600, fontSize: 11)),
-              ]),
-              const Divider(),
-              ...o.items
-                  .where((item) =>
-                      item.status == 'preparing' || item.status == 'pending')
-                  .map((item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(children: [
-                          Expanded(
-                              child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                Text('${item.quantity}x ${item.name}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15)),
-                                if (item.note != null &&
-                                    item.note!.isNotEmpty)
-                                  Text('• ${item.note}',
-                                      style: TextStyle(
-                                          color: AppColors.grey600,
-                                          fontSize: 11)),
-                              ])),
-                          const SizedBox(width: 8),
-                          RoleGate(
-                            requiredPermission: Permission.manageKDS,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: _primary,
-                                  foregroundColor: AppColors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 4)),
-                              onPressed: () {
-                                item.status = item.status == 'pending'
-                                    ? 'preparing'
-                                    : 'ready';
-                                FnbStore.updateOrder(o.id, o);
-                                onChange();
-                              },
-                              child: Text(
-                                  item.status == 'pending' ? 'Accept' : 'Ready',
-                                  style: const TextStyle(fontSize: 11)),
-                            ),
-                          ),
-                        ]),
-                      )),
-            ]),
-          ),
-        );
-      },
-    );
+    return Column(children: [
+      SizedBox(
+        height: 44,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          children: [
+            for (final s in stations)
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: ChoiceChip(
+                  selected: s == station,
+                  label: Text(fnbStationLabel(s)),
+                  onSelected: (_) => setState(() => _station = s),
+                ),
+              ),
+          ],
+        ),
+      ),
+      Expanded(
+        child: orders.isEmpty
+            ? Center(
+                child: Text(
+                    'No orders for ${fnbStationLabel(station)} right now'))
+            : ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: orders.length,
+                itemBuilder: (ctx, i) {
+                  final o = orders[i];
+                  final work = o.items
+                      .where((item) =>
+                          item.station == station && item.isKitchenWork)
+                      .toList();
+                  return Card(
+                    color: AppColors.orange50,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.restaurant,
+                                  size: 18, color: AppColors.orange),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Text(o.locationLabel,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 16))),
+                              Text(_elapsedSince(o.createdAt),
+                                  style: TextStyle(
+                                      color: AppColors.grey600, fontSize: 11)),
+                            ]),
+                            const SizedBox(height: 2),
+                            Row(children: [
+                              Text(o.sourceLabel,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.grey600,
+                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(width: 8),
+                              if (o.seenAt == null)
+                                statusBadge('Fresh', color: AppColors.blue)
+                              else if (o.queuedAt == null)
+                                statusBadge('Seen', color: AppColors.blue)
+                              else if (o.readyAt == null)
+                                statusBadge('In prep',
+                                    color: AppColors.orange)
+                              else if (!o.allServed)
+                                statusBadge('Ready', color: AppColors.green)
+                              else
+                                statusBadge('Served', color: _primary),
+                              const Spacer(),
+                              Text(o.serverName,
+                                  style: TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.grey600)),
+                            ]),
+                            const Divider(),
+                            ...work.map((item) => Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  child: Row(children: [
+                                    Expanded(
+                                        child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text('${item.quantity}x ${item.name}',
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      fontSize: 15)),
+                                              if (item.note != null &&
+                                                  item.note!.isNotEmpty)
+                                                Text('• ${item.note}',
+                                                    style: TextStyle(
+                                                        color: AppColors.grey600,
+                                                        fontSize: 11)),
+                                            ])),
+                                    const SizedBox(width: 8),
+                                    statusBadge(kItemStageLabel(item.status),
+                                        color: _itemStatusColor(item.status)),
+                                    const SizedBox(width: 8),
+                                    RoleGate(
+                                      requiredPermission: Permission.manageKDS,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                            backgroundColor: _primary,
+                                            foregroundColor: AppColors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 4)),
+                                        onPressed: () {
+                                          o.advanceItem(item);
+                                          if (o.allServed) {
+                                            o.status = OrderStatus.served;
+                                          }
+                                          FnbStore.updateOrder(o.id, o);
+                                          widget.onChange();
+                                        },
+                                        child: Text(
+                                            _kdsAdvanceLabel(item.status),
+                                            style:
+                                                const TextStyle(fontSize: 11)),
+                                      ),
+                                    ),
+                                  ]),
+                                )),
+                          ]),
+                    ),
+                  );
+                },
+              ),
+      ),
+    ]);
+  }
+}
+
+String _elapsedSince(DateTime t) {
+  final d = DateTime.now().difference(t);
+  if (d.inMinutes < 1) return 'now';
+  if (d.inMinutes < 60) return '${d.inMinutes}m';
+  return '${d.inHours}h ${d.inMinutes % 60}m';
+}
+
+String _kdsAdvanceLabel(String status) => switch (status) {
+      'pending' => 'Accept',
+      'seen' => 'Queue',
+      'queued' => 'Start',
+      'preparing' => 'Ready',
+      'ready' => 'Pickup',
+      'picked_up' => 'Served',
+      _ => 'Done',
+    };
+
+Color _itemStatusColor(String status) {
+  switch (status) {
+    case 'pending':
+      return AppColors.blue;
+    case 'seen':
+    case 'queued':
+      return AppColors.teal;
+    case 'preparing':
+      return AppColors.orange;
+    case 'ready':
+    case 'picked_up':
+      return AppColors.green;
+    case 'served':
+      return _primary;
+    case 'cancelled':
+      return AppColors.red;
+    default:
+      return AppColors.grey500;
   }
 }
 
@@ -1207,7 +1376,7 @@ class _MenuTabState extends State<_MenuTab> {
                           style: const TextStyle(fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis),
                       subtitle: Text(
-                          '${item.category}  •  ${item.available ? 'Available' : 'Unavailable'}',
+                          '${item.category}  •  ${fnbStationLabel(item.station)}  •  ${item.available ? 'Available' : 'Unavailable'}',
                           style: const TextStyle(fontSize: 11),
                           overflow: TextOverflow.ellipsis),
                       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -1278,6 +1447,8 @@ class _MenuTabState extends State<_MenuTab> {
         ? item!.category
         : FnbStore.categories.first;
     bool available = item?.available ?? true;
+    FnbStation station = item?.station ?? MenuItem.stationForCategory(cat);
+    bool stationTouched = item != null;
 
     void pickNewCategory(StateSetter setSheetState) {
       final ctl = TextEditingController();
@@ -1359,7 +1530,31 @@ class _MenuTabState extends State<_MenuTab> {
                     if (v == '__new__') {
                       pickNewCategory(setSheetState);
                     } else if (v != null) {
-                      setSheetState(() => cat = v);
+                      setSheetState(() {
+                        cat = v;
+                        if (!stationTouched) {
+                          station = MenuItem.stationForCategory(v);
+                        }
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<FnbStation>(
+                  key: ValueKey('menu-station-$station'),
+                  initialValue: station,
+                  decoration: const InputDecoration(
+                      labelText: 'Station', border: OutlineInputBorder()),
+                  items: FnbStation.values
+                      .map((s) => DropdownMenuItem(
+                          value: s, child: Text(fnbStationLabel(s))))
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setSheetState(() {
+                        station = v;
+                        stationTouched = true;
+                      });
                     }
                   },
                 ),
@@ -1387,6 +1582,7 @@ class _MenuTabState extends State<_MenuTab> {
                         category: cat,
                         price: price,
                         available: available,
+                        station: station,
                       );
                       if (item != null) {
                         FnbStore.updateMenuItem(item.id, m);
@@ -1428,6 +1624,7 @@ class _MenuSelectorState extends State<_MenuSelector> {
         quantity: qty,
         unitPrice: item.price,
         note: note,
+        station: item.station,
       ));
     });
     FnbStore.updateOrder(widget.order.id, widget.order);
@@ -1645,14 +1842,16 @@ Widget statusBadge(String text, {Color? color}) {
   );
 }
 
-/// Short avatar label for an order: room number, `TA` for takeaway, otherwise
-/// the table number.
+/// Short avatar label for an order: room number, `TA` for takeaway, `BW` for a
+/// bar walk-up, `DC` for a direct kitchen call, otherwise the table number.
 String _shortLocation(Order o) {
   if (o.orderType == OrderType.roomService) {
     final room = (o.roomNumber ?? '').trim();
     return room.isEmpty ? 'RS' : room;
   }
   if (o.orderType == OrderType.takeaway) return 'TA';
+  if (o.orderType == OrderType.barWalkup) return 'BW';
+  if (o.orderType == OrderType.directCall) return 'DC';
   return o.tableNumber.trim().isEmpty ? 'DI' : o.tableNumber;
 }
 
@@ -1664,8 +1863,16 @@ String _orderTypeLabel(OrderType t) {
       return 'Room Service';
     case OrderType.takeaway:
       return 'Takeaway';
+    case OrderType.barWalkup:
+      return 'Bar Walk-up';
+    case OrderType.directCall:
+      return 'Direct Call';
   }
 }
+
+String _fmtTs(DateTime t) =>
+    '${t.day.toString().padLeft(2, '0')}/${t.month.toString().padLeft(2, '0')} '
+    '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
 class _OrderTypeChip extends StatelessWidget {
   final OrderType type;

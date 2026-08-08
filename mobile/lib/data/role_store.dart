@@ -117,6 +117,12 @@ class Session {
         return const Color(0xFFF43F5E);
       case 'dept_head':
         return const Color(0xFF6366F1);
+      case 'events_coordinator':
+        return const Color(0xFFEC4899);
+      case 'wellness_attendant':
+        return const Color(0xFF14B8A6);
+      case 'gift_shop_cashier':
+        return const Color(0xFFF97316);
       default:
         return const Color(0xFF0E9F6E);
     }
@@ -202,6 +208,9 @@ class RoleStore {
       Permission.viewFuel, Permission.viewReports,
       Permission.viewRevPAR, Permission.viewNightAudit,
       Permission.viewCompliance,
+      Permission.viewFacilities,
+      // Internal chat — read only (no send)
+      Permission.viewDepartmentChat,
       Permission.viewActivityFeed,
     },
   );
@@ -214,7 +223,7 @@ class RoleStore {
       // Pillar 1 — full front office ops
       Permission.viewBookings, Permission.createBooking, Permission.editBooking,
       Permission.checkInGuest, Permission.checkOutGuest, Permission.extendStay,
-      Permission.postRoomCharge, Permission.viewMultiCurrencyBilling,
+      Permission.postRoomCharge,       Permission.viewMultiCurrencyBilling,
       Permission.manageVirtualAccounts, Permission.trackPOSTerminals,
       Permission.manageSplitPayments,
       Permission.viewRooms, Permission.updateRoomStatus,
@@ -222,6 +231,8 @@ class RoleStore {
       Permission.manageKeycards,
       Permission.manageConciergeShuttles, Permission.manageConciergeLuggage,
       Permission.manageConciergeTours, Permission.manageConciergeCarRental,
+      // Facilities & Amenities — front desk handles guest amenity inquiries
+      Permission.viewFacilities,
       // Pillar 4 — room-service F&B orders at the front desk
       Permission.managePOS, Permission.manageSplitChecks,
       Permission.manageTableManagement,
@@ -231,6 +242,8 @@ class RoleStore {
       Permission.viewSecurityAudit,
       Permission.manageShiftHandover, Permission.logCashDrop,
       Permission.captureGuestNIN, Permission.logCashTransactions,
+      // Internal chat — department channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
       // Cross-pillar
       Permission.viewActivityFeed,
     },
@@ -265,6 +278,8 @@ class RoleStore {
       Permission.lockTransactions, Permission.logCashDrop,
       Permission.viewCompliance, Permission.manageCompliance,
       Permission.captureGuestNIN, Permission.logCashTransactions,
+      // Internal chat — department channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
       // System
       Permission.viewActivityFeed,
     },
@@ -282,6 +297,8 @@ class RoleStore {
       Permission.manageLostAndFound, Permission.logLinenDamage,
       Permission.logMinibarLoss,
       Permission.manageLaundry, Permission.manageGuestDryCleaning,
+      // Internal chat — department channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
       // Cross-pillar
       Permission.viewActivityFeed,
     },
@@ -292,11 +309,15 @@ class RoleStore {
     name: 'Kitchen / Bar',
     department: Department.kitchen,
     permissions: {
-      // Pillar 4 — KDS + culinary costing only (POS/table mgmt is server-side)
-      Permission.viewInventory, Permission.manageInventory,
+      // Pillar 4 — full F&B operations: the floor (tables/bars) plus
+      // orders + menu CRUD, alongside KDS confirm/ready and culinary costing.
+      Permission.managePOS, Permission.manageTableManagement,
       Permission.manageKDS, Permission.manageRecipeCosting,
+      Permission.viewInventory, Permission.manageInventory,
       Permission.trackIngredientShortages,
       Permission.createExpenditure,
+      // Internal chat — department channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
       // Cross-pillar
       Permission.viewActivityFeed,
     },
@@ -312,6 +333,66 @@ class RoleStore {
       Permission.viewInventory, Permission.manageInventory,
       Permission.createExpenditure,
       Permission.viewStaff, Permission.manageStaff,
+      // Facilities & Amenities — HODs configure their amenities
+      Permission.viewFacilities, Permission.manageFacilities,
+      // Internal chat — channels + DMs, and broadcast to #hotel-general
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
+      Permission.manageChat,
+      // Cross-pillar
+      Permission.viewActivityFeed,
+    },
+  );
+
+  static const AppRole eventsCoordinator = AppRole(
+    id: 'events_coordinator',
+    name: 'Events Coordinator / Banqueting',
+    department: Department.banqueting,
+    permissions: {
+      // Pillar 4 — full event & banquet operation
+      Permission.manageBanquetingHallRentals, Permission.manageAVEquipment,
+      Permission.manageBuffetMenus, Permission.manageSeatingConfig,
+      Permission.manageCorporateEvents,
+      // Facilities & Amenities — halls + events + amenity revenue
+      Permission.viewFacilities, Permission.manageFacilities,
+      Permission.manageFacilityAccess,
+      // Back office — departmental spends + stock visibility
+      Permission.viewInventory, Permission.manageInventory,
+      Permission.createExpenditure,
+      // Internal chat — banqueting channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
+      // Cross-pillar
+      Permission.viewActivityFeed,
+    },
+  );
+
+  static const AppRole wellnessAttendant = AppRole(
+    id: 'wellness_attendant',
+    name: 'Gym / Pool Attendant',
+    department: Department.healthSafety,
+    permissions: {
+      // Facilities & Amenities — sell passes, check-in members
+      Permission.viewFacilities, Permission.manageFacilityAccess,
+      // Back office — departmental spends
+      Permission.viewInventory, Permission.createExpenditure,
+      // Internal chat — wellness channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
+      // Cross-pillar
+      Permission.viewActivityFeed,
+    },
+  );
+
+  static const AppRole giftShopCashier = AppRole(
+    id: 'gift_shop_cashier',
+    name: 'Gift Shop Cashier',
+    department: Department.concierge,
+    permissions: {
+      // Facilities & Amenities — retail POS + inventory
+      Permission.viewFacilities, Permission.manageGiftShop,
+      // Back office — retail inventory + departmental spends
+      Permission.viewInventory, Permission.manageInventory,
+      Permission.createExpenditure,
+      // Internal chat — concierge channels + DMs
+      Permission.viewDepartmentChat, Permission.sendChatMessage,
       // Cross-pillar
       Permission.viewActivityFeed,
     },
@@ -320,6 +401,7 @@ class RoleStore {
   static List<AppRole> get prebuiltRoles => [
     superAdmin, hotelManager, auditor, frontDesk, accountant,
     housekeeping, kitchen, departmentHead,
+    eventsCoordinator, wellnessAttendant, giftShopCashier,
   ];
 
   static AppRole? findRoleById(String roleId) {

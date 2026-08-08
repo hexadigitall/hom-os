@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/auth_service.dart';
 import '../../data/hom_api_service.dart';
+import '../../data/hotel_settings_store.dart';
 import '../../data/profile_store.dart';
 import '../../data/role_store.dart';
 import '../../models/role.dart';
@@ -129,11 +130,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Divider(height: 20),
                 _detailRow(Icons.phone_rounded, 'Phone', phone),
                 const Divider(height: 20),
-                _detailRow(Icons.business_rounded, 'Hotel', session.hotelName.isEmpty ? (session.hotelId ?? '') : session.hotelName),
+                _detailRow(
+                  Icons.business_rounded,
+                  'Hotel',
+                  HotelSettingsStore.displayName(
+                    session.hotelId,
+                    session.hotelName,
+                  ).isEmpty
+                      ? (session.hotelId ?? '')
+                      : HotelSettingsStore.displayName(
+                          session.hotelId,
+                          session.hotelName,
+                        ),
+                  wrap: true,
+                ),
               ]),
             ),
           ),
           const SizedBox(height: 12),
+          if (session.isManagement) ...[
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.business_rounded, color: AppColors.primary),
+                title: const Text('Hotel Settings',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                subtitle: const Text('Edit your hotel identity and branding'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.pushNamed(context, '/hotel-settings'),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -246,12 +273,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _detailRow(IconData icon, String label, String value) {
+  Widget _detailRow(IconData icon, String label, String value,
+      {bool wrap = false}) {
     return Row(children: [
       Icon(icon, size: 18, color: AppColors.grey600),
       const SizedBox(width: 10),
       Text('$label: ', style: TextStyle(fontSize: 13, color: AppColors.grey600)),
-      Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+      Expanded(
+        child: Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          maxLines: wrap ? null : 1,
+          overflow: wrap ? null : TextOverflow.ellipsis,
+        ),
+      ),
     ]);
   }
 }

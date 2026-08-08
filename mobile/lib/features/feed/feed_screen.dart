@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/feed_store.dart';
+import '../../data/hotel_settings_store.dart';
+import '../../data/role_store.dart';
 import '../../models/activity_log.dart';
 import '../../utils/theme.dart';
 
@@ -14,6 +16,14 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   String? _deptFilter;
+
+  String _emptyCopy() {
+    final hotel = HotelSettingsStore.displayName(
+      RoleStore.current.hotelId,
+      RoleStore.current.hotelName,
+    );
+    return hotel.isEmpty ? 'No activity yet' : 'No activity at $hotel yet';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +57,17 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
             Expanded(
               child: visible.isEmpty
-                  ? const Center(
-                      child: Text('No activity yet',
-                          style: TextStyle(color: AppColors.grey500)))
+                  ? Center(
+                      child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.rss_feed_rounded,
+                                size: 64, color: AppColors.grey300),
+                            const SizedBox(height: 12),
+                            Text(_emptyCopy(),
+                                style: const TextStyle(
+                                    color: AppColors.grey500)),
+                          ]))
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                       itemCount: visible.length,

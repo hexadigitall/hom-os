@@ -17,6 +17,8 @@ import 'features/compliance/compliance_screen.dart';
 import 'features/subscriptions/subscriptions_screen.dart';
 import 'features/whatsapp/whatsapp_screen.dart';
 import 'features/operations/operations_screen.dart';
+import 'features/facilities/facilities_screen.dart';
+import 'features/chat/chat_screen.dart';
 import 'features/reconciliation/reconciliation_screen.dart';
 import 'features/notifications/notifications_screen.dart';
 import 'features/engineering/engineering_screen.dart';
@@ -29,18 +31,22 @@ import 'features/auth/login_screen.dart';
 import 'features/auth/staff_registration_screen.dart';
 import 'features/auth/invite_staff_sheet.dart';
 import 'features/auth/google_connect_screen.dart';
+import 'features/splash/splash_screen.dart';
+import 'features/lock/lock_screen.dart';
 import 'data/auth_service.dart';
 import 'data/compliance_store.dart';
 import 'data/back_office_store.dart';
 import 'data/engineering_store.dart';
 import 'data/expenditure_store.dart';
 import 'data/fnb_store.dart';
+import 'data/facility_store.dart';
 import 'data/housekeeping_store.dart';
 import 'data/security_audit_store.dart';
 import 'data/notification_store.dart';
 import 'data/operations_store.dart';
 import 'data/reconciliation_store.dart';
 import 'data/subscription_store.dart';
+import 'data/chat_store.dart';
 import 'data/user_store.dart';
 import 'data/whatsapp_store.dart';
 import 'data/persistence_service.dart';
@@ -48,15 +54,19 @@ import 'data/payment_store.dart';
 import 'data/feed_store.dart';
 import 'utils/theme.dart';
 import 'data/profile_store.dart';
+import 'data/hotel_settings_store.dart';
 import 'data/role_store.dart';
 import 'data/update_service.dart';
+import 'data/hom_api_service.dart';
 import 'data/sync_service.dart';
 import 'data/store_sync.dart';
+import 'data/app_lock_service.dart';
 import 'models/role.dart';
 import 'models/hotel_user.dart';
 import 'models/expenditure.dart';
 import 'models/fuel.dart';
 import 'features/profile/profile_screen.dart';
+import 'features/hotel_settings/hotel_settings_screen.dart';
 import 'utils/role_gate.dart';
 import 'widgets/hom_widgets.dart';
 
@@ -103,6 +113,8 @@ void main() async {
   _trace('hive hom_users ok');
   await ProfileStore.init();
   _trace('hive hom_profiles ok');
+  await HotelSettingsStore.init();
+  _trace('hive hom_hotel_settings ok');
   try {
     await AuthService.init();
     _trace('auth service ok');
@@ -110,6 +122,8 @@ void main() async {
     // Firebase Auth / Google Sign-In are not available on all platforms
     _trace('auth service failed: $e');
   }
+  await AppLockService.init();
+  _trace('app lock ok');
 
   const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
   const iosSettings = DarwinInitializationSettings(
@@ -153,7 +167,8 @@ void main() async {
   _trace('ComplianceStore ok');
   await NotificationStore.load();
   _trace('NotificationStore ok');
-  await FnbStore.load();
+    await FnbStore.load();
+    await FacilityStore.load();
   _trace('FnbStore ok');
   await FeedStore.load();
   _trace('FeedStore ok');
@@ -175,6 +190,8 @@ void main() async {
   _trace('SubscriptionStore ok');
   await WhatsAppStore.init();
   _trace('WhatsAppStore ok');
+  await ChatStore.load();
+  _trace('ChatStore ok');
   _trace('RUNNING APP');
   UpdateService.check();
   Timer.periodic(const Duration(minutes: 30), (_) {
@@ -273,7 +290,7 @@ class HOMApp extends StatelessWidget {
       title: 'HOM',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
-      home: const AuthGate(),
+      home: const AppRoot(),
       routes: {
         '/home': (context) => const HomeShell(),
         '/login': (context) => const LoginScreen(),
@@ -284,12 +301,15 @@ class HOMApp extends StatelessWidget {
         ),
         '/google-connect': (context) => const GoogleConnectScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/hotel-settings': (context) => const HotelSettingsScreen(),
       },
       onGenerateRoute: _deepLinkRoute,
       theme: AppTheme.light,
-      builder: (context, child) => SafeArea(
-        top: false,
-        child: child ?? const SizedBox.shrink(),
+      builder: (context, child) => AppLockCoordinator(
+        child: SafeArea(
+          top: false,
+          child: child ?? const SizedBox.shrink(),
+        ),
       ),
     );
   }
@@ -301,6 +321,110 @@ class HOMApp extends StatelessWidget {
       return value is String ? value : null;
     }
     return null;
+  }
+}
+
+/// Root of the widget tree. Shows the branded HOM splash for a short branded
+/// beat on every launch, then hands off to the zero-trust [AuthGate]. The
+/// device lock (if enabled) is re-armed by [AppLockService] during boot, so
+/// returning users land on the lock screen before any data is revealed.
+class AppRoot extends StatefulWidget {
+  const AppRoot({super.key});
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  static const _splashDuration = Duration(milliseconds: 1500);
+
+  bool _showSplash = true;
+  Timer? _splashTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _splashTimer = Timer(_splashDuration, () {
+      if (mounted) setState(() => _showSplash = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _splashTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _showSplash ? const SplashScreen() : const AuthGate();
+  }
+}
+
+/// Sits above the navigator (via the MaterialApp `builder`) so the device lock
+/// covers every route. Tracks pointer interaction for the inactivity timer and
+/// observes app lifecycle to re-lock when the app returns after an absence.
+class AppLockCoordinator extends StatefulWidget {
+  const AppLockCoordinator({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<AppLockCoordinator> createState() => _AppLockCoordinatorState();
+}
+
+class _AppLockCoordinatorState extends State<AppLockCoordinator>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AppLockService.isLocked.addListener(_onChanged);
+    RoleStore.sessionNotifier.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AppLockService.isLocked.removeListener(_onChanged);
+    RoleStore.sessionNotifier.removeListener(_onChanged);
+    super.dispose();
+  }
+
+  void _onChanged() => setState(() {});
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        AppLockService.onAppResumed();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        AppLockService.onAppPaused();
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final session = RoleStore.current;
+    final needsLock = AppLockService.isLocked.value &&
+        session.hasIdentity &&
+        session.isAccountActive;
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => AppLockService.touch(),
+      onPointerMove: (_) => AppLockService.touch(),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          widget.child,
+          if (needsLock) const LockScreen(),
+        ],
+      ),
+    );
   }
 }
 
@@ -340,6 +464,20 @@ class AuthGate extends StatelessWidget {
 class AwaitingAssignmentScreen extends StatelessWidget {
   const AwaitingAssignmentScreen({super.key});
 
+  String _pendingCopy() {
+    final hotel = HotelSettingsStore.displayName(
+      RoleStore.current.hotelId,
+      RoleStore.current.hotelName,
+    );
+    final context = hotel.isEmpty
+        ? 'Your account is registered but has not been assigned roles or '
+              'departments yet. Please contact your hotel administrator.'
+        : 'Your account is registered with $hotel but has not been assigned '
+              'roles or departments yet. Please contact your hotel '
+              'administrator.';
+    return context;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -356,8 +494,7 @@ class AwaitingAssignmentScreen extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               const SizedBox(height: 8),
               Text(
-                'Your account is registered but has not been assigned roles or departments yet. '
-                'Please contact your hotel administrator.',
+                _pendingCopy(),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppColors.grey600),
               ),
@@ -380,6 +517,18 @@ class AwaitingAssignmentScreen extends StatelessWidget {
 class SuspendedScreen extends StatelessWidget {
   const SuspendedScreen({super.key});
 
+  String _suspendedCopy() {
+    final hotel = HotelSettingsStore.displayName(
+      RoleStore.current.hotelId,
+      RoleStore.current.hotelName,
+    );
+    return hotel.isEmpty
+        ? 'Your account has been deactivated. Access to HOM is revoked. '
+              'Please contact your hotel administrator.'
+        : 'Your account has been deactivated. Access to $hotel is revoked. '
+              'Please contact your hotel administrator.';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -395,8 +544,7 @@ class SuspendedScreen extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               const SizedBox(height: 8),
               Text(
-                'Your account has been deactivated. Access to HOM is revoked. '
-                'Please contact your hotel administrator.',
+                _suspendedCopy(),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppColors.grey600),
               ),
@@ -442,11 +590,13 @@ class _HomeShellState extends State<HomeShell> {
     OperationsScreen(),
     ReconciliationScreen(),
     FnbScreen(),
+    const FacilitiesScreen(),
     const EngineeringScreen(),
     const HousekeepingScreen(),
     const BackOfficeScreen(),
     const SecurityAuditScreen(),
     const FeedScreen(),
+    const ChatScreen(),
   ];
 
   @override
@@ -456,11 +606,14 @@ class _HomeShellState extends State<HomeShell> {
     // Real-time access sync: promotion, department transfer, suspension and
     // assignment changes rebuild the tab set without an app restart.
     RoleStore.sessionNotifier.addListener(_onSessionChanged);
+    // Rebuild the Team Chat unread badge when chat sync lands.
+    ChatStore.revision.addListener(_onSessionChanged);
   }
 
   @override
   void dispose() {
     RoleStore.sessionNotifier.removeListener(_onSessionChanged);
+    ChatStore.revision.removeListener(_onSessionChanged);
     super.dispose();
   }
 
@@ -520,6 +673,13 @@ class _HomeShellState extends State<HomeShell> {
     _TabDef(
         14, FnbScreen(), 'F&B', Icons.restaurant_rounded, Permission.managePOS,
         [Permission.managePOS, Permission.manageKDS]),
+    _TabDef(20, const FacilitiesScreen(), 'Facilities',
+        Icons.holiday_village_rounded, Permission.viewFacilities, [
+      Permission.viewFacilities,
+      Permission.manageFacilities,
+      Permission.manageFacilityAccess,
+      Permission.manageGiftShop,
+    ]),
     _TabDef(15, const EngineeringScreen(), 'Engineering',
         Icons.precision_manufacturing_rounded, Permission.viewEngineering),
     _TabDef(16, const HousekeepingScreen(), 'Housekeeping',
@@ -530,6 +690,12 @@ class _HomeShellState extends State<HomeShell> {
         Icons.security_rounded, Permission.viewSecurityAudit),
     _TabDef(19, const FeedScreen(), 'Activity', Icons.rss_feed_rounded,
         Permission.viewActivityFeed),
+    _TabDef(21, const ChatScreen(), 'Team Chat', Icons.forum_rounded,
+        Permission.viewDepartmentChat, [
+      Permission.viewDepartmentChat,
+      Permission.sendChatMessage,
+      Permission.manageChat,
+    ]),
   ];
 
   // Tabs the current role can see
@@ -545,6 +711,13 @@ class _HomeShellState extends State<HomeShell> {
   // The rest go in the More sheet
   List<_TabDef> get _moreTabs =>
       _visibleTabs.where((t) => t.index > 4).toList();
+
+  // Unread team-chat messages for the current user (shell badge).
+  int get _chatUnread {
+    final s = RoleStore.current;
+    final who = s.userId.isNotEmpty ? s.userId : s.userName;
+    return who.isEmpty ? 0 : ChatStore.totalUnread(who);
+  }
 
   // Clamp tab to valid range
   void _goToTab(int index) {
@@ -676,23 +849,69 @@ class _HomeShellState extends State<HomeShell> {
 
   // Adaptive shell header: single row on wide viewports, two-level stack
   // (brand + full-width title above, badges/actions below) on narrow phones.
+  // The height is driven by its content, so a long hotel name wraps to a
+  // second line and pushes the page content down instead of truncating.
+  Widget _shellHeader(int unread) {
+    final isNarrow = MediaQuery.sizeOf(context).width <= 400;
+    return Material(
+      color: AppColors.surface,
+      elevation: 0.5,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            isNarrow ? 12 : 16,
+            isNarrow ? 6 : 8,
+            isNarrow ? 12 : 16,
+            isNarrow ? 6 : 8,
+          ),
+          child: _headerTitle(unread),
+        ),
+      ),
+    );
+  }
+
   Widget _headerTitle(int unread) {
     final width = MediaQuery.sizeOf(context).width;
     final isNarrow = width <= 400;
     final label = width < 340 ? _abbrevHeaderLabel : _fullHeaderLabel;
+    final hotelName = HotelSettingsStore.displayName(
+      RoleStore.current.hotelId,
+      RoleStore.current.hotelName,
+    );
     final logo = Image.asset('assets/logo/logo.png',
         height: isNarrow ? 24 : 26,
         errorBuilder: (c, e, s) => const SizedBox.shrink());
     const titleStyle =
         TextStyle(fontWeight: FontWeight.w800, fontSize: 18);
+    final titleBlock = Flexible(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle),
+          if (hotelName.isNotEmpty) ...[
+            const SizedBox(height: 1),
+            Text(
+              hotelName,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryDark,
+                letterSpacing: 0.2,
+                height: 1.15,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
 
     if (!isNarrow) {
       return Row(children: [
         logo,
         const SizedBox(width: 10),
-        Flexible(
-            child: Text(label,
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: titleStyle)),
+        titleBlock,
         const Spacer(),
         _headerProfileBtn(),
         _headerBell(unread),
@@ -710,11 +929,7 @@ class _HomeShellState extends State<HomeShell> {
         Row(children: [
           logo,
           const SizedBox(width: 10),
-          Expanded(
-              child: Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: titleStyle)),
+          titleBlock,
         ]),
         const SizedBox(height: 4),
         Row(children: [
@@ -781,6 +996,21 @@ class _HomeShellState extends State<HomeShell> {
                 color: AppColors.grey300,
                 borderRadius: BorderRadius.circular(2))),
         const SizedBox(height: 16),
+        if (HotelSettingsStore
+                .displayName(RoleStore.current.hotelId,
+                    RoleStore.current.hotelName)
+                .isNotEmpty) ...[
+          Text(
+            HotelSettingsStore.displayName(RoleStore.current.hotelId,
+                RoleStore.current.hotelName),
+            style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryDark,
+                letterSpacing: 0.2),
+          ),
+          const SizedBox(height: 2),
+        ],
         const Text('All Features',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
         const SizedBox(height: 16),
@@ -814,11 +1044,21 @@ class _HomeShellState extends State<HomeShell> {
                         child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(item.icon,
-                                  color: _tab == item.index
-                                      ? accent
-                                      : AppColors.grey700,
-                                  size: isWide ? 24 : 26),
+                              Badge(
+                                isLabelVisible: item.index == 21 &&
+                                    _chatUnread > 0,
+                                label: Text(
+                                    _chatUnread > 99 ? '99+' : '$_chatUnread',
+                                    style: const TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800)),
+                                backgroundColor: AppColors.red400,
+                                child: Icon(item.icon,
+                                    color: _tab == item.index
+                                        ? accent
+                                        : AppColors.grey700,
+                                    size: isWide ? 24 : 26),
+                              ),
                               const SizedBox(height: 6),
                               Padding(
                                 padding:
@@ -881,13 +1121,9 @@ class _HomeShellState extends State<HomeShell> {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        toolbarHeight: MediaQuery.sizeOf(context).width <= 400 ? 88 : null,
-        title: _headerTitle(unread),
-      ),
       body: Column(
         children: [
+          _shellHeader(unread),
           if (!kIsWeb) const _UpdateBanner(),
           Expanded(
             child: Row(
@@ -928,9 +1164,18 @@ class _HomeShellState extends State<HomeShell> {
                         NavigationRailDestination(
                             icon: Icon(t.icon), label: Text(t.label)),
                       if (_moreTabs.isNotEmpty)
-                        const NavigationRailDestination(
-                            icon: Icon(Icons.grid_view_rounded),
-                            label: Text('More')),
+                        NavigationRailDestination(
+                            icon: Badge(
+                              isLabelVisible: _chatUnread > 0,
+                              label: Text(_chatUnread > 99 ? '99+' : '$_chatUnread',
+                                  style: const TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800)),
+                              backgroundColor: AppColors.red400,
+                              child:
+                                  const Icon(Icons.grid_view_rounded),
+                            ),
+                            label: const Text('More')),
                     ],
                   ),
                 Expanded(child: content),
@@ -957,8 +1202,16 @@ class _HomeShellState extends State<HomeShell> {
                   NavigationDestination(
                       icon: Icon(t.icon, size: 22), label: t.label),
                 if (_moreTabs.isNotEmpty)
-                  const NavigationDestination(
-                      icon: Icon(Icons.grid_view_rounded, size: 22),
+                  NavigationDestination(
+                      icon: Badge(
+                        isLabelVisible: _chatUnread > 0,
+                        label: Text(_chatUnread > 99 ? '99+' : '$_chatUnread',
+                            style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800)),
+                        backgroundColor: AppColors.red400,
+                        child: const Icon(Icons.grid_view_rounded, size: 22),
+                      ),
                       label: 'More'),
               ],
             )
@@ -1783,7 +2036,29 @@ class _BookingsScreenState extends State<BookingsScreen> {
         message: 'New booking — ${booking.guest} in Room ${booking.room}',
         refId: booking.id,
       );
+      _autoSendBookingConfirm(booking);
     });
+  }
+
+  Future<void> _autoSendBookingConfirm(Booking b) async {
+    if (b.phone.trim().isEmpty) return;
+    try {
+      final settings = await HomApiService.getWhatsAppSettings();
+      if (!settings.autoSendEnabled('bookingConfirm')) return;
+      final msg = 'Hello ${b.guest}, your HOM booking Room ${b.room} from ${b.checkin} confirmed. — HOM Hospitality Operations Manager';
+      final res = await HomApiService.sendWhatsApp(to: b.phone, message: msg);
+      if (res.mocked) await _openWaMe(b.phone, msg);
+    } catch (_) {
+      // Offline or unconfigured: skip the automatic send.
+    }
+  }
+
+  Future<void> _openWaMe(String to, String message) async {
+    final phone = to.replaceAll(RegExp(r'\D'), '').replaceFirst(RegExp(r'^0'), '234');
+    final uri = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    if (!kIsWeb && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _edit(Booking b) {

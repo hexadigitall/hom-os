@@ -4,6 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>HOM uses Face ID to unlock the app so your hotel data stays protected.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

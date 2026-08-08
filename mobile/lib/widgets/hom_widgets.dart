@@ -81,21 +81,44 @@ class HomMetricCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(_radius)),
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: color.withValues(alpha: 0.22)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.14),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ]),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        if (icon != null) Icon(icon, color: color, size: 16),
+        if (icon != null)
+          Container(
+            width: 24,
+            height: 24,
+            margin: const EdgeInsets.only(bottom: 3),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Icon(icon, color: color, size: 14),
+          ),
         Text(value,
             style: TextStyle(
-                fontWeight: FontWeight.w800, fontSize: 18, color: color),
+                fontWeight: FontWeight.w900, fontSize: 18, color: color),
             overflow: TextOverflow.ellipsis),
         Text(label,
-            style: TextStyle(fontSize: 10, color: color),
+            style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: color.withValues(alpha: 0.9)),
             overflow: TextOverflow.ellipsis),
         if (sub != null)
           Text(sub!,
-              style:
-                  TextStyle(fontSize: 9, color: color.withValues(alpha: 0.7)),
+              style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: color.withValues(alpha: 0.75)),
               overflow: TextOverflow.ellipsis),
       ]),
     );

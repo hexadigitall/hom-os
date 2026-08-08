@@ -656,7 +656,11 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                 child: Text('No results',
                                     style: TextStyle(color: AppColors.grey500)))
                           else
-                            ...results.map((r) => ListTile(
+                            ListView(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: EdgeInsets.zero,
+                              children: results.take(50).map((r) => ListTile(
                                   dense: true,
                                   leading: Icon(
                                       r.type == MatchEntityType.booking
@@ -703,8 +707,11 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                                 horizontal: 12, vertical: 6)),
                                         child: const Text('Match',
                                             style: TextStyle(fontSize: 11)),
-                                      )),
-                                )),
+                                      ),
+                                    ),
+                                  ),
+                                ).toList(),
+                              ),
                           if (t.amount > 0) ...[
                             const Divider(height: 24),
                             SizedBox(
@@ -810,6 +817,7 @@ class _BankStatementsTabState extends State<_BankStatementsTab> {
                                                 TextEditingController();
                                             String type = 'booking';
                                             return AlertDialog(
+                                              scrollable: true,
                                               title:
                                                   const Text('Add Allocation'),
                                               content: Column(
