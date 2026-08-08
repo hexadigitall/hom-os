@@ -8,6 +8,8 @@ import {
   HousekeepingTask, LaundryItem, LostFoundItem, LinenDamage,
   ProcurementOrder, PayrollRecord, TaxConfiguration, NightAuditLog,
   SecurityIncident, VisitorPass, ShiftHandover, ActivityLog,
+  Facility, FacilityBooking, GiftItem, FacilitySale, FacilityRevenue,
+  ChatRoom, ChatMessage,
 } from './types';
 import { today, addDays, addMonths } from './format';
 import { makeRng } from './storage';
@@ -247,18 +249,23 @@ export function seedPosSettlements(): PosSettlement[] {
 // ─── F&B ─────────────────────────────────────────────────────────────────────
 
 export const seedMenu = (): MenuItem[] => [
-  { id: 'm_f1', name: 'Jollof Rice & Chicken', category: 'food', price: 4500, available: true, departments: ['restaurants'] },
-  { id: 'm_f2', name: 'Egusi Soup & Pounded Yam', category: 'food', price: 5500, available: true, departments: ['restaurants'] },
-  { id: 'm_f3', name: 'Grilled Tilapia', category: 'food', price: 6500, available: true, departments: ['restaurants'] },
-  { id: 'm_f4', name: 'Pepper Soup Goat Meat', category: 'food', price: 5000, available: true, departments: ['restaurants'] },
-  { id: 'm_d1', name: 'Bottled Water', category: 'drink', price: 500, available: true, departments: ['restaurants'] },
-  { id: 'm_d2', name: 'Maltina', category: 'drink', price: 800, available: true, departments: ['restaurants'] },
-  { id: 'm_d3', name: 'Chapman Mocktail', category: 'drink', price: 2500, available: true, departments: ['restaurants'] },
-  { id: 'm_b1', name: 'Star Lager', category: 'bar', price: 1200, available: true, departments: ['restaurants'] },
-  { id: 'm_b2', name: 'Heineken', category: 'bar', price: 1500, available: true, departments: ['restaurants'] },
-  { id: 'm_b3', name: 'Jameson Whisky Shot', category: 'bar', price: 3000, available: true, departments: ['restaurants'] },
-  { id: 'm_w1', name: 'South African Red Wine', category: 'wine', price: 15000, available: true, departments: ['restaurants'] },
-  { id: 'm_s1', name: 'Nigerian Palm Wine', category: 'special', price: 2000, available: true, departments: ['restaurants'] },
+  { id: 'm_f1', name: 'Jollof Rice & Chicken', category: 'food', price: 4500, available: true, station: 'mainKitchen', departments: ['restaurants'] },
+  { id: 'm_f2', name: 'Egusi Soup & Pounded Yam', category: 'food', price: 5500, available: true, station: 'mainKitchen', departments: ['restaurants'] },
+  { id: 'm_f3', name: 'Grilled Tilapia', category: 'food', price: 6500, available: true, station: 'mainKitchen', departments: ['restaurants'] },
+  { id: 'm_f4', name: 'Pepper Soup Goat Meat', category: 'food', price: 5000, available: true, station: 'mainKitchen', departments: ['restaurants'] },
+  { id: 'm_su1', name: 'Beef Suya Platter', category: 'suya', price: 8000, available: true, station: 'suyaGrill', departments: ['restaurants'] },
+  { id: 'm_su2', name: 'Chicken Suya Skewers', category: 'suya', price: 5000, available: true, station: 'suyaGrill', departments: ['restaurants'] },
+  { id: 'm_p1', name: 'Puff Puff', category: 'pastry', price: 1000, available: true, station: 'pastry', departments: ['restaurants'] },
+  { id: 'm_p2', name: 'Meat Pie', category: 'pastry', price: 1500, available: true, station: 'pastry', departments: ['restaurants'] },
+  { id: 'm_p3', name: 'Chin Chin', category: 'pastry', price: 1000, available: true, station: 'pastry', departments: ['restaurants'] },
+  { id: 'm_d1', name: 'Bottled Water', category: 'drink', price: 500, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_d2', name: 'Maltina', category: 'drink', price: 800, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_d3', name: 'Chapman Mocktail', category: 'drink', price: 2500, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_b1', name: 'Star Lager', category: 'bar', price: 1200, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_b2', name: 'Heineken', category: 'bar', price: 1500, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_b3', name: 'Jameson Whisky Shot', category: 'bar', price: 3000, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_w1', name: 'South African Red Wine', category: 'wine', price: 15000, available: true, station: 'barMixologist', departments: ['restaurants'] },
+  { id: 'm_s1', name: 'Nigerian Palm Wine', category: 'special', price: 2000, available: true, station: 'general', departments: ['restaurants'] },
 ];
 
 export const seedTables = (): RestaurantTable[] => [
@@ -386,3 +393,63 @@ export const seedVisitors = (): VisitorPass[] => [
 ];
 
 export const seedShifts = (): ShiftHandover[] => [];
+
+// ─── Facilities & Amenities ───────────────────────────────────────────────────
+
+export const seedFacilities = (): Facility[] => [
+  { id: 'fac_gym', name: 'Fitness & Gym Center', type: 'gym', rate: 5000, capacity: 40, isAvailable: true, hours: '6:00 — 22:00', description: 'Cardio + strength suites, PT sessions, daily lockers.', departments: ['healthSafety'] },
+  { id: 'fac_pool', name: 'Swimming Pool & Sun Deck', type: 'pool', rate: 3000, capacity: 30, isAvailable: true, hours: '7:00 — 21:00', description: 'Outdoor pool, cabanas and towel service for day visitors.', departments: ['healthSafety'] },
+  { id: 'fac_shop', name: 'Gift Shop & Boutique', type: 'giftShop', rate: 0, capacity: 0, isAvailable: true, hours: '9:00 — 21:00', description: 'Branded merchandise, snacks, toiletries and souvenirs.', departments: ['concierge'] },
+  { id: 'fac_owambe', name: 'Owambe Hall', type: 'eventHall', rate: 250000, capacity: 300, isAvailable: true, hours: 'By arrangement', venue: 'Ground floor, east wing', depositPercent: 70, description: 'Full-service banquet hall — weddings, owambe parties, AGMs.', equipment: ['Projector', '2 Wireless Mics', 'Dining Tables (30)', 'Chairs (300)'], departments: ['banqueting'] },
+  { id: 'fac_ivory', name: 'Ivory Banquet Room', type: 'eventHall', rate: 150000, capacity: 120, isAvailable: true, hours: 'By arrangement', venue: 'First floor', depositPercent: 50, description: 'Intimate function room for corporate events and receptions.', equipment: ['Projector', 'Screen', 'Dining Tables (12)', 'Chairs (120)'], departments: ['banqueting'] },
+];
+
+export const seedGiftItems = (): GiftItem[] => [
+  { id: 'gi_tshirt', name: 'HOM Branded T-Shirt', sku: 'MR-101', category: 'Apparel', price: 15000, stock: 24, low: 5, available: true, departments: ['concierge'] },
+  { id: 'gi_cap', name: 'HOM Baseball Cap', sku: 'MR-102', category: 'Apparel', price: 9000, stock: 30, low: 5, available: true, departments: ['concierge'] },
+  { id: 'gi_bottle', name: 'Steel Water Bottle', sku: 'SR-201', category: 'Souvenirs', price: 12000, stock: 40, low: 8, available: true, departments: ['concierge'] },
+  { id: 'gi_keychain', name: 'Souvenir Keychain', sku: 'SR-202', category: 'Souvenirs', price: 3500, stock: 60, low: 10, available: true, departments: ['concierge'] },
+  { id: 'gi_nuts', name: 'Spiced Nut Mix (200g)', sku: 'FD-301', category: 'Snacks', price: 4500, stock: 50, low: 10, available: true, departments: ['concierge'] },
+  { id: 'gi_chips', name: 'Plantain Chips', sku: 'FD-302', category: 'Snacks', price: 2000, stock: 45, low: 10, available: true, departments: ['concierge'] },
+  { id: 'gi_lotion', name: 'Shea Body Lotion', sku: 'TO-401', category: 'Toiletries', price: 8000, stock: 18, low: 5, available: true, departments: ['concierge'] },
+  { id: 'gi_shampoo', name: 'Travel Shampoo', sku: 'TO-402', category: 'Toiletries', price: 4000, stock: 12, low: 4, available: true, departments: ['concierge'] },
+];
+
+export const seedFacilityBookings = (): FacilityBooking[] => [
+  { id: 'bk_gym_pass', facilityId: 'fac_gym', facilityName: 'Fitness & Gym Center', kind: 'dayPass', status: 'paid', guestName: 'Dayo Adeyemi', phone: '2348031112233', date: addDays(T, 0), endDate: addDays(T, 0), qty: 2, amount: 10000, paidAmount: 10000, depositPercent: 0, paymentMethod: 'POS', staffName: 'Wellness', checkIns: [new Date().toISOString()], departments: ['healthSafety'] },
+  { id: 'bk_pool_pass', facilityId: 'fac_pool', facilityName: 'Swimming Pool & Sun Deck', kind: 'dayPass', status: 'confirmed', guestName: 'Ngozi Eze', phone: '2348025556677', date: addDays(T, 0), endDate: addDays(T, 0), qty: 1, amount: 3000, paidAmount: 0, depositPercent: 0, paymentMethod: 'Cash', staffName: 'Wellness', departments: ['healthSafety'] },
+  { id: 'bk_gym_member', facilityId: 'fac_gym', facilityName: 'Fitness & Gym Center', kind: 'membership', status: 'paid', guestName: 'Musa Ibrahim', phone: '2348057778899', date: addDays(T, 0), endDate: addMonths(T, 1), qty: 1, amount: 50000, paidAmount: 50000, depositPercent: 0, paymentMethod: 'Transfer', staffName: 'Wellness', departments: ['healthSafety'] },
+  { id: 'bk_owambe', facilityId: 'fac_owambe', facilityName: 'Owambe Hall', kind: 'event', status: 'depositPaid', guestName: 'Adesuwa & Tunde', phone: '2348069990001', date: addDays(T, 14), endDate: addDays(T, 14), qty: 1, amount: 250000, paidAmount: 175000, depositPercent: 70, eventType: 'Wedding / Owambe', guestCount: 250, avNeeds: 'Projector + 2 mics', buffet: '3-course + small chops', organizer: 'Adesuwa', paymentMethod: 'Transfer', staffName: 'Banqueting', departments: ['banqueting'] },
+  { id: 'bk_agm', facilityId: 'fac_ivory', facilityName: 'Ivory Banquet Room', kind: 'event', status: 'requested', guestName: 'Zenith Manufacturing Ltd', phone: '2348091234567', date: addDays(T, 21), endDate: addDays(T, 21), qty: 1, amount: 150000, paidAmount: 0, depositPercent: 50, eventType: 'AGM', guestCount: 100, avNeeds: 'Projector + sound', buffet: 'Coffee break + lunch', organizer: 'Mrs. Okonkwo', paymentMethod: 'Transfer', staffName: 'Banqueting', departments: ['banqueting'] },
+];
+
+export const seedFacilityRevenue = (): FacilityRevenue[] => [
+  { id: 'frev_gym_pass', date: addDays(T, 0), source: 'Gym', amount: 10000, refId: 'bk_gym_pass', departments: ['banqueting'] },
+  { id: 'frev_gym_member', date: addDays(T, 0), source: 'Gym', amount: 50000, refId: 'bk_gym_member', departments: ['banqueting'] },
+  { id: 'frev_owambe', date: addDays(T, 0), source: 'Events', amount: 175000, refId: 'bk_owambe', departments: ['banqueting'] },
+];
+
+// ─── Internal Department Chat ─────────────────────────────────────────────────
+
+const CHAT_NOW = new Date().toISOString();
+const chatMinsAgo = (m: number): string => new Date(Date.now() - m * 60_000).toISOString();
+
+export const seedChatRooms = (): ChatRoom[] => [
+  { id: 'room_general', name: 'Hotel General', kind: 'general', departments: [], members: [], lastMessage: 'Welcome — this is the hotel-wide announcement channel.', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+  { id: 'room_frontdesk', name: 'Front Desk & Concierge', kind: 'channel', departments: ['reception', 'reservations', 'concierge'], members: [], lastMessage: 'Welcome aboard, Front Desk!', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+  { id: 'room_housekeeping', name: 'Housekeeping & Laundry', kind: 'channel', departments: ['housekeeping', 'laundry'], members: [], lastMessage: 'Welcome aboard, Housekeeping!', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+  { id: 'room_engineering', name: 'Engineering & Power', kind: 'channel', departments: ['engineering'], members: [], lastMessage: 'Welcome aboard, Engineering!', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+  { id: 'room_fnb', name: 'Kitchen, Bar & Banqueting', kind: 'channel', departments: ['kitchen', 'restaurants', 'banqueting'], members: [], lastMessage: 'Welcome aboard, F&B!', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+  { id: 'room_backoffice', name: 'Accounts, Procurement & HR', kind: 'channel', departments: ['accounts', 'procurement', 'humanResources'], members: [], lastMessage: 'Welcome aboard, Back Office!', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+  { id: 'room_security', name: 'Security & HSE', kind: 'channel', departments: ['security', 'healthSafety'], members: [], lastMessage: 'Welcome aboard, Security!', lastMessageAt: CHAT_NOW, createdAt: CHAT_NOW },
+];
+
+export const seedChatMessages = (): ChatMessage[] => [
+  { id: 'msg_seed1', roomId: 'room_general', sender: 'HOM System', text: 'Welcome to HOM Chat. Department heads and management can post announcements here — everyone reads.', createdAt: chatMinsAgo(5), readBy: ['HOM System'] },
+  { id: 'msg_seed2', roomId: 'room_frontdesk', sender: 'HOM System', text: 'This channel is for Front Desk & Concierge only.', createdAt: chatMinsAgo(4), readBy: ['HOM System'] },
+  { id: 'msg_seed3', roomId: 'room_housekeeping', sender: 'HOM System', text: 'This channel is for Housekeeping & Laundry only.', createdAt: chatMinsAgo(3), readBy: ['HOM System'] },
+  { id: 'msg_seed4', roomId: 'room_engineering', sender: 'HOM System', text: 'This channel is for Engineering & Power only.', createdAt: chatMinsAgo(2), readBy: ['HOM System'] },
+  { id: 'msg_seed5', roomId: 'room_fnb', sender: 'HOM System', text: 'This channel is for Kitchen, Bar & Banqueting only.', createdAt: chatMinsAgo(1), readBy: ['HOM System'] },
+  { id: 'msg_seed6', roomId: 'room_backoffice', sender: 'HOM System', text: 'This channel is for Accounts, Procurement & HR only.', createdAt: chatMinsAgo(1), readBy: ['HOM System'] },
+  { id: 'msg_seed7', roomId: 'room_security', sender: 'HOM System', text: 'This channel is for Security & HSE only.', createdAt: chatMinsAgo(1), readBy: ['HOM System'] },
+];

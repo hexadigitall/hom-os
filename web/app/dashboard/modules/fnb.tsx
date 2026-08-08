@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Edit3, UtensilsCrossed, Receipt, BookOpen, Flame, Check, X } from 'lucide-react';
+import { Plus, Trash2, Edit3, UtensilsCrossed, Receipt, BookOpen, Flame, X } from 'lucide-react';
 import {
   MenuItem, RestaurantTable, Order, OrderItem, TableStatus, MenuCategory, OrderItemStatus,
-  OrderType, orderLocation, ActivityLog,
+  OrderType, FnbStation, orderLocation, orderSource, STATION_LABEL, STAGE_LABEL,
+  nextStage, stationForCategory, ITEM_PIPELINE, ActivityLog,
 } from '@/lib/types';
 import { seedMenu, seedTables, seedOrders, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
@@ -128,7 +129,7 @@ function TablesTab() {
           if (opts.orderType === 'dineIn') tables.update(createFor.id, { status: 'occupied' });
           postActivity(feed, session, {
             dept: 'restaurants', action: 'order.created',
-            message: `New ${opts.orderType === 'dineIn' ? 'dine-in' : opts.orderType === 'roomService' ? 'room-service' : 'takeaway'} order at ${createFor.number} (${opts.serverName})`,
+            message: `New ${TYPE_MSG[opts.orderType]} order at ${createFor.number} (${opts.serverName})`,
             refId: order.id,
           });
           setViewOrder(order);
@@ -148,12 +149,17 @@ const orderTotal = (o: Order) => {
   return subtotal - (o.discount || 0);
 };
 
+const TYPE_MSG: Record<OrderType, string> = {
+  dineIn: 'dine-in', roomService: 'room-service', takeaway: 'takeaway',
+  barWalkup: 'bar walk-up', directCall: 'direct call',
+};
+
 function NewOrderForm({ table, onSave, onCancel }: { table: RestaurantTable | null; onSave: (opts: { serverName: string; orderType: OrderType; roomNumber: string }) => void; onCancel: () => void }) {
   const [server, setServer] = useState('');
   const [type, setType] = useState<OrderType>('dineIn');
   const [room, setRoom] = useState('');
   const title = table ? `New Order — Table ${table.number}` : 'New Order';
-  const orderTypes: OrderType[] = ['dineIn', 'roomService', 'takeaway'];
+  const orderTypes: OrderType[] = ['dineIn', 'roomService', 'takeaway', 'barWalkup', 'directCall'];
   return (
     <FormCard title={title} onCancel={onCancel}>
       <Field label="Order Type">
@@ -161,7 +167,7 @@ function NewOrderForm({ table, onSave, onCancel }: { table: RestaurantTable | nu
           {orderTypes.map(t => (
             <button key={t} onClick={() => setType(t)}
               className={`px-3 py-1.5 rounded-full text-xs font-bold ${type === t ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
-              {t === 'dineIn' ? 'Dine-in' : t === 'roomService' ? 'Room Service' : 'Takeaway'}
+              {t === 'dineIn' ? 'Dine-in' : t === 'roomService' ? 'Room Service' : t === 'takeaway' ? 'Takeaway' : t === 'barWalkup' ? 'Bar Walk-up' : 'Direct Call'}
             </button>
           ))}
         </div>
@@ -190,6 +196,7 @@ function OrdersTab() {
   const canKDS = hasPermission(session, PERMISSIONS.manageKDS);
   const [view, setView] = useState<Order | null>(null);
   const [kds, setKds] = useState(false);
+  const [kdsStation, setKdsStation] = useState<FnbStation>('general');
   const [creating, setCreating] = useState(false);
 
   const active = orders.items.filter(o => o.status !== 'paid' && o.status !== 'cancelled');
@@ -217,7 +224,7 @@ function OrdersTab() {
           if (order.tableId) tables.update(order.tableId, { status: 'occupied' });
           postActivity(feed, session, {
             dept: 'restaurants', action: 'order.created',
-            message: `New ${opts.orderType === 'dineIn' ? 'dine-in' : opts.orderType === 'roomService' ? 'room-service' : 'takeaway'} order at ${displayLocation(tables, order)} (${opts.serverName})`,
+            message: `New ${TYPE_MSG[opts.orderType]} order at ${displayLocation(tables, order)} (${opts.serverName})`,
             refId: order.id,
           });
           setCreating(false);
@@ -261,36 +268,58 @@ function OrdersTab() {
       )}
 
       {kds && (
-        <div className="grid md:grid-cols-2 gap-4">
-          {active.filter(o => o.items.some(it => it.status !== 'served')).length === 0 && <div className="md:col-span-2"><EmptyState text="Kitchen is clear — nothing to prepare" /></div>}
-          {active.map(o => {
-            const pendingItems = o.items.filter(it => it.status !== 'served');
-            if (pendingItems.length === 0) return null;
+        <div className="space-y-4">
+          <div className="flex gap-1.5 overflow-x-auto">
+            {(Object.keys(STATION_LABEL) as FnbStation[]).map(s => (
+              <button key={s} onClick={() => setKdsStation(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${kdsStation === s ? 'bg-hom-primary text-white' : 'bg-white border text-zinc-600 hover:bg-zinc-50'}`}>
+                {STATION_LABEL[s]}
+              </button>
+            ))}
+          </div>
+          {(() => {
+            const stOrders = active.filter(o => o.items.some(it => itemStation(it) === kdsStation && it.status !== 'served' && it.status !== 'cancelled'));
+            if (stOrders.length === 0) {
+              return <EmptyState text={`No orders for ${STATION_LABEL[kdsStation]} right now`} />;
+            }
             return (
-              <Card key={o.id} className="p-5 border-2 border-amber-200 bg-amber-50/40">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="font-black">{displayLocation(tables, o)}</div>
-                  <StatusChip status={o.status} />
-                </div>
-                <div className="space-y-2">
-                  {pendingItems.map((it, i) => (
-                    <div key={i} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border">
-                      <div>
-                        <div className="font-bold text-sm">{it.quantity}x {it.name}</div>
-                        {it.note && <div className="text-[10px] text-amber-600">Note: {it.note}</div>}
+              <div className="grid md:grid-cols-2 gap-4">
+                {stOrders.map(o => {
+                  const pendingItems = o.items.filter(it => itemStation(it) === kdsStation && it.status !== 'served' && it.status !== 'cancelled');
+                  return (
+                    <Card key={o.id} className="p-5 border-2 border-amber-200 bg-amber-50/40">
+                      <div className="flex justify-between items-center mb-1">
+                        <div className="font-black">{displayLocation(tables, o)}</div>
+                        <StatusChip status={o.status} />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <StatusChip status={it.status} />
-                        <IconBtn tone="green" title="Advance" onClick={() => advanceItem(orders, o, it)}>
-                          {it.status === 'ready' ? <Check size={14} /> : it.status === 'preparing' ? <UtensilsCrossed size={14} /> : <Flame size={14} />}
-                        </IconBtn>
+                      <div className="text-[10px] text-zinc-500 mb-3 flex items-center justify-between gap-2">
+                        <span>{orderSource(o)}</span>
+                        <span className="whitespace-nowrap">Opened {o.openedAt.slice(11, 19)}</span>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
+                      <div className="space-y-2">
+                        {pendingItems.map((it, i) => (
+                          <div key={i} className="flex items-center justify-between bg-white rounded-xl px-3 py-2 border">
+                            <div>
+                              <div className="font-bold text-sm">{it.quantity}x {it.name}</div>
+                              {it.note && <div className="text-[10px] text-amber-600">Note: {it.note}</div>}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <StatusChip status={it.status} label={STAGE_LABEL[it.status]} />
+                              {canKDS && (
+                                <Btn color={it.status === 'preparing' || it.status === 'ready' ? 'green' : 'primary'} className="!px-3 !py-1.5 !text-[11px]" onClick={() => advanceItem(orders, o, it)}>
+                                  {ADVANCE_LABEL[it.status] || 'Done'}
+                                </Btn>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
             );
-          })}
+          })()}
         </div>
       )}
 
@@ -304,21 +333,36 @@ function OrdersTab() {
 const tableNumber = (tables: RestaurantTable[], id: string) => tables.find(t => t.id === id)?.number || id;
 
 const displayLocation = (tables: { items: RestaurantTable[] }, o: Order) => {
-  if (o.orderType === 'roomService') return orderLocation(o);
+  if (o.orderType === 'roomService' || o.orderType === 'barWalkup' || o.orderType === 'directCall') return orderLocation(o);
   if (o.orderType === 'takeaway') return 'Takeaway';
   return `Table ${tableNumber(tables.items, o.tableId)}`;
 };
 
-const ITEM_NEXT: Record<OrderItemStatus, OrderItemStatus | null> = {
-  pending: 'preparing', preparing: 'ready', ready: 'served', served: null,
+const itemStation = (it: OrderItem): FnbStation => it.station || 'general';
+
+const ADVANCE_LABEL: Record<string, string> = {
+  pending: 'Accept', seen: 'Queue', queued: 'Start', preparing: 'Ready',
+  ready: 'Pickup', picked_up: 'Served',
 };
 
+// Granular pipeline advance + accountability timestamps (mirrors the Flutter
+// Order.advanceItem/refreshTimestamps helpers).
 function advanceItem(orders: any, order: Order, item: OrderItem) {
-  const next = ITEM_NEXT[item.status];
+  const next = nextStage(item.status);
   if (!next) return;
-  const updatedItems = order.items.map(x => x.id === item.id ? { ...x, status: next } : x);
-  const allServed = updatedItems.every(x => x.status === 'served');
-  orders.update(order.id, { items: updatedItems, status: allServed && order.status !== 'open' ? 'served' : next === 'preparing' && order.status === 'open' ? 'preparing' : order.status });
+  const now = nowISO();
+  const items = order.items.map(x => x.id === item.id ? { ...x, status: next } : x);
+  const stage = (s: OrderItemStatus) => ITEM_PIPELINE.indexOf(s);
+  const patch: Partial<Order> = { items };
+  if (!order.seenAt && stage(next) >= stage('seen')) patch.seenAt = now;
+  if (!order.queuedAt && stage(next) >= stage('queued')) patch.queuedAt = now;
+  const allDone = items.every(x => stage(x.status) >= stage('ready'));
+  if (allDone && !order.readyAt) patch.readyAt = now;
+  const allServed = items.every(x => x.status === 'served');
+  if (allServed && !order.servedAt) patch.servedAt = now;
+  if (allServed && order.status !== 'open') patch.status = 'served';
+  else if (next === 'preparing' && order.status === 'open') patch.status = 'preparing';
+  orders.update(order.id, patch);
 }
 
 function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; tables: any; orders: any; menu: Record<string, never>; onClose: () => void }) {
@@ -326,6 +370,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
   const menuItems = useSyncedCollection<MenuItem>('fnb_menu', 'fnb_menu', seedMenu, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const canPOS = hasPermission(session, PERMISSIONS.managePOS);
+  const canVoid = hasPermission(session, PERMISSIONS.voidFnbOrders);
   const [adding, setAdding] = useState(order.items.length === 0);
   const [payMethod, setPayMethod] = useState('cash');
   const [sent, setSent] = useState(false);
@@ -359,14 +404,21 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
 
   return (
     <FormCard title={`Order — ${displayLocation(tables, order)}`} onCancel={onClose}>
-      <div className="text-xs text-zinc-500 mb-3">Server: {order.servedBy} • {order.status} • Opened {order.openedAt.slice(0, 10)}</div>
-      <div className="divide-y rounded-xl border">
+      <div className="text-xs text-zinc-500 mb-1">Server: {order.servedBy} • {orderSource(order)}</div>
+      <div className="text-xs text-zinc-400 mb-1">Opened {order.openedAt.slice(0, 10)}</div>
+      {order.seenAt && <div className="text-[11px] text-zinc-400">First seen {new Date(order.seenAt).toLocaleTimeString()}</div>}
+      {order.readyAt && <div className="text-[11px] text-zinc-400">Ready {new Date(order.readyAt).toLocaleTimeString()}</div>}
+      {order.servedAt && <div className="text-[11px] text-zinc-400">Served {new Date(order.servedAt).toLocaleTimeString()}</div>}
+      <div className="divide-y rounded-xl border mt-2">
         {order.items.map((it, i) => (
           <div key={i} className="py-2 px-3 flex justify-between items-center text-sm">
-            <span className="font-medium">{it.quantity}x {it.name}</span>
+            <div>
+              <div className="font-medium">{it.quantity}x {it.name}</div>
+              <div className="text-[10px] text-zinc-400">{STATION_LABEL[itemStation(it)]}</div>
+            </div>
             <div className="flex items-center gap-2">
               <span className="font-bold">{naira(it.quantity * it.unitPrice)}</span>
-              <StatusChip status={it.status} />
+              <StatusChip status={it.status} label={STAGE_LABEL[it.status]} />
               {canPOS && order.status !== 'paid' && order.status !== 'cancelled' && (
                 <IconBtn tone="red" title="Remove item" onClick={() => {
                   const items = order.items.filter(x => x.id !== it.id);
@@ -400,7 +452,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
                 <div className="flex items-center gap-2">
                   <span className="font-bold">{naira(m.price)}</span>
                   <button onClick={() => {
-                    const items = [...order.items, { id: uid('oi'), menuItemId: m.id, name: m.name, quantity: 1, unitPrice: m.price, status: 'pending' as OrderItemStatus }];
+                    const items = [...order.items, { id: uid('oi'), menuItemId: m.id, name: m.name, quantity: 1, unitPrice: m.price, status: 'pending' as OrderItemStatus, station: m.station || stationForCategory(m.category) }];
                     orders.update(order.id, { items });
                   }} className="w-7 h-7 rounded-lg bg-hom-primary text-white flex items-center justify-center font-black">+</button>
                 </div>
@@ -429,7 +481,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
             <option>cash</option><option>card</option><option>transfer</option><option>roomCharge</option>
           </Select>
         )}
-        {canPOS && order.status !== 'paid' && order.status !== 'cancelled' && (
+        {canVoid && order.status !== 'paid' && order.status !== 'cancelled' && (
           <Btn color="outline" className="!text-red-500" onClick={() => {
             orders.update(order.id, { status: 'cancelled' });
             freeTable(order.tableId);
@@ -441,7 +493,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
             onClose();
           }}><X size={14} /> Cancel Order</Btn>
         )}
-        {canPOS && (
+        {canVoid && (
           <Btn color="outline" className="!text-red-500" onClick={() => {
             orders.remove(order.id);
             freeTable(order.tableId);
@@ -460,7 +512,7 @@ function OrderDetail({ order, tables, orders, menu, onClose }: { order: Order; t
 
 // ─── Menu ────────────────────────────────────────────────────────────────────
 
-const CAT_LABEL: Record<MenuCategory, string> = { food: 'Food', drink: 'Drinks', bar: 'Bar', wine: 'Wine', special: 'Specials' };
+const CAT_LABEL: Record<MenuCategory, string> = { food: 'Food', suya: 'Suya & Grill', drink: 'Drinks', bar: 'Bar', wine: 'Wine', pastry: 'Pastry', special: 'Specials' };
 
 function MenuTab() {
   const { session } = useAuth();
@@ -495,6 +547,7 @@ function MenuTab() {
               <div>
                 <div className="font-bold">{m.name}</div>
                 {m.description && <div className="text-xs text-zinc-400 mt-0.5">{m.description}</div>}
+                <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 text-zinc-500 font-medium">{STATION_LABEL[m.station || stationForCategory(m.category)]}</span>
               </div>
               <div className="font-black text-hom-primary">{naira(m.price)}</div>
             </div>
@@ -516,15 +569,21 @@ function MenuTab() {
 
 function MenuForm({ initial, depts, onSave, onCancel }: { initial: MenuItem | null; depts: Department[]; onSave: (m: MenuItem) => void; onCancel: () => void }) {
   const [f, setF] = useState(initial
-    ? { name: initial.name, category: initial.category, price: String(initial.price), description: initial.description || '' }
-    : { name: '', category: 'food' as MenuCategory, price: '', description: '' });
+    ? { name: initial.name, category: initial.category, price: String(initial.price), description: initial.description || '', station: initial.station || stationForCategory(initial.category) }
+    : { name: '', category: 'food' as MenuCategory, price: '', description: '', station: stationForCategory('food') });
+  const setCategory = (category: MenuCategory) => setF(p => ({ ...p, category, station: p.station === stationForCategory(p.category) ? stationForCategory(category) : p.station }));
   return (
     <FormCard title={initial ? 'Edit Menu Item' : 'Add Menu Item'} onCancel={onCancel}>
       <FieldGrid>
         <Field label="Item Name"><TextInput value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Item name" /></Field>
         <Field label="Category">
-          <Select value={f.category} onChange={e => setF({ ...f, category: e.target.value as MenuCategory })}>
+          <Select value={f.category} onChange={e => setCategory(e.target.value as MenuCategory)}>
             {(Object.keys(CAT_LABEL) as MenuCategory[]).map(c => <option key={c} value={c}>{CAT_LABEL[c]}</option>)}
+          </Select>
+        </Field>
+        <Field label="Station">
+          <Select value={f.station} onChange={e => setF({ ...f, station: e.target.value as FnbStation })}>
+            {(Object.keys(STATION_LABEL) as FnbStation[]).map(s => <option key={s} value={s}>{STATION_LABEL[s]}</option>)}
           </Select>
         </Field>
         <Field label="Price (₦)"><NumberInput value={f.price} onChange={e => setF({ ...f, price: e.target.value })} placeholder="Price" /></Field>

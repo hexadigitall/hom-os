@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, X, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Rss, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle } from 'lucide-react';
+import { Menu, X, LogOut, LayoutDashboard, CalendarCheck, BedDouble, Fuel, Package, Users, Store, Receipt, Repeat, Activity, Rss, Scale, UtensilsCrossed, Wrench, Sparkles, Briefcase, ShieldCheck, BarChart3, ScrollText, CreditCard, MessageCircle, Globe, UserCog, UserCircle, Building2, Dumbbell, MessagesSquare } from 'lucide-react';
 import { OverviewModule, BookingsModule, RoomsModule, DieselModule, InventoryModule, StaffModule, VendorsModule } from './modules/core';
 import { ExpensesModule } from './modules/expenses';
 import { SubscriptionsModule } from './modules/subscriptions';
@@ -18,6 +18,8 @@ import { PaystackModule, WhatsAppModule, BookingComModule } from './modules/chan
 import { AccountsModule } from './modules/accounts';
 import { AccountModule } from './modules/account';
 import { FeedModule } from './modules/feed';
+import { FacilitiesModule } from './modules/facilities';
+import { ChatModule } from './modules/chat';
 import { AuthProvider, useAuth } from '../../lib/auth';
 import { AuthGate } from './auth';
 import { Permission, PERMISSIONS, hasPermission, hasAnyPermission, primaryRole, hasIdentity, roleAccent } from '../../lib/rbac';
@@ -28,6 +30,7 @@ const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; pe
   { id: 'bookings', label: 'Bookings', icon: CalendarCheck, module: BookingsModule, perm: PERMISSIONS.viewBookings },
   { id: 'rooms', label: 'Rooms', icon: BedDouble, module: RoomsModule, perm: PERMISSIONS.viewRooms },
   { id: 'operations', label: 'Operations', icon: Activity, module: OperationsModule, perm: PERMISSIONS.viewOperations, permAny: [PERMISSIONS.viewOperations, PERMISSIONS.viewRevPAR, PERMISSIONS.viewNightAudit, PERMISSIONS.viewHousekeeping] },
+  { id: 'facilities', label: 'Facilities', icon: Dumbbell, module: FacilitiesModule, perm: PERMISSIONS.viewFacilities, permAny: [PERMISSIONS.viewFacilities, PERMISSIONS.manageFacilities, PERMISSIONS.manageFacilityAccess, PERMISSIONS.manageGiftShop] },
   { id: 'reconciliation', label: 'Reconciliation', icon: Scale, module: ReconciliationModule, perm: PERMISSIONS.viewReconciliation },
   { id: 'expenses', label: 'Expenses', icon: Receipt, module: ExpensesModule, perm: PERMISSIONS.viewExpenditure },
   { id: 'subscriptions', label: 'Subscriptions', icon: Repeat, module: SubscriptionsModule, perm: PERMISSIONS.manageSubscriptions },
@@ -44,6 +47,7 @@ const NAV: { id: string; label: string; icon: any; module: () => JSX.Element; pe
   { id: 'vendors', label: 'Vendors', icon: Store, module: VendorsModule, perm: PERMISSIONS.viewVendors },
   { id: 'paystack', label: 'Paystack', icon: CreditCard, module: PaystackModule, perm: PERMISSIONS.viewMultiCurrencyBilling },
   { id: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, module: WhatsAppModule, perm: PERMISSIONS.manageWhatsApp },
+  { id: 'chat', label: 'Team Chat', icon: MessagesSquare, module: ChatModule, perm: PERMISSIONS.viewDepartmentChat, permAny: [PERMISSIONS.viewDepartmentChat, PERMISSIONS.sendChatMessage, PERMISSIONS.manageChat] },
   { id: 'bookingcom', label: 'Booking.com', icon: Globe, module: BookingComModule, perm: PERMISSIONS.manageChannelManager },
   { id: 'accounts', label: 'App Accounts', icon: UserCog, module: AccountsModule, perm: PERMISSIONS.manageUsers },
   { id: 'account', label: 'My Account', icon: UserCircle, module: AccountModule, perm: PERMISSIONS.viewReports, always: true },
@@ -70,9 +74,11 @@ const GROUPS: { label: string; items: string[] }[] = [
   { label: 'Housekeeping & Assets', items: ['housekeeping', 'inventory'] },
   { label: 'Engineering & Utilities', items: ['engineering', 'diesel'] },
   { label: 'F&B & Banqueting', items: ['fnb'] },
+  { label: 'Facilities & Amenities', items: ['facilities'] },
   { label: 'Back Office & Supply Chain', items: ['expenses', 'staff', 'vendors', 'back_office', 'reconciliation', 'subscriptions'] },
   { label: 'Compliance, Security & Audit', items: ['compliance', 'security_audit', 'reports'] },
   { label: 'Channels', items: ['paystack', 'whatsapp', 'bookingcom'] },
+  { label: 'Communication', items: ['chat'] },
   { label: 'System', items: ['accounts', 'account'] },
 ];
 
@@ -142,6 +148,12 @@ function DashboardInner() {
           </div>
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[10px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium whitespace-nowrap shrink-0">HOM LIVE</span>
+            {session.hotelName && (
+              <span title={session.hotelName} className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-zinc-700 bg-zinc-100 px-2.5 py-1.5 rounded-full shrink-0 max-w-[240px] text-center leading-tight">
+                <Building2 size={12} className="text-green-600 shrink-0" />
+                <span>{session.hotelName}</span>
+              </span>
+            )}
             {hasIdentity(session) && (
               <div className="flex items-center gap-2 pl-2 border-l">
                 <button onClick={() => goTab('account')} title="My Account" className="flex items-center gap-2 hover:opacity-80 transition-opacity">

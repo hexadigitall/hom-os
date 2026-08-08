@@ -96,9 +96,13 @@ export const PERMISSIONS = {
   managePOS: 'managePOS', manageSplitChecks: 'manageSplitChecks', manageTableManagement: 'manageTableManagement',
   manageKDS: 'manageKDS', manageRecipeCosting: 'manageRecipeCosting',
   trackIngredientShortages: 'trackIngredientShortages',
+  voidFnbOrders: 'voidFnbOrders',
   manageBanquetingHallRentals: 'manageBanquetingHallRentals', manageAVEquipment: 'manageAVEquipment',
   manageBuffetMenus: 'manageBuffetMenus', manageSeatingConfig: 'manageSeatingConfig',
   manageCorporateEvents: 'manageCorporateEvents',
+  // Facilities & Amenities (gym, pool, gift shop, event halls)
+  viewFacilities: 'viewFacilities', manageFacilities: 'manageFacilities',
+  manageFacilityAccess: 'manageFacilityAccess', manageGiftShop: 'manageGiftShop',
 
   // ========= PILLAR 5: BACK OFFICE & SUPPLY CHAIN =========
   viewBackOffice: 'viewBackOffice',
@@ -115,6 +119,9 @@ export const PERMISSIONS = {
   processPAYE: 'processPAYE', processPension: 'processPension',
   viewOperations: 'viewOperations',
   viewActivityFeed: 'viewActivityFeed',
+  // Internal department chat (channels, #hotel-general, DMs)
+  viewDepartmentChat: 'viewDepartmentChat', sendChatMessage: 'sendChatMessage',
+  manageChat: 'manageChat',
   manageSubscriptions: 'manageSubscriptions', manageWhatsApp: 'manageWhatsApp', sendAutomatedWhatsApp: 'sendAutomatedWhatsApp',
   sendWhatsAppPayslips: 'sendWhatsAppPayslips', manageUsers: 'manageUsers',
 
@@ -169,7 +176,9 @@ export const PREBUILT_ROLES: AppRole[] = [
       // Pillar 5 — back office + financial view only
       P.viewBackOffice, P.viewExpenditure, P.viewReconciliation,
       P.viewFuel, P.viewReports, P.viewRevPAR, P.viewNightAudit,
-      P.viewCompliance,
+      P.viewCompliance, P.viewFacilities,
+      // Internal chat — read only (no send)
+      P.viewDepartmentChat,
       P.viewActivityFeed,
     ],
   },
@@ -187,6 +196,8 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.manageKeycards,
       P.manageConciergeShuttles, P.manageConciergeLuggage,
       P.manageConciergeTours, P.manageConciergeCarRental,
+      // Facilities & Amenities — front desk handles guest amenity inquiries
+      P.viewFacilities,
       // Pillar 4 — room-service F&B orders at the front desk
       P.managePOS, P.manageSplitChecks, P.manageTableManagement,
       // Pillar 5 — WhatsApp
@@ -195,6 +206,8 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.viewSecurityAudit,
       P.manageShiftHandover, P.logCashDrop,
       P.captureGuestNIN, P.logCashTransactions,
+      // Internal chat — department channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
       // Cross-pillar
       P.viewActivityFeed,
     ],
@@ -223,6 +236,8 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.lockTransactions, P.logCashDrop,
       P.viewCompliance, P.manageCompliance,
       P.captureGuestNIN, P.logCashTransactions,
+      // Internal chat — department channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
       P.viewActivityFeed,
     ],
   },
@@ -237,6 +252,8 @@ export const PREBUILT_ROLES: AppRole[] = [
       P.assignRoomAttendants, P.trackMiniBarConsumption,
       P.manageLostAndFound, P.logLinenDamage, P.logMinibarLoss,
       P.manageLaundry, P.manageGuestDryCleaning,
+      // Internal chat — department channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
       // Cross-pillar
       P.viewActivityFeed,
     ],
@@ -246,10 +263,13 @@ export const PREBUILT_ROLES: AppRole[] = [
     name: 'Kitchen / Bar',
     department: 'kitchen',
     permissions: [
-      // Pillar 4 — KDS + culinary costing only (POS/table mgmt is server-side)
-      P.viewInventory, P.manageInventory,
+      // Pillar 4 — full F&B operations: the floor (tables/bars) plus
+      // orders + menu CRUD, alongside KDS confirm/ready and culinary costing.
+      P.managePOS, P.manageTableManagement,
       P.manageKDS, P.manageRecipeCosting, P.trackIngredientShortages,
-      P.createExpenditure,
+      P.viewInventory, P.manageInventory, P.createExpenditure,
+      // Internal chat — department channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
       // Cross-pillar
       P.viewActivityFeed,
     ],
@@ -263,6 +283,58 @@ export const PREBUILT_ROLES: AppRole[] = [
       // never from this role alone.
       P.viewInventory, P.manageInventory, P.createExpenditure,
       P.viewStaff, P.manageStaff,
+      // Facilities & Amenities — HODs configure their amenities
+      P.viewFacilities, P.manageFacilities,
+      // Internal chat — channels + DMs, and broadcast to #hotel-general
+      P.viewDepartmentChat, P.sendChatMessage, P.manageChat,
+      // Cross-pillar
+      P.viewActivityFeed,
+    ],
+  },
+  {
+    id: 'events_coordinator',
+    name: 'Events Coordinator / Banqueting',
+    department: 'banqueting',
+    permissions: [
+      // Pillar 4 — full event & banquet operation
+      P.manageBanquetingHallRentals, P.manageAVEquipment,
+      P.manageBuffetMenus, P.manageSeatingConfig, P.manageCorporateEvents,
+      // Facilities & Amenities — halls + events + amenity revenue
+      P.viewFacilities, P.manageFacilities, P.manageFacilityAccess,
+      // Back office — departmental spends + stock visibility
+      P.viewInventory, P.manageInventory, P.createExpenditure,
+      // Internal chat — banqueting channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
+      // Cross-pillar
+      P.viewActivityFeed,
+    ],
+  },
+  {
+    id: 'wellness_attendant',
+    name: 'Gym / Pool Attendant',
+    department: 'healthSafety',
+    permissions: [
+      // Facilities & Amenities — sell passes, check-in members
+      P.viewFacilities, P.manageFacilityAccess,
+      // Back office — departmental spends
+      P.viewInventory, P.createExpenditure,
+      // Internal chat — wellness channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
+      // Cross-pillar
+      P.viewActivityFeed,
+    ],
+  },
+  {
+    id: 'gift_shop_cashier',
+    name: 'Gift Shop Cashier',
+    department: 'concierge',
+    permissions: [
+      // Facilities & Amenities — retail POS + inventory
+      P.viewFacilities, P.manageGiftShop,
+      // Back office — retail inventory + departmental spends
+      P.viewInventory, P.manageInventory, P.createExpenditure,
+      // Internal chat — concierge channels + DMs
+      P.viewDepartmentChat, P.sendChatMessage,
       // Cross-pillar
       P.viewActivityFeed,
     ],
@@ -286,6 +358,7 @@ export interface Session {
   isHeadOfDepartment: Record<string, boolean>;
   status: AccountStatus;
   hotelId?: string;
+  hotelName?: string;
   phone?: string;
   photoUrl?: string;
   preferences?: UserPreferences;
@@ -352,6 +425,9 @@ export const ROLE_ACCENT: Record<string, string> = {
   housekeeping: '#8B5CF6',
   kitchen: '#F43F5E',
   dept_head: '#6366F1',
+  events_coordinator: '#EC4899',
+  wellness_attendant: '#14B8A6',
+  gift_shop_cashier: '#F97316',
 };
 
 export const roleAccent = (s: Session): string => {

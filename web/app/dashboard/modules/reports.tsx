@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import { Download } from 'lucide-react';
-import { ExpenditureRecord, ExpenditureCategory, EXPENSE_CATEGORIES } from '@/lib/types';
-import { seedExpenditure } from '@/lib/seed';
+import { ExpenditureRecord, ExpenditureCategory, EXPENSE_CATEGORIES, FacilityRevenue } from '@/lib/types';
+import { seedExpenditure, seedFacilityRevenue } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { today, naira, fmtDate } from '@/lib/format';
@@ -49,6 +49,7 @@ function buildPeriods(g: Granularity): Period[] {
 export function ReportsModule() {
   const { session } = useAuth();
   const exp = useSyncedCollection<ExpenditureRecord>('expenditure', 'expenditure_records', seedExpenditure, session);
+  const facRev = useSyncedCollection<FacilityRevenue>('facility_revenue', 'facility_revenue', seedFacilityRevenue, session);
   const [gran, setGran] = useState<Granularity>('monthly');
   const [periodIdx, setPeriodIdx] = useState(0);
   const [catFilter, setCatFilter] = useState('');
@@ -57,6 +58,7 @@ export function ReportsModule() {
   const period = periods[Math.min(periodIdx, periods.length - 1)];
 
   const inPeriod = (e: ExpenditureRecord) => e.date >= period.start && e.date <= period.end;
+  const inRevPeriod = (r: FacilityRevenue) => r.date >= period.start && r.date <= period.end;
 
   const cats = useMemo(() => {
     const map = new Map<ExpenditureCategory, { total: number; count: number }>();
@@ -71,6 +73,13 @@ export function ReportsModule() {
   const grandTotal = Array.from(cats.values()).reduce((a, c) => a + c.total, 0);
   const totalCount = Array.from(cats.values()).reduce((a, c) => a + c.count, 0);
   const topCat = Array.from(cats.entries()).sort((a, b) => b[1].total - a[1].total)[0];
+
+  const facRevBySource = useMemo(() => {
+    const map = new Map<string, number>();
+    facRev.items.filter(inRevPeriod).forEach(r => map.set(r.source, (map.get(r.source) || 0) + r.amount));
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  }, [facRev.items, period]);
+  const facRevTotal = facRevBySource.reduce((a, [, v]) => a + v, 0);
 
   const exportCsv = () => {
     const rows = [['Period', 'Category', 'Total', 'Count'], ...Array.from(cats.entries())
@@ -110,6 +119,23 @@ export function ReportsModule() {
         <MetricCard label="Average / Record" value={totalCount ? naira(grandTotal / totalCount) : '—'} sub="Per record" color="bg-amber-50 text-amber-700" />
         <MetricCard label="Daily Avg" value={naira(grandTotal / (Math.max(1, Math.round((new Date(period.end).getTime() - new Date(period.start).getTime()) / 86400000) + 1)))} sub="Across period days" color="bg-red-50 text-red-700" />
       </div>
+
+      {facRevTotal > 0 && (
+        <Card className="p-5 bg-amber-50/40 border-amber-200">
+          <h3 className="font-bold text-sm mb-1">Facility & Amenity Revenue — {period.label}</h3>
+          <div className="text-xs text-zinc-500 mb-4">{naira(facRevTotal)} total · auto-rolled up from bookings, passes and gift sales</div>
+          <div className="space-y-3">
+            {facRevBySource.map(([src, amt]) => (
+              <div key={src}>
+                <div className="flex justify-between text-sm font-bold"><span>{src}</span><span>{naira(amt)}</span></div>
+                <div className="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(amt / facRevTotal) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card className="p-5">
         <h3 className="font-bold text-sm mb-4">Category Breakdown</h3>

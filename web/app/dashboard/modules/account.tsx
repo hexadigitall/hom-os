@@ -201,7 +201,7 @@ export function AccountModule() {
             <div className="mt-3 space-y-1">
               <DetailRow icon={<Mail size={15} />} label="Email" value={session.email} />
               <DetailRow icon={<Phone size={15} />} label="Phone" value={session.phone || ''} />
-              <DetailRow icon={<Building2 size={15} />} label="Hotel" value={session.hotelId || ''} />
+              <DetailRow icon={<Building2 size={15} />} label="Hotel" value={session.hotelName || session.hotelId || ''} />
             </div>
           </div>
         </div>

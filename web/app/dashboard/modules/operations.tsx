@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Plus, Trash2, Edit3, TrendingUp, MoonStar, PackageX, AlertTriangle } from 'lucide-react';
-import { DailyRevenue, CashDrop, HousekeepingLoss, TOTAL_ROOMS, ShiftName } from '@/lib/types';
-import { seedRevenues, seedCashDrops, seedLosses, seedActivity } from '@/lib/seed';
+import { DailyRevenue, CashDrop, HousekeepingLoss, FacilityRevenue, TOTAL_ROOMS, ShiftName } from '@/lib/types';
+import { seedRevenues, seedCashDrops, seedLosses, seedFacilityRevenue, seedActivity } from '@/lib/seed';
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
 import { tagFor, hasAnyPermission, PERMISSIONS, type Department } from '@/lib/rbac';
@@ -61,6 +61,7 @@ export function OperationsModule() {
 function RevParTab() {
   const { session } = useAuth();
   const revs = useSyncedCollection<DailyRevenue>('ops_revenues', 'ops_revenues', seedRevenues, session);
+  const facRev = useSyncedCollection<FacilityRevenue>('facility_revenue', 'facility_revenue', seedFacilityRevenue, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
@@ -77,6 +78,15 @@ function RevParTab() {
   const revpar = rev7 / (TOTAL_ROOMS * revDays);
   const maxRev = sorted.reduce((m, r) => Math.max(m, r.totalRevenue), 0);
 
+  const month = today().slice(0, 7);
+  const facRevMonth = facRev.items.filter(r => r.date.slice(0, 7) === month).reduce((a, r) => a + r.amount, 0);
+  const facRevToday = facRev.items.filter(r => r.date === today()).reduce((a, r) => a + r.amount, 0);
+  const facRevBySource = (() => {
+    const map = new Map<string, number>();
+    facRev.items.filter(r => r.date.slice(0, 7) === month).forEach(r => map.set(r.source, (map.get(r.source) || 0) + r.amount));
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  })();
+
   const openEdit = (r: DailyRevenue | null) => { setEditItem(r); setShowForm(true); };
 
   return (
@@ -90,6 +100,22 @@ function RevParTab() {
         <MetricCard label="RevPAR" value={naira(revpar)} sub={`${TOTAL_ROOMS} available rooms`} color="bg-amber-50 text-amber-700" />
         <MetricCard label="7-Day Revenue" value={naira(rev7)} sub={`${sold7} room-nights sold`} color="bg-red-50 text-red-700" />
       </div>
+      {facRevMonth > 0 && (
+        <Card className="p-5 bg-amber-50/40 border-amber-200">
+          <h3 className="font-bold text-sm flex items-center gap-2"><TrendingUp size={16} className="text-amber-600" /> Facility & Amenity Revenue — auto-rolled up</h3>
+          <div className="text-xs text-zinc-500 mt-1">Today {naira(facRevToday)} · This month {naira(facRevMonth)} — posted to Night Audit by source</div>
+          <div className="mt-4 space-y-3">
+            {facRevBySource.map(([src, amt]) => (
+              <div key={src}>
+                <div className="flex justify-between text-sm font-bold"><span>{src}</span><span>{naira(amt)}</span></div>
+                <div className="h-2 bg-zinc-100 rounded-full mt-1 overflow-hidden">
+                  <div className="h-full rounded-full bg-amber-500" style={{ width: `${(amt / facRevMonth) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
       {showForm && (
         <RevenueForm initial={editItem} depts={depts} onSave={(r) => {
           if (editItem) revs.replace(r.id, r);
@@ -166,6 +192,7 @@ function RevenueForm({ initial, depts, onSave, onCancel }: { initial: DailyReven
 function NightAuditTab() {
   const { session } = useAuth();
   const drops = useSyncedCollection<CashDrop>('ops_cash_drops', 'ops_cash_drops', seedCashDrops, session);
+  const facRev = useSyncedCollection<FacilityRevenue>('facility_revenue', 'facility_revenue', seedFacilityRevenue, session);
   const feed = useSyncedCollection<ActivityLog>('activity_logs', 'activity_logs', seedActivity, session);
   const depts = tagFor(session, 'accounts');
   const [showForm, setShowForm] = useState(false);
@@ -178,6 +205,9 @@ function NightAuditTab() {
   const mismatched = week.filter(c => c.status === 'mismatched').length;
   const discrepancy = week.reduce((a, c) => a + Math.abs(c.expectedAmount - c.actualAmount), 0);
 
+  const facRevToday = facRev.items.filter(r => r.date === t).reduce((a, r) => a + r.amount, 0);
+  const facRevMonth = facRev.items.filter(r => r.date.slice(0, 7) === t.slice(0, 7)).reduce((a, r) => a + r.amount, 0);
+
   return (
     <div className="space-y-4">
       <SectionHeader title="Night Audit — Cash Drops" sub="Shift-wise cash reconciliation">
@@ -188,6 +218,9 @@ function NightAuditTab() {
         <MetricCard label="Matched (7d)" value={matched} sub="Cash in balance" color="bg-green-50 text-green-700" />
         <MetricCard label="Mismatched (7d)" value={mismatched} sub="Needs investigation" color="bg-red-50 text-red-700" />
         <MetricCard label="Week Discrepancy" value={naira(discrepancy)} sub="Total variance" color="bg-amber-50 text-amber-700" />
+      </div>
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 flex items-center gap-2 font-bold">
+        <MoonStar size={16} /> Facility & amenity revenue today: {naira(facRevToday)} (month: {naira(facRevMonth)})
       </div>
       {discrepancy > 0 && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 font-bold flex items-center gap-2">

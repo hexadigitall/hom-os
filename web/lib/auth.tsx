@@ -55,6 +55,9 @@ const sessionFromRole = (data: any, user: User): Session => {
       : {},
     status: ['pending', 'active', 'suspended'].includes(data?.status) ? data.status : 'pending',
     hotelId: data?.hotelId || undefined,
+    hotelName: typeof data?.hotelName === 'string' && data.hotelName
+      ? data.hotelName
+      : undefined,
     phone: typeof data?.phone === 'string' ? data.phone : '',
     photoUrl: typeof data?.photoUrl === 'string' && data.photoUrl
       ? data.photoUrl

@@ -155,8 +155,8 @@ export function EmptyState({ text }: { text: string }) {
   return <div className="p-8 text-center text-sm text-zinc-400 bg-white rounded-2xl border">{text}</div>;
 }
 
-export function FieldGrid({ children }: { children: ReactNode }) {
-  return <div className="grid md:grid-cols-2 gap-3">{children}</div>;
+export function FieldGrid({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`grid md:grid-cols-2 gap-3 ${className}`}>{children}</div>;
 }
 
 export const paye = (s: number) => Math.round(s * 0.07);
