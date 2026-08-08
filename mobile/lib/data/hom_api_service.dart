@@ -247,4 +247,112 @@ class HomApiService {
       if (preferences != null) 'preferences': preferences,
     });
   }
+
+  // ──────────────────── WhatsApp (Phase A) ────────────────────
+
+  /// Send a WhatsApp message through HOM's centralized server route.
+  /// The WABA token never ships client-side. Returns `mocked: true` when the
+  /// hotel has not configured WABA yet — callers should then fall back to a
+  /// wa.me deep link.
+  static Future<WhatsAppSendResult> sendWhatsApp({
+    required String to,
+    required String message,
+  }) async {
+    final res = await _call('POST', '/api/whatsapp/send', {
+      'to': to,
+      'message': message,
+    });
+    return WhatsAppSendResult.fromJson(res);
+  }
+
+  /// Fetch the per-hotel WABA settings (public fields only — never the token).
+  static Future<WhatsAppSettings> getWhatsAppSettings() async {
+    final res = await _call('GET', '/api/whatsapp/settings');
+    return WhatsAppSettings.fromJson(res);
+  }
+
+  /// Save the per-hotel WABA settings + optional token.
+  /// [token] empty string clears the stored credential; null leaves it alone.
+  static Future<void> saveWhatsAppSettings({
+    required String phoneId,
+    required String wabaId,
+    required String displayName,
+    required bool verified,
+    List<String> templateApprovals = const [],
+    Map<String, bool>? autoSend,
+    String? token,
+  }) async {
+    await _call('POST', '/api/whatsapp/settings', {
+      'phoneId': phoneId,
+      'wabaId': wabaId,
+      'displayName': displayName,
+      'verified': verified,
+      'templateApprovals': templateApprovals,
+      'autoSend': autoSend ?? {},
+      if (token != null) 'token': token,
+    });
+  }
+}
+
+/// Result of a server-side WhatsApp send attempt.
+class WhatsAppSendResult {
+  final bool ok;
+  final bool mocked;
+  final String? waId;
+  final String? reason;
+
+  WhatsAppSendResult({
+    required this.ok,
+    this.mocked = false,
+    this.waId,
+    this.reason,
+  });
+
+  factory WhatsAppSendResult.fromJson(Map<String, dynamic> json) {
+    return WhatsAppSendResult(
+      ok: json['ok'] == true,
+      mocked: json['mocked'] == true,
+      waId: json['waId']?.toString(),
+      reason: json['reason']?.toString(),
+    );
+  }
+}
+
+/// Per-hotel WABA settings (mirrors the web `WhatsAppSettings` interface).
+class WhatsAppSettings {
+  final String phoneId;
+  final String wabaId;
+  final String displayName;
+  final bool verified;
+  final List<String> templateApprovals;
+  final Map<String, bool> autoSend;
+
+  WhatsAppSettings({
+    this.phoneId = '',
+    this.wabaId = '',
+    this.displayName = '',
+    this.verified = false,
+    this.templateApprovals = const [],
+    this.autoSend = const {},
+  });
+
+  factory WhatsAppSettings.fromJson(Map<String, dynamic> json) {
+    final auto = json['autoSend'];
+    return WhatsAppSettings(
+      phoneId: json['phoneId']?.toString() ?? '',
+      wabaId: json['wabaId']?.toString() ?? '',
+      displayName: json['displayName']?.toString() ?? '',
+      verified: json['verified'] == true,
+      templateApprovals: (json['templateApprovals'] is List)
+          ? (json['templateApprovals'] as List).map((e) => e.toString()).toList()
+          : const [],
+      autoSend: auto is Map
+          ? auto.map((k, v) => MapEntry(k.toString(), v == true))
+          : const {},
+    );
+  }
+
+  bool autoSendEnabled(String key, {bool fallback = true}) {
+    return autoSend[key] ?? fallback;
+  }
 }

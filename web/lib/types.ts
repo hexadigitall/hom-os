@@ -12,7 +12,7 @@ export interface Diesel { id: string; date: string; liters: number; cost: number
 
 export interface InventoryItem { id: string; name: string; qty: number; low: number; cost: number; departments?: Department[] }
 
-export interface Staff { id: string; name: string; role: string; salary: number; departments?: Department[] }
+export interface Staff { id: string; name: string; role: string; salary: number; departments?: Department[]; phone?: string }
 
 export interface Vendor { id: string; name: string; contact: string; category: string; departments?: Department[] }
 
@@ -137,30 +137,129 @@ export interface PosSettlement { id: string; terminalId: string; terminalRef: st
 
 // ─── F&B ─────────────────────────────────────────────────────────────────────
 
-export type MenuCategory = 'food' | 'drink' | 'bar' | 'wine' | 'special';
-export interface MenuItem { id: string; name: string; category: MenuCategory; price: number; description?: string; available: boolean; departments?: Department[] }
+export type MenuCategory = 'food' | 'suya' | 'drink' | 'bar' | 'wine' | 'pastry' | 'special';
+export type FnbStation = 'mainKitchen' | 'suyaGrill' | 'barMixologist' | 'pastry' | 'general';
+export interface MenuItem { id: string; name: string; category: MenuCategory; price: number; description?: string; available: boolean; station?: FnbStation; departments?: Department[] }
 
 export type TableStatus = 'free' | 'occupied' | 'reserved' | 'cleaning';
 export interface RestaurantTable { id: string; number: string; seats: number; status: TableStatus; departments?: Department[] }
 
-export type OrderItemStatus = 'pending' | 'preparing' | 'ready' | 'served';
-export interface OrderItem { id: string; menuItemId: string; name: string; quantity: number; unitPrice: number; status: OrderItemStatus; note?: string }
+// Granular per-item pipeline shared across mobile + web (the exact checkpoints
+// a guest can be told about at any moment).
+export type OrderItemStatus = 'pending' | 'seen' | 'queued' | 'preparing' | 'ready' | 'picked_up' | 'served' | 'cancelled';
+export interface OrderItem { id: string; menuItemId: string; name: string; quantity: number; unitPrice: number; status: OrderItemStatus; note?: string; station?: FnbStation }
 export type OrderStatus = 'open' | 'preparing' | 'served' | 'paid' | 'cancelled';
-export type OrderType = 'dineIn' | 'roomService' | 'takeaway';
+export type OrderType = 'dineIn' | 'roomService' | 'takeaway' | 'barWalkup' | 'directCall';
 export interface Order {
   id: string; tableId: string; items: OrderItem[]; status: OrderStatus;
   discount?: number; paymentMethod?: string; note?: string;
   openedAt: string; closedAt?: string; servedBy?: string; departments?: Department[];
   orderType?: OrderType; roomNumber?: string;
+  seenAt?: string; queuedAt?: string; readyAt?: string; servedAt?: string;
 }
+export const ITEM_PIPELINE: OrderItemStatus[] = ['pending', 'seen', 'queued', 'preparing', 'ready', 'picked_up', 'served'];
+export const STAGE_LABEL: Record<OrderItemStatus, string> = {
+  pending: 'Pending', seen: 'Seen', queued: 'Queued', preparing: 'Preparing',
+  ready: 'Ready', picked_up: 'Picked up', served: 'Served', cancelled: 'Cancelled',
+};
+export const STATION_LABEL: Record<FnbStation, string> = {
+  mainKitchen: 'Main Kitchen', suyaGrill: 'Suya & Grill', barMixologist: 'Bar / Mixologist',
+  pastry: 'Pastry', general: 'General',
+};
+export const stationForCategory = (c: MenuCategory): FnbStation => {
+  if (c === 'food') return 'mainKitchen';
+  if (c === 'suya') return 'suyaGrill';
+  if (c === 'drink' || c === 'bar' || c === 'wine') return 'barMixologist';
+  if (c === 'pastry') return 'pastry';
+  return 'general';
+};
 export const orderLocation = (o: Order): string => {
   if (o.orderType === 'roomService') {
     const room = (o.roomNumber || '').trim();
     return room ? `Room ${room}` : 'Room Service';
   }
   if (o.orderType === 'takeaway') return 'Takeaway';
+  if (o.orderType === 'barWalkup') return 'Bar Walk-up';
+  if (o.orderType === 'directCall') return 'Direct Call';
   return 'Dine-in';
 };
+export const orderSource = (o: Order): string => {
+  if (o.orderType === 'roomService') return 'Room Service Call';
+  if (o.orderType === 'takeaway') return 'Takeaway / Pickup';
+  if (o.orderType === 'barWalkup') return 'Direct Bar Walk-up';
+  if (o.orderType === 'directCall') return 'Kitchen (Direct Call)';
+  return 'Restaurant Floor';
+};
+export const stageIndex = (s: OrderItemStatus): number => {
+  const i = ITEM_PIPELINE.indexOf(s);
+  return i >= 0 ? i : (s === 'cancelled' ? ITEM_PIPELINE.length : -1);
+};
+export const nextStage = (s: OrderItemStatus): OrderItemStatus | null => {
+  const i = ITEM_PIPELINE.indexOf(s);
+  if (i < 0 || i >= ITEM_PIPELINE.length - 1) return null;
+  return ITEM_PIPELINE[i + 1];
+};
+
+// ─── Facilities & Amenities (gym, pool, gift shop, event halls) ──────────────
+
+export type FacilityType = 'gym' | 'pool' | 'giftShop' | 'eventHall';
+export const FACILITY_TYPE_LABEL: Record<FacilityType, string> = {
+  gym: 'Gymnasium', pool: 'Swimming Pool', giftShop: 'Gift Shop', eventHall: 'Event Hall / Banquet',
+};
+export const FACILITY_TYPE_SHORT: Record<FacilityType, string> = {
+  gym: 'Gym', pool: 'Pool', giftShop: 'Gift Shop', eventHall: 'Events',
+};
+export const FACILITY_TYPE_DEPT: Record<FacilityType, Department> = {
+  gym: 'healthSafety', pool: 'healthSafety', giftShop: 'concierge', eventHall: 'banqueting',
+};
+export interface Facility {
+  id: string; name: string; type: FacilityType; rate: number; capacity: number;
+  isAvailable: boolean; hours: string; description: string; venue?: string;
+  depositPercent?: number; blockedDates?: string[]; equipment?: string[];
+  departments?: Department[];
+}
+
+export type BookingKind = 'dayPass' | 'membership' | 'event';
+export type FacilityBookingStatus = 'requested' | 'confirmed' | 'depositPaid' | 'paid' | 'cancelled';
+export const BOOKING_KIND_LABEL: Record<BookingKind, string> = {
+  dayPass: 'Day Pass', membership: 'Membership', event: 'Event Booking',
+};
+export const FACILITY_BOOKING_STATUS_LABEL: Record<FacilityBookingStatus, string> = {
+  requested: 'Requested', confirmed: 'Confirmed', depositPaid: 'Deposit Paid',
+  paid: 'Paid', cancelled: 'Cancelled',
+};
+export const FACILITY_BOOKING_STATUS_DEPS: Record<FacilityBookingStatus, string> = {
+  requested: 'bg-blue-100 text-blue-700',
+  confirmed: 'bg-orange-100 text-orange-700',
+  depositPaid: 'bg-amber-100 text-amber-700',
+  paid: 'bg-green-100 text-green-700',
+  cancelled: 'bg-red-100 text-red-700',
+};
+export interface FacilityBooking {
+  id: string; facilityId: string; facilityName: string; kind: BookingKind;
+  status: FacilityBookingStatus; guestName: string; phone: string; date: string; endDate: string;
+  qty: number; amount: number; paidAmount: number; depositPercent: number;
+  eventType?: string; guestCount?: number; avNeeds?: string; buffet?: string;
+  organizer?: string; notes?: string; staffName?: string; paymentMethod?: string;
+  checkIns?: string[]; departments?: Department[];
+}
+
+export interface GiftItem {
+  id: string; name: string; sku: string; category: string; price: number;
+  stock: number; low: number; available: boolean; departments?: Department[];
+}
+
+export interface SaleLine { itemId: string; name: string; qty: number; unitPrice: number }
+export interface FacilitySale {
+  id: string; date: string; items: SaleLine[]; cashier: string; customerName: string;
+  paymentMethod: string; note: string; departments?: Department[];
+}
+
+export interface FacilityRevenue {
+  id: string; date: string; source: string; amount: number; refId: string;
+  departments?: Department[];
+}
+
 
 // ─── Engineering ─────────────────────────────────────────────────────────────
 
@@ -279,6 +378,38 @@ export interface ShiftHandover {
   id: string; shiftType: ShiftType; openedAt: string; openedBy: string;
   notes?: string; closedAt?: string; closedBy?: string;
   departments?: Department[];
+}
+
+// ─── Internal Department Chat ─────────────────────────────────────────────────
+// Mirrors mobile/lib/models/chat.dart. Offline-first flat collections:
+//   chat_rooms — channels (department-scoped), #hotel-general broadcast, 1:1 DMs
+//   chat_messages — messages (read receipts via readBy)
+
+export type ChatRoomKind = 'channel' | 'general' | 'dm';
+export interface ChatRoom {
+  id: string;
+  name: string;
+  kind: ChatRoomKind;
+  /** Department scope for channels; empty = everyone. */
+  departments: Department[];
+  /** Staff ids/names for DMs; empty = whole scope. */
+  members: string[];
+  lastMessage: string;
+  lastMessageAt: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  roomId: string;
+  /** Display name. */
+  sender: string;
+  /** User id (may be empty for offline-created DMs). */
+  senderId?: string;
+  text: string;
+  createdAt: string;
+  /** Staff ids/names that have read it (sender auto-included). */
+  readBy: string[];
 }
 
 // ─── Shared Activity Feed ────────────────────────────────────────────────────

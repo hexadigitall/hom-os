@@ -58,7 +58,7 @@ export function getFirestoreInstance(): Firestore {
  * Carries the current Firebase ID token as a Bearer token; rejects with a
  * plain Error carrying the server message.
  */
-export async function apiCall(method: string, path: string, data?: object): Promise<any> {
+export async function apiCall<T = any>(method: string, path: string, data?: object): Promise<T> {
   const auth = getAuthInstance();
   const token = await auth.currentUser?.getIdToken().catch(() => undefined);
   const res = await fetch(path, {

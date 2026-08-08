@@ -3,20 +3,22 @@
 import { useState } from 'react';
 import {
   CalendarCheck, Fuel, Plus, Trash2, Edit3, LogOut, XCircle, AlertTriangle,
-  Send, Package, Store,
+  Send, Package, Store, Dumbbell,
 } from 'lucide-react';
 import {
   Room, Booking, Diesel, InventoryItem, Staff, Vendor, PurchaseOrder, ActivityLog,
+  FacilityBooking, GiftItem, FacilityRevenue,
 } from '@/lib/types';
 import {
   seedRooms, seedBookings, seedDiesel, seedInventory, seedStaff, seedVendors, seedPOs, seedActivity,
+  seedFacilityBookings, seedGiftItems, seedFacilityRevenue,
 } from '@/lib/seed';
 
 import { useSyncedCollection } from '@/lib/synced';
 import { useAuth } from '@/lib/auth';
-import { hasPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
+import { hasPermission, hasAnyPermission, PERMISSIONS, tagFor, type Department } from '@/lib/rbac';
 import { today, addDays, uid, naira, fmtDate, daysBetween } from '@/lib/format';
-import { sendWhatsApp, bookingConfirmationTemplate, payslipTemplate } from '@/lib/whatsapp';
+import { sendWhatsApp, bookingConfirmationTemplate, payslipTemplate, checkoutReminderTemplate, poNotificationTemplate, autoSendEnabled } from '@/lib/whatsapp';
 import { appendWhatsAppLog } from '@/lib/whatsapplog';
 import { postActivity } from '@/lib/activity';
 import {
@@ -30,9 +32,27 @@ export function OverviewModule() {
   const bookings = useSyncedCollection<Booking>('bookings', 'hom_bookings', seedBookings, session);
   const diesel = useSyncedCollection<Diesel>('fuel_logs', 'hom_diesel', seedDiesel, session);
   const inventory = useSyncedCollection<InventoryItem>('inventory', 'hom_inventory', seedInventory, session);
+  const facBookings = useSyncedCollection<FacilityBooking>('facility_bookings', 'facility_bookings', seedFacilityBookings, session);
+  const facRevenue = useSyncedCollection<FacilityRevenue>('facility_revenue', 'facility_revenue', seedFacilityRevenue, session);
+  const giftItems = useSyncedCollection<GiftItem>('gift_items', 'gift_items', seedGiftItems, session);
 
   const t = today();
   const dieselToday = diesel.items.filter(d => d.date === t).reduce((a, d) => a + d.liters, 0);
+
+  const month = t.slice(0, 7);
+  const facRevMonth = facRevenue.items.filter(r => r.date.slice(0, 7) === month).reduce((a, r) => a + r.amount, 0);
+  const activeFac = facBookings.items.filter(b => b.status !== 'cancelled').length;
+  const facVisitsToday = facBookings.items.flatMap(b => b.checkIns || []).filter(c => c.slice(0, 10) === t).length;
+  const lowStockGift = giftItems.items.filter(g => g.available && g.stock <= g.low).length;
+  const facRevBySource = (() => {
+    const map = new Map<string, number>();
+    facRevenue.items.filter(r => r.date.slice(0, 7) === month).forEach(r => map.set(r.source, (map.get(r.source) || 0) + r.amount));
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+  })();
+  const canFacilities = hasAnyPermission(session, [
+    PERMISSIONS.viewFacilities, PERMISSIONS.manageFacilities,
+    PERMISSIONS.manageFacilityAccess, PERMISSIONS.manageGiftShop,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -42,6 +62,28 @@ export function OverviewModule() {
         <MetricCard label="Diesel Today" value={`${dieselToday}L`} sub={`${diesel.items.length} logs`} color="bg-amber-50 text-amber-700" />
         <MetricCard label="Low Stock" value={inventory.items.filter(i => i.qty <= i.low).length} sub={`${inventory.items.length} items`} color="bg-red-50 text-red-700" />
       </div>
+
+      {canFacilities && (facRevMonth > 0 || facBookings.items.length > 0) && (
+        <>
+          <div>
+            <h3 className="font-bold text-sm flex items-center gap-2 mb-3"><Dumbbell size={16} className="text-hom-primary" /> Facilities & Amenities</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <MetricCard label="Amenity revenue" value={naira(facRevMonth)} sub="this month" color="bg-amber-50 text-amber-700" />
+              <MetricCard label="Facility bookings" value={activeFac} sub={`${facBookings.items.length} total`} color="bg-green-50 text-green-700" />
+              <MetricCard label="Visits today" value={facVisitsToday} sub="access log" color="bg-blue-50 text-blue-700" />
+              <MetricCard label="Low-stock retail" value={lowStockGift} sub={`${giftItems.items.length} items`} color="bg-red-50 text-red-700" />
+            </div>
+          </div>
+          {facRevBySource.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {facRevBySource.map(([src, amt]) => (
+                <MetricCard key={src} label={src} value={naira(amt)} sub="facility revenue · this month" color="bg-amber-50 text-amber-700" />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="p-5">
           <h3 className="font-bold text-sm flex items-center gap-2"><CalendarCheck size={16} className="text-hom-primary" /> Recent Bookings</h3>
@@ -103,7 +145,7 @@ export function BookingsModule() {
               logBooking('booking.created', `New booking — ${b.guest} in Room ${b.room}`, b.id);
             }
             const msg = bookingConfirmationTemplate(b.guest, b.room, b.checkin);
-            sendWhatsApp(b.phone, msg); appendWhatsAppLog(b.phone, msg);
+            if (autoSendEnabled('bookingConfirm')) { sendWhatsApp(b.phone, msg); appendWhatsAppLog(b.phone, msg); }
             setShowForm(false); setEditItem(null);
           }}
           onCancel={() => { setShowForm(false); setEditItem(null); }} />
@@ -121,7 +163,15 @@ export function BookingsModule() {
                 {b.status !== 'checked-out' && b.status !== 'cancelled' && (
                   <>
                     <IconBtn onClick={() => { setEditItem(b); setShowForm(true); }} title="Edit"><Edit3 size={14} /></IconBtn>
-                    <IconBtn tone="green" onClick={() => { bookings.update(b.id, { status: 'checked-out' }); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' }); logBooking('booking.checkedOut', `Checked out ${b.guest} — Room ${b.room}`, b.id); }} title="Check Out"><LogOut size={14} /></IconBtn>
+                    <IconBtn tone="green" onClick={() => {
+                      bookings.update(b.id, { status: 'checked-out' });
+                      rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' });
+                      logBooking('booking.checkedOut', `Checked out ${b.guest} — Room ${b.room}`, b.id);
+                      if (autoSendEnabled('checkoutReminder')) {
+                        const msg = checkoutReminderTemplate(b.guest, b.room, b.checkout);
+                        sendWhatsApp(b.phone, msg); appendWhatsAppLog(b.phone, msg);
+                      }
+                    }} title="Check Out"><LogOut size={14} /></IconBtn>
                     <IconBtn tone="red" onClick={() => { bookings.update(b.id, { status: 'cancelled' }); rooms.update(rooms.items.find(r => r.number === b.room)?.id || '', { status: 'available' }); logBooking('booking.cancelled', `Cancelled booking — ${b.guest} (Room ${b.room})`, b.id); }} title="Cancel"><XCircle size={14} /></IconBtn>
                   </>
                 )}
@@ -408,9 +458,11 @@ export function StaffModule() {
                     <div className="font-bold text-hom-primary">Net: {naira(net)}</div>
                   </div>
                   <Btn color="green" className="!px-3 !py-1.5 !text-[11px]" onClick={async () => {
+                    if (!s.phone) return alert(`Add ${s.name}'s phone number to send a payslip.`);
+                    if (!autoSendEnabled('payslip')) return;
                     const msg = payslipTemplate(s.name, net);
-                    await sendWhatsApp('phone', msg);
-                    appendWhatsAppLog('phone', msg);
+                    await sendWhatsApp(s.phone, msg);
+                    appendWhatsAppLog(s.phone, msg);
                     alert(`Payslip sent to ${s.name}: ${msg}`);
                   }}><Send size={10} /> Payslip</Btn>
                   <div className="flex gap-1">
@@ -429,16 +481,17 @@ export function StaffModule() {
 }
 
 function StaffForm({ initial, depts, onSave, onCancel }: { initial: Staff | null; depts: Department[]; onSave: (s: Staff) => void; onCancel: () => void }) {
-  const [f, setF] = useState(initial ? { name: initial.name, role: initial.role, salary: String(initial.salary) } : { name: '', role: '', salary: '' });
+  const [f, setF] = useState(initial ? { name: initial.name, role: initial.role, salary: String(initial.salary), phone: initial.phone ?? '' } : { name: '', role: '', salary: '', phone: '' });
   return (
     <FormCard title={initial ? 'Edit Staff' : 'Add Staff'} onCancel={onCancel}>
-      <div className="grid md:grid-cols-3 gap-3">
+      <div className="grid md:grid-cols-2 gap-3">
         <Field label="Full name"><TextInput value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="Full name" /></Field>
         <Field label="Role"><TextInput value={f.role} onChange={e => setF({ ...f, role: e.target.value })} placeholder="Role (e.g. Front Desk)" /></Field>
         <Field label="Monthly salary (₦)"><NumberInput value={f.salary} onChange={e => setF({ ...f, salary: e.target.value })} placeholder="Monthly salary (₦)" /></Field>
+        <Field label="Phone (for payslip WhatsApp)"><TextInput value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} placeholder="e.g. +2348012345678" /></Field>
       </div>
       <div className="mt-4 flex gap-2">
-        <Btn onClick={() => { if (!f.name || !f.role || !f.salary) return alert('All fields required'); onSave({ id: initial?.id || uid('s'), name: f.name, role: f.role, salary: Number(f.salary), departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Staff'}</Btn>
+        <Btn onClick={() => { if (!f.name || !f.role || !f.salary) return alert('All fields required'); onSave({ id: initial?.id || uid('s'), name: f.name, role: f.role, salary: Number(f.salary), phone: f.phone.trim() || undefined, departments: initial?.departments || depts }); }}>{initial ? 'Update' : 'Add Staff'}</Btn>
         <Btn color="outline" onClick={onCancel}>Cancel</Btn>
       </div>
     </FormCard>
@@ -471,7 +524,14 @@ export function VendorsModule() {
       )}
       {showForm && editItem?._type === 'po' && (
         <POForm vendors={vendors.items} initial={editItem.id ? editItem : null} depts={depts} onSave={(po) => {
-          if (editItem.id) pos.replace(po.id, po); else pos.add(po);
+          if (editItem.id) pos.replace(po.id, po); else {
+            pos.add(po);
+            const vendor = vendors.items.find(v => v.id === po.vendorId);
+            if (vendor?.contact && autoSendEnabled('purchaseOrder')) {
+              const msg = poNotificationTemplate(vendor.name, po.items, po.amount);
+              sendWhatsApp(vendor.contact, msg); appendWhatsAppLog(vendor.contact, msg);
+            }
+          }
           setShowForm(false); setEditItem(null);
         }} onCancel={() => { setShowForm(false); setEditItem(null); }} />
       )}
