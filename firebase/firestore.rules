@@ -3,14 +3,18 @@ rules_version = '2';
 // HOM — Firebase Security Rules
 //
 // Zero-trust by design:
-//   - Firestore documents are NEVER written by end-user clients.
-//     All identity, role and invite mutations go through Cloud Functions
-//     (Admin SDK), which bypass these rules after server-side validation.
-//   - Clients may only READ:
-//       hotels/*           → members of that hotel (active)
-//       user_roles/*       → the account itself, or same-hotel admins
-//   - invites/* is not readable or writable by clients at all, so invite
-//     codes cannot be enumerated or forged (the code IS the credential).
+//   - Identity documents (user_roles, hotels, invites) are NEVER written by
+//     end-user clients. All identity, role and invite mutations go through
+//     Cloud Functions (Admin SDK), which bypass these rules after server-side
+//     validation.
+//   - Clients may READ hotels/* and same-hotel user_roles, and may read/write
+//     offline-first business collections under their OWN hotel only.
+//   - Chat (chat_rooms / chat_messages) is department-scoped: channels are
+//     readable only by staff whose assignedDepartments intersect the room's
+//     departments (management always sees everything), DMs only by their
+//     members, #hotel-general readable by all active staff.
+//   - `whatsapp_credentials/*` is denied to every client — the WABA token is
+//     read only by the server route via the Admin SDK.
 //
 // Deployment: firebase deploy --only firestore:rules
 
@@ -28,8 +32,7 @@ service cloud.firestore {
     }
 
     function isActive(uid) {
-      let d = roleDoc(uid);
-      return d != null && d.status == 'active';
+      return roleDoc(uid) != null && roleDoc(uid).status == 'active';
     }
 
     function isAdminRole(roleIds) {
@@ -37,19 +40,98 @@ service cloud.firestore {
     }
 
     function isAdmin(uid) {
-      let d = roleDoc(uid);
-      return d != null && isActive(uid) && isAdminRole(d.roleIds);
+      return isActive(uid) && isAdminRole(roleDoc(uid).roleIds);
     }
 
     function sameHotel(a, b) {
       return a != null && b != null && a == b;
     }
 
+    // Active, signed-in member of a specific hotel.
+    function activeHotelMember(uid, hotelId) {
+      return signedIn() && isActive(uid)
+        && sameHotel(roleDoc(uid).hotelId, hotelId);
+    }
+
+    // ───────────────────────── chat ─────────────────────────
+
+    // Management always sees every channel; everyone else only when their
+    // assigned departments intersect the room's scope.
+    function canSeeChannelDepartments(uid, departments) {
+      return departments.size() == 0 // whole-hotel scope
+        || isAdmin(uid)
+        || (roleDoc(uid).assignedDepartments != null
+            && roleDoc(uid).assignedDepartments.hasAny(departments));
+    }
+
+    // Whether an active hotel member may READ a chat room doc.
+    function chatRoomReadable(uid, hotelId, roomData) {
+      return activeHotelMember(uid, hotelId)
+        && roomData != null
+        && (roomData.kind == 'general'
+            || (roomData.kind == 'dm'
+                && roomData.members != null
+                && (roomData.members.hasAny([uid])
+                    || (roleDoc(uid).userName != null
+                        && roomData.members.hasAny([roleDoc(uid).userName]))))
+            || (roomData.kind == 'channel'
+                && canSeeChannelDepartments(uid, roomData.departments)));
+    }
+
+    // Whether an active hotel member may WRITE to a chat room doc.
+    // * dm       → only the members
+    // * channel  → same department scope as reads (sending into your channel)
+    // * general  → only staff with the manageChat permission
+    function chatRoomWritable(uid, hotelId, roomData) {
+      return chatRoomReadable(uid, hotelId, roomData)
+        && (roomData.kind == 'dm'
+            ? roomData.members != null
+              && (roomData.members.hasAny([uid])
+                  || (roleDoc(uid).userName != null
+                      && roomData.members.hasAny([roleDoc(uid).userName])))
+            : roomData.kind == 'general'
+                ? isAdmin(uid)
+                  || (roleDoc(uid).customPermissions != null
+                      && roleDoc(uid).customPermissions.hasAny(['manageChat']))
+                  || (roleDoc(uid).roleIds != null
+                      && roleDoc(uid).roleIds.hasAny(['dept_head']))
+                : true);
+    }
+
+    // The parent room doc for a chat message.
+    function messageRoom(hotelId, roomId) {
+      return get(
+        /databases/$(database)/documents/hotels/$(hotelId)/chat_rooms/$(roomId)
+      ).data;
+    }
+
+    // A message is readable exactly when its parent room is readable.
+    function messageReadable(uid, hotelId, messageData) {
+      return activeHotelMember(uid, hotelId)
+        && messageData != null
+        && chatRoomReadable(uid, hotelId, messageRoom(hotelId, messageData.roomId));
+    }
+
+    // A message may be created only by its own sender, into a room the
+    // caller can write to.
+    function messageCreatable(uid, hotelId, messageData) {
+      return activeHotelMember(uid, hotelId)
+        && messageData != null
+        && messageData.senderId == uid
+        && chatRoomWritable(uid, hotelId, messageRoom(hotelId, messageData.roomId));
+    }
+
+    // The ONLY allowed message update is a read-receipt append (readBy).
+    // Body edits, sender spoofing and room reassignment are denied.
+    function messageUpdatable(messageData) {
+      return messageData.diff(resource.data).affectedKeys().hasOnly(['readBy'])
+        && messageData.readBy.size() >= resource.data.readBy.size();
+    }
+
     // ───────────────────────── hotels ─────────────────────────
 
     match /hotels/{hotelId} {
-      allow read: if signedIn() && isActive(request.auth.uid)
-        && sameHotel(roleDoc(request.auth.uid).hotelId, hotelId);
+      allow read: if activeHotelMember(request.auth.uid, hotelId);
       allow write: if false; // Cloud Functions only
     }
 
@@ -76,6 +158,15 @@ service cloud.firestore {
       allow read, write: if false; // Cloud Functions only
     }
 
+    // ─────────────────────── whatsapp ───────────────────────
+
+    // The WABA access token is a server secret. It lives in a top-level
+    // collection that NO client may read or write; only the server route
+    // (Admin SDK) touches it.
+    match /whatsapp_credentials/{hotelId} {
+      allow read, write: if false; // server-only (Admin SDK)
+    }
+
     // ─────────────────────── business data ───────────────────────
 
     // Offline-first business records (bookings, inventory, fnb, hk, eng, ...)
@@ -89,9 +180,80 @@ service cloud.firestore {
     // Conflict handling is field-level last-write-wins + server timestamps.
     match /hotels/{hotelId}/{collection}/{docId} {
       allow read, create, update, delete:
-        if signedIn()
-        && isActive(request.auth.uid)
-        && sameHotel(roleDoc(request.auth.uid).hotelId, hotelId);
+        if activeHotelMember(request.auth.uid, hotelId);
+    }
+
+    // ─────────────────────── chat_rooms ───────────────────────
+
+    match /hotels/{hotelId}/chat_rooms/{roomId} {
+      allow read: if chatRoomReadable(request.auth.uid, hotelId, resource.data);
+
+      // Creating a room is allowed when the creator could post to it (DMs
+      // require the creator to be a member, channels a matching department).
+      allow create:
+        if chatRoomWritable(request.auth.uid, hotelId, request.resource.data);
+
+      // Rooms are updated in place as messages arrive (lastMessage etc.).
+      // Use the write gate so #hotel-general stays management-only.
+      allow update:
+        if chatRoomWritable(request.auth.uid, hotelId, request.resource.data);
+
+      allow delete:
+        if chatRoomWritable(request.auth.uid, hotelId, resource.data);
+    }
+
+    // ─────────────────────── chat_messages ───────────────────────
+
+    match /hotels/{hotelId}/chat_messages/{messageId} {
+      allow read:
+        if messageReadable(request.auth.uid, hotelId, resource.data);
+
+      allow create:
+        if messageCreatable(request.auth.uid, hotelId, request.resource.data);
+
+      allow update:
+        if activeHotelMember(request.auth.uid, hotelId)
+          && messageReadable(request.auth.uid, hotelId, resource.data)
+          && messageUpdatable(request.resource.data);
+
+      allow delete:
+        if activeHotelMember(request.auth.uid, hotelId)
+          && (isAdmin(request.auth.uid)
+              || resource.data.senderId == request.auth.uid);
+    }
+
+    // ─────────────────────── activity_logs ───────────────────────
+
+    // Append-only audit trail: any active hotel member can log, but history
+    // can never be edited or deleted by clients.
+    match /hotels/{hotelId}/activity_logs/{logId} {
+      allow read, create:
+        if activeHotelMember(request.auth.uid, hotelId);
+      allow update, delete: if false;
+    }
+
+    // ─────────────────── settings/whatsapp ───────────────────
+
+    // Non-secret per-hotel WABA configuration (phoneId, displayName, toggles).
+    // Readable by hotel management so the app can render status; the secret
+    // token lives in whatsapp_credentials/* which is server-only.
+    match /hotels/{hotelId}/settings/whatsapp {
+      allow read:
+        if activeHotelMember(request.auth.uid, hotelId)
+          && isAdmin(request.auth.uid);
+      allow write: if false; // server route (Admin SDK) only
+    }
+
+    // ─────────────────── settings/channels ───────────────────
+
+    // Non-secret per-hotel channel config (Paystack public key, Booking.com
+    // credentials). Readable by management; writes go through the server
+    // route (Admin SDK).
+    match /hotels/{hotelId}/settings/channels {
+      allow read:
+        if activeHotelMember(request.auth.uid, hotelId)
+          && isAdmin(request.auth.uid);
+      allow write: if false; // server route (Admin SDK) only
     }
   }
 }
